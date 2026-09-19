@@ -30,6 +30,31 @@ YELLOW = "\033[33m"
 OFF = "\033[0m"
 
 
+def _init_console() -> bool:
+    """La consola de Windows usa cp1252 y revienta con cualquier glifo no-latin1.
+
+    Intentamos pasarla a UTF-8; si no se puede, devolvemos False y la salida
+    cae a marcas ASCII. Un agente que muere imprimiendo un tilde es un agente
+    que "falla" por una razon que no tiene nada que ver con el agente.
+    """
+    ok = True
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
+        except (AttributeError, OSError, ValueError):
+            ok = False
+    return ok
+
+
+UNICODE_OK = _init_console()
+
+OK_MARK = "✓" if UNICODE_OK else "[ok]"
+BAD_MARK = "✗" if UNICODE_OK else "[x]"
+ARROW = "→" if UNICODE_OK else "->"
+RULE = "──" if UNICODE_OK else "--"
+PIPE = "│" if UNICODE_OK else "|"
+
+
 def _supports_color() -> bool:
     return sys.stdout.isatty()
 
@@ -56,20 +81,20 @@ class ConsoleSink:
         stamp = _c(f"[{time.monotonic() - self._t0:6.1f}s]", DIM)
 
         if event == "turn_start":
-            print(f"{stamp} {_c(f'── turno {payload['turn']}', BOLD)}")
+            print(f"{stamp} {_c(RULE + ' turno ' + str(payload['turn']), BOLD)}")
 
         elif event == "model_response":
             response = payload["response"]
             assert isinstance(response, ModelResponse)
             meta = _c(
-                f"{response.input_tokens}→{response.output_tokens} tok · {response.duration_ms / 1000:.1f}s",
+                f"{response.input_tokens}{ARROW}{response.output_tokens} tok | {response.duration_ms / 1000:.1f}s",
                 DIM,
             )
             print(f"{stamp}   modelo: {response.stop_reason.value} · {meta}")
             if response.content and self.verbose:
                 head = response.content.strip().splitlines()[:3]
                 for line in head:
-                    print(f"{stamp}   {_c('│ ' + line[:110], DIM)}")
+                    print(f"{stamp}   {_c(PIPE + ' ' + line[:110], DIM)}")
 
         elif event == "tools_start":
             calls = payload["calls"]
@@ -77,7 +102,7 @@ class ConsoleSink:
             for call in calls:
                 assert isinstance(call, ToolCall)
                 args = ", ".join(f"{k}={v!r}" for k, v in call.arguments.items())
-                print(f"{stamp}   {_c('→', CYAN)} {call.name}({args[:100]})")
+                print(f"{stamp}   {_c(ARROW, CYAN)} {call.name}({args[:100]})")
 
         elif event == "tools_done":
             results = payload["results"]
@@ -86,11 +111,11 @@ class ConsoleSink:
                 assert isinstance(result, ToolResult)
                 if result.success:
                     size = len(result.output or "")
-                    mark = _c("✓", GREEN)
+                    mark = _c(OK_MARK, GREEN)
                     extra = _c(f"{size} chars{' · truncado' if result.truncated else ''}", DIM)
                     print(f"{stamp}   {mark} {result.name} {extra}")
                 else:
-                    print(f"{stamp}   {_c('✗', RED)} {result.name}: {result.error}")
+                    print(f"{stamp}   {_c(BAD_MARK, RED)} {result.name}: {result.error}")
 
 
 # ---------------------------------------------------------------------------
@@ -101,12 +126,12 @@ async def cmd_health() -> int:
     try:
         info = await provider.health()
     except ProviderError as exc:
-        print(_c(f"✗ {exc}", RED))
+        print(_c(f"{BAD_MARK} {exc}", RED))
         return 1
     finally:
         await provider.aclose()
 
-    print(_c("✓ inferencia local operativa", GREEN))
+    print(_c(f"{OK_MARK} inferencia local operativa", GREEN))
     for key, value in info.items():
         print(f"  {key:18} {value}")
     print(f"  {'num_ctx':18} {settings.num_ctx}")
@@ -116,14 +141,14 @@ async def cmd_health() -> int:
 async def cmd_ask(repo: str, objective: str, *, verbose: bool, max_turns: int) -> int:
     repo_path = Path(repo).expanduser().resolve()
     if not repo_path.is_dir():
-        print(_c(f"✗ '{repo}' no es un directorio", RED))
+        print(_c(f"{BAD_MARK} '{repo}' no es un directorio", RED))
         return 1
 
     provider = build_provider()
     try:
         info = await provider.health()
     except ProviderError as exc:
-        print(_c(f"✗ {exc}", RED))
+        print(_c(f"{BAD_MARK} {exc}", RED))
         await provider.aclose()
         return 1
 
@@ -151,7 +176,7 @@ async def cmd_ask(repo: str, objective: str, *, verbose: bool, max_turns: int) -
 
     print()
     color = GREEN if outcome.succeeded else RED
-    print(_c(f"── {outcome.summary()}", color))
+    print(_c(f"{RULE} {outcome.summary()}", color))
     print()
     if outcome.output:
         print(outcome.output)

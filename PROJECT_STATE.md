@@ -35,7 +35,10 @@ verifica resultados y devuelve evidencia.
 
 ## Estado actual
 
-**Fase 1 (Agent Foundations) — implementada, pendiente de verificación end-to-end contra el modelo real.**
+**Fase 1 (Agent Foundations) — COMPLETA Y VERIFICADA END-TO-END contra el LLM local real.**
+
+El recorrido `usuario → harness → LLM local → tool call → harness ejecuta → ToolResult → LLM →
+respuesta final` funciona. Evidencia reproducible más abajo.
 
 ### Qué funciona hoy
 
@@ -43,10 +46,11 @@ verifica resultados y devuelve evidencia.
 |---|---|
 | Modelo de datos completo (Pydantic) | ✅ |
 | `ModelProvider` como Protocol | ✅ |
-| `OllamaProvider` contra `/api/chat` real | ✅ implementado, health verificado |
+| `OllamaProvider` contra `/api/chat` real | ✅ **verificado con inferencia real** |
 | Tools `list_files` y `read_file` | ✅ con tests |
 | Validación de argumentos con Pydantic | ✅ |
-| Agent loop con tool calling | ✅ con tests |
+| Agent loop con tool calling | ✅ **verificado end-to-end** |
+| **Tool calls en paralelo** | ✅ 3 `read_file` en un turno, concurrentes |
 | Correlación por `call_id` | ✅ |
 | 5 condiciones de terminación | ✅ con tests |
 | Truncado de tool results | ✅ |
@@ -54,11 +58,55 @@ verifica resultados y devuelve evidencia.
 | CLI (`health`, `ask`) | ✅ |
 | Suite de tests | ✅ 24 passed |
 
+### Evidencia de la verificación (2026-09-19)
+
+Comando: `uv run localforge ask . "Explicame la arquitectura de este proyecto..."`
+
+```
+[   0.0s] ── turno 1
+[   0.7s]   modelo: tool_use · 850→35 tok | 0.7s
+[   0.7s]   → list_files(max_depth=5, max_entries=100, path='.')
+[   0.8s]   ✓ list_files 564 chars
+[   0.8s] ── turno 2
+[   2.1s]   modelo: tool_use · 1134→117 tok | 1.4s
+[   2.1s]   → read_file(path='src/localforge/cli.py', limit=100, offset=0)
+[   2.1s]   → read_file(path='src/localforge/models.py', limit=100, offset=0)
+[   2.1s]   → read_file(path='src/localforge/harness/loop.py', limit=100, offset=0)
+[   2.1s]   ✓ read_file 3888 chars   ← los tres completan a la vez:
+[   2.1s]   ✓ read_file 3735 chars      ejecucion paralela confirmada
+[   2.1s]   ✓ read_file 4248 chars
+[   2.1s] ── turno 3
+[  12.8s]   modelo: end_turn · 4975→835 tok | 10.7s
+
+── completed | 3 turnos | 7946 tokens | 12.8s | tools: list_files, read_file, read_file, read_file
+```
+
+En la respuesta el modelo nombra `AgentHarness`, `StopReason`, `ToolCall`, `ToolResult` y la
+integración con Ollama: información que **sólo se obtiene leyendo los archivos**, no del listado.
+
+### Hallazgo importante: grounding
+
+La **primera** corrida (con el system prompt original) terminó en 2 turnos llamando sólo a
+`list_files` y **sin leer ningún archivo**. Respondió infiriendo de los nombres, con lenguaje
+especulativo ("posiblemente", "probablemente"), y concluyó que `cli.py` era el archivo más
+importante **por su tamaño en KB**.
+
+El mecanismo del harness funcionó perfecto; lo que falló fue el grounding del modelo.
+En la taxonomía de fallos eso es `CONTEXT`/`MODEL`, no `TOOL` ni `EXECUTION`.
+
+**Arreglo aplicado** (`harness/prompt.py`): el prompt pasó de "no inventes" a un método explícito
+en 3 pasos con read_file obligatorio, más una regla accionable — *prohibido usar "posiblemente",
+"probablemente", "parece que"; si te sale esa palabra es la señal de que te falta un read_file*.
+
+**Resultado:** 0 → 3 archivos leídos, y el hedging sobrevive **sólo** sobre archivos que
+efectivamente no leyó (comportamiento epistémicamente correcto, no alucinación).
+
+**Lección para la Fase 3:** el prompt mejora el grounding pero no lo garantiza. La garantía real es
+un **verifier de trayectoria**: rechazar la respuesta final si el agente no leyó ningún archivo.
+
 ### Qué NO funciona / no existe todavía
 
-- **Verificación end-to-end con el LLM real: PENDIENTE.** El modelo `qwen3:14b` estaba
-  descargándose al escribir esto. `localforge health` pasa, pero todavía no se corrió
-  `localforge ask` contra un repo real. **Este es el próximo paso obligatorio.**
+- No hay `search_code` (grep). Es la carencia más notoria en repos grandes.
 - No hay `write_file`, `run_command`, `run_tests`, `git_diff`.
 - No hay ContextBuilder, budgets de contexto ni compactación (Fase 2).
 - No hay state machine, planner, verifier ni repair loop (Fase 3).
@@ -400,26 +448,30 @@ sin mirar `success`. Aceptado. Los fallos **no** recuperables (credenciales, pre
 
 ## Trabajo actual
 
-**Descarga de `qwen3:14b` en curso** (~6 de 9.3 GB al momento de escribir).
+**Nada a medio implementar.** Fase 1 cerrada y verificada. Código completo, 24 tests en verde,
+end-to-end demostrado.
 
-Inmediatamente después: correr `localforge ask` contra un repositorio real y comprobar el
-recorrido completo `usuario → harness → LLM → tool call → harness ejecuta → ToolResult → LLM →
-respuesta final`. **Nada más debe implementarse antes de que eso funcione.**
-
-Archivos involucrados: ninguno a medio escribir. El código está completo y con tests.
+Último cambio: `harness/prompt.py` reescrito para forzar grounding (ver "Hallazgo importante").
 
 ---
 
 ## Próximos pasos
 
-1. **[BLOQUEANTE]** Terminar descarga → `localforge health` → `localforge ask` sobre un repo real.
-2. Si el tool calling de `qwen3:14b` falla o es errático: ajustar el system prompt, y si no alcanza
-   probar otro modelo (`qwen2.5-coder`, `mistral-small`, `llama3.1`). **Registrar el hallazgo acá.**
-3. Medir: tokens por turno, latencia por turno, cuántos turnos usa para "explicame el repo".
-   Esos números deciden cuándo arranca la Fase 2.
-4. Agregar `search_code` (grep léxico). Es la tool que más sube la tasa de éxito en repos grandes.
-5. Recién ahí: Fase 2 (ContextBuilder) **o** `write_file` + permisos (Fase 5) según lo que duela.
-   **No agregar tools con efectos sin permisos.**
+Ordenados por lo que más duele hoy, no por el orden de las fases:
+
+1. **`search_code` (grep léxico).** Es la carencia más grande. Hoy el agente sólo puede listar y
+   leer: para encontrar dónde se define algo tiene que adivinar qué archivo abrir. En un repo
+   mediano eso se cae enseguida. Es también la tool que más sube la tasa de éxito por línea escrita.
+2. **Medir antes de optimizar contexto.** Correr 4-5 tareas variadas sobre repos de distinto tamaño
+   y registrar `input_tokens` por turno. La Fase 2 (ContextBuilder, compactación) arranca cuando
+   los números muestren el problema, no antes. Con el repo actual: 850 → 1134 → 4975 tokens de
+   input en 3 turnos; `num_ctx` es 32768, o sea que todavía sobra muchísimo.
+3. **Decidir la próxima capacidad**, y la decisión tiene una restricción dura:
+   `write_file` y `run_command` **no se agregan sin permisos ALLOW/ASK/DENY** (Fase 5). Hoy el
+   agente es de solo lectura y por eso el riesgo de prompt injection es acotado. Ese equilibrio se
+   rompe exactamente el día que exista una tool con efectos.
+4. Verifier de trayectoria (Fase 3): rechazar la respuesta final si el agente no leyó ningún
+   archivo. Es la garantía dura que el prompt no puede dar.
 
 ---
 
@@ -452,22 +504,25 @@ uv run pytest -q
 2. Correr `uv run pytest -q` — deben pasar 24 tests.
 3. Correr `uv run localforge health` — debe reportar el modelo instalado.
 
-**Último objetivo:** demostrar el recorrido end-to-end con LLM local real.
+**Último objetivo:** demostrar el recorrido end-to-end con LLM local real. **CUMPLIDO.**
 
-**Último cambio exitoso:** agent loop completo con 24 tests en verde.
+**Último cambio exitoso:** system prompt reescrito para forzar grounding; el agente pasó de leer
+0 archivos a leer 3 en paralelo.
 
-**Problema actual:** el end-to-end contra el modelo real **no está verificado**. La descarga de
-`qwen3:14b` estaba en curso. Es lo primero que hay que hacer.
+**Problema actual:** ninguno bloqueante. La limitación más molesta es que **no existe
+`search_code`**: el agente no puede buscar, sólo listar y leer, así que para encontrar dónde se
+define algo tiene que adivinar qué archivo abrir.
 
 **Próxima acción recomendada:**
 
-```bash
-uv run localforge ask . "Explicame la arquitectura de este proyecto" -v
-```
+Implementar `search_code` en `src/localforge/tools/` siguiendo exactamente el patrón de
+`fs.py::ReadFileTool` (modelo Pydantic de args + clase con `name`/`description`/`args_model`/`run`),
+registrarla en `tools/__init__.py::default_registry()` y agregar tests en `tests/test_tools.py`.
+Debe usar `safe_path` y truncar resultados con instrucciones, igual que las otras dos.
 
-Observar: ¿pide `list_files` primero? ¿los argumentos llegan bien formados? ¿cuántos turnos usa?
-¿el resultado de la tool vuelve correctamente al contexto? Si algo falla, el problema casi seguro
-está en `providers/ollama.py::complete` (parseo de tool_calls) o en el system prompt
-(`harness/prompt.py`).
+**Restricción dura que NO hay que violar:** no agregar `write_file` ni `run_command` antes de que
+exista el sistema de permisos ALLOW/ASK/DENY. Hoy la seguridad del proyecto descansa en que el
+agente es de solo lectura.
 
-**Regla del proyecto:** no agregar features nuevas hasta que ese recorrido funcione de verdad.
+**Regla del proyecto:** trabajar incrementalmente — diseñar una parte chica, implementarla,
+ejecutarla de verdad contra el LLM local, medir, actualizar este archivo, y recién ahí seguir.
