@@ -171,8 +171,12 @@ class ToolExecutor:
     async def run_all(self, calls: list[ToolCall]) -> list[ToolResult]:
         """Todas las tools del turno en paralelo.
 
-        `run_one` atrapa todo y siempre devuelve un ToolResult, asi que por
-        construccion no hay excepciones que escapen de gather.
+        `run_one` atrapa todos los fallos NORMALES de una tool y siempre
+        devuelve un ToolResult, asi que en operacion normal no hay excepciones
+        que escapen de gather.
+
+        Lo que si escapa es BaseException, CancelledError incluido -- y es
+        deliberado: es asi como el wall clock del harness corta el turno entero.
         """
         return list(await asyncio.gather(*(self.run_one(c) for c in calls)))
 
