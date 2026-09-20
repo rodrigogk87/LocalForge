@@ -1,0 +1,7 @@
+src/
+tests/
+scripts/
+.venv/
+__pycache__/
+uv.lock
+pyproject.toml

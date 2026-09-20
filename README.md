@@ -5,8 +5,22 @@ Coding agent que corre sobre un **LLM local** (RTX 4090), con un **agent harness
 Sin LangChain, sin CrewAI, sin frameworks que escondan el loop. Las librerías que se usan son
 infraestructura (`httpx`, `pydantic`), no abstracciones de agentes.
 
-> El estado real y actualizado del proyecto vive en **[`PROJECT_STATE.md`](PROJECT_STATE.md)**.
-> Si sos un agente retomando este trabajo, empezá por ahí.
+## Por dónde empezar
+
+| Si sos… | Leé |
+|---|---|
+| 🧑‍🎓 **una persona aprendiendo** | **[`docs/GUIA.md`](docs/GUIA.md)** — recorrido guiado del código en 5 sesiones, con preguntas, respuestas y experimentos para romperlo a propósito |
+| 🤖 **un agente retomando el trabajo** | **[`PROJECT_STATE.md`](PROJECT_STATE.md)** — estado real, decisiones de arquitectura y handoff |
+
+### Proyecto hermano: AgentForge Academy
+
+👉 **https://agentforge-academy-chi.vercel.app**
+
+La academia interactiva con los conceptos que este proyecto implementa: 8 mundos, 56 clases,
+del agent loop a los evals y los sistemas multi-agente.
+
+LocalForge es esa teoría hecha código. `docs/GUIA.md` cruza cada decisión del código con su clase
+correspondiente.
 
 ## Requisitos
 

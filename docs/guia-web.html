@@ -1,0 +1,1062 @@
+<title>LocalForge Anotado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+  :root {
+    /* neutros con sesgo frio: elegidos, no heredados */
+    --ground: #f6f7f9;
+    --surface: #ffffff;
+    --surface-2: #eef0f4;
+    --line: #dde1e8;
+    --line-soft: #e8ebf0;
+    --text: #15181f;
+    --text-2: #4a5160;
+    --text-3: #757d8d;
+
+    /* ambar = anotacion al margen (el subrayador de esta guia) */
+    --accent: #b45309;
+    --accent-soft: #fdf3e3;
+    --accent-line: #e9c893;
+
+    /* violeta = salto a la Academy. el color dice a donde te lleva */
+    --academy: #6d28d9;
+    --academy-soft: #f4f0fe;
+    --academy-line: #d6c8f7;
+
+    --ok: #15803d;
+    --ok-soft: #eef7f0;
+    --danger: #b91c1c;
+    --danger-soft: #fdf0ef;
+
+    --code-bg: #14171d;
+    --code-text: #d7dbe4;
+    --code-dim: #6f7787;
+
+    --measure: 68ch;
+    --radius: 10px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #12141a;
+      --surface: #191c24;
+      --surface-2: #21252f;
+      --line: #2c313d;
+      --line-soft: #242833;
+      --text: #e7e9ef;
+      --text-2: #a8b0c0;
+      --text-3: #79818f;
+
+      --accent: #f0a53c;
+      --accent-soft: #2a2114;
+      --accent-line: #6b4a1c;
+
+      --academy: #b193f5;
+      --academy-soft: #221b33;
+      --academy-line: #4a3a72;
+
+      --ok: #63c98a;
+      --ok-soft: #16231b;
+      --danger: #f08b84;
+      --danger-soft: #2a1a19;
+
+      --code-bg: #0d0f14;
+      --code-text: #d7dbe4;
+      --code-dim: #656d7d;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #12141a;
+    --surface: #191c24;
+    --surface-2: #21252f;
+    --line: #2c313d;
+    --line-soft: #242833;
+    --text: #e7e9ef;
+    --text-2: #a8b0c0;
+    --text-3: #79818f;
+    --accent: #f0a53c;
+    --accent-soft: #2a2114;
+    --accent-line: #6b4a1c;
+    --academy: #b193f5;
+    --academy-soft: #221b33;
+    --academy-line: #4a3a72;
+    --ok: #63c98a;
+    --ok-soft: #16231b;
+    --danger: #f08b84;
+    --danger-soft: #2a1a19;
+    --code-bg: #0d0f14;
+    --code-text: #d7dbe4;
+    --code-dim: #656d7d;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--text);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px;
+  }
+
+  code, pre, .mono { font-family: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace; }
+
+  /* ---------- barra superior: el puente entre los dos proyectos ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding: 10px 20px;
+    background: color-mix(in srgb, var(--ground) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .brand { display: flex; align-items: baseline; gap: 9px; font-weight: 600; letter-spacing: -0.01em; }
+  .brand .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); align-self: center; }
+  .brand small { color: var(--text-3); font-weight: 400; font-size: 12px; }
+
+  .switch { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .to-academy {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 7px 13px; border-radius: 999px;
+    background: var(--academy-soft); color: var(--academy);
+    border: 1px solid var(--academy-line);
+    font-size: 13.5px; font-weight: 600; text-decoration: none;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .to-academy:hover { transform: translateY(-1px); box-shadow: 0 4px 14px -6px color-mix(in srgb, var(--academy) 60%, transparent); }
+  .theme-btn {
+    border: 1px solid var(--line); background: var(--surface); color: var(--text-2);
+    border-radius: 999px; width: 34px; height: 34px; cursor: pointer; font-size: 14px; line-height: 1;
+  }
+  .theme-btn:hover { color: var(--text); border-color: var(--text-3); }
+
+  /* ---------- estructura ---------- */
+  .shell { max-width: 1240px; margin: 0 auto; padding: 0 20px 96px; }
+  .cols { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 48px; align-items: start; }
+  @media (max-width: 1000px) { .cols { grid-template-columns: 1fr; gap: 0; } .rail { display: none; } }
+
+  .rail { position: sticky; top: 76px; padding-top: 40px; }
+  .rail h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .14em; color: var(--text-3); margin: 0 0 12px; font-family: "IBM Plex Sans", sans-serif; font-weight: 600; }
+  .rail ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+  .rail a {
+    display: grid; grid-template-columns: 22px 1fr; gap: 9px; align-items: baseline;
+    padding: 7px 10px; border-radius: 7px; text-decoration: none; color: var(--text-2); font-size: 13.5px; line-height: 1.35;
+  }
+  .rail a:hover { background: var(--surface-2); color: var(--text); }
+  .rail a .n { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .rail a.current { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .rail a.current .n { color: var(--accent); }
+  .rail .mins { color: var(--text-3); font-size: 11px; }
+
+  main { padding-top: 40px; min-width: 0; }
+  .prose { max-width: var(--measure); }
+
+  /* ---------- hero ---------- */
+  .hero { max-width: 760px; margin-bottom: 40px; }
+  .eyebrow { font-family: "IBM Plex Mono", monospace; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; }
+  h1 {
+    font-family: Newsreader, Georgia, serif; font-weight: 600;
+    font-size: clamp(34px, 5.6vw, 54px); line-height: 1.05; letter-spacing: -0.02em;
+    margin: 0 0 16px; text-wrap: balance;
+  }
+  .lead { font-size: 18.5px; color: var(--text-2); max-width: 62ch; margin: 0 0 26px; }
+  .lead strong { color: var(--text); font-weight: 600; }
+
+  .facts { display: flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+  .fact { flex: 1 1 130px; padding: 13px 16px; border-right: 1px solid var(--line); }
+  .fact:last-child { border-right: 0; }
+  .fact .v { font-family: "IBM Plex Mono", monospace; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .fact .k { font-size: 11.5px; color: var(--text-3); text-transform: uppercase; letter-spacing: .07em; }
+
+  /* ---------- tipografia de seccion ---------- */
+  h2 {
+    font-family: Newsreader, Georgia, serif; font-weight: 600;
+    font-size: 30px; line-height: 1.18; letter-spacing: -0.015em;
+    margin: 0 0 6px; text-wrap: balance; scroll-margin-top: 80px;
+  }
+  .sec-head { margin: 64px 0 24px; padding-top: 26px; border-top: 1px solid var(--line); max-width: var(--measure); }
+  .sec-head .kicker { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+  .sec-head .num { font-family: "IBM Plex Mono", monospace; font-size: 12px; font-weight: 600; color: var(--accent); letter-spacing: .06em; }
+  .sec-head .mins { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--text-3); }
+  .sec-head .file { font-family: "IBM Plex Mono", monospace; font-size: 13px; color: var(--text-2); margin-top: 10px; }
+  .sec-head .file b { color: var(--text); font-weight: 500; }
+
+  h3 {
+    font-size: 17px; font-weight: 600; margin: 40px 0 10px; letter-spacing: -0.005em;
+    max-width: var(--measure); scroll-margin-top: 80px;
+  }
+  h3 .ln { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; font-weight: 400; color: var(--text-3); margin-left: 8px; }
+
+  p { margin: 0 0 15px; max-width: var(--measure); }
+  ul, ol { max-width: var(--measure); padding-left: 20px; margin: 0 0 16px; }
+  li { margin-bottom: 7px; }
+  strong { font-weight: 600; }
+
+  p code, li code, td code { background: var(--surface-2); border: 1px solid var(--line-soft); padding: .1em .38em; border-radius: 4px; font-size: .88em; }
+
+  /* ---------- codigo ---------- */
+  pre {
+    background: var(--code-bg); color: var(--code-text);
+    border-radius: var(--radius); padding: 15px 17px; margin: 0 0 18px;
+    overflow-x: auto; font-size: 13px; line-height: 1.62; max-width: var(--measure);
+    border: 1px solid transparent;
+  }
+  pre .c { color: var(--code-dim); }
+  /* la linea que importa, resaltada como con subrayador */
+  pre .hl { display: inline-block; width: 100%; background: color-mix(in srgb, #f0a53c 17%, transparent); box-shadow: inset 2px 0 0 #f0a53c; padding-left: 6px; margin-left: -8px; border-radius: 2px; }
+  pre.term { font-size: 12.5px; }
+  pre.term .ok { color: #63c98a; }
+  pre.term .ar { color: #6bc7e0; }
+
+  /* ---------- pregunta / respuesta ---------- */
+  .q {
+    max-width: var(--measure); margin: 22px 0 0;
+    border-left: 3px solid var(--accent); background: var(--accent-soft);
+    padding: 13px 16px; border-radius: 0 var(--radius) var(--radius) 0;
+  }
+  .q .label { font-family: "IBM Plex Mono", monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--accent); display: block; margin-bottom: 5px; }
+  .q p { margin: 0; font-weight: 500; }
+
+  details.a { max-width: var(--measure); margin: 0 0 18px; border: 1px solid var(--line); border-top: 0; border-radius: 0 0 var(--radius) var(--radius); background: var(--surface); }
+  details.a > summary {
+    cursor: pointer; list-style: none; padding: 10px 16px;
+    font-size: 13.5px; font-weight: 600; color: var(--text-2);
+    display: flex; align-items: center; gap: 8px;
+  }
+  details.a > summary::-webkit-details-marker { display: none; }
+  details.a > summary::before { content: "▸"; color: var(--accent); font-size: 11px; transition: transform .18s ease; }
+  details.a[open] > summary::before { transform: rotate(90deg); }
+  details.a > summary:hover { color: var(--text); }
+  .a-body { padding: 2px 16px 14px; border-top: 1px solid var(--line-soft); }
+  .a-body p:last-child { margin-bottom: 0; }
+
+  /* ---------- callout Academy: anotacion al margen ---------- */
+  .academy {
+    max-width: var(--measure); margin: 20px 0 22px;
+    border: 1px solid var(--academy-line); background: var(--academy-soft);
+    border-radius: var(--radius); padding: 13px 16px;
+    font-size: 14.5px; color: var(--text-2);
+  }
+  .academy .hd { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; flex-wrap: wrap; }
+  .academy .cap { font-size: 15px; line-height: 1; }
+  .academy .who { font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--academy); font-weight: 600; }
+  .academy p { margin: 0 0 9px; max-width: none; }
+  .academy p:last-child { margin-bottom: 0; }
+  .academy ul { max-width: none; margin-bottom: 0; }
+  .lesson {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: color-mix(in srgb, var(--academy) 13%, transparent);
+    border: 1px solid var(--academy-line);
+    color: var(--academy); text-decoration: none;
+    font-family: "IBM Plex Mono", monospace; font-size: 12px; font-weight: 600;
+    padding: 2px 8px; border-radius: 5px; white-space: nowrap;
+  }
+  .lesson:hover { background: color-mix(in srgb, var(--academy) 22%, transparent); }
+  .lesson::after { content: "↗"; font-size: 10px; opacity: .7; }
+
+  /* ---------- otros bloques ---------- */
+  .check { max-width: var(--measure); border: 1px solid var(--line); border-left: 3px solid var(--ok); background: var(--ok-soft); border-radius: 0 var(--radius) var(--radius) 0; padding: 14px 17px; margin: 30px 0 18px; }
+  .check h4 { margin: 0 0 9px; font-size: 14px; color: var(--ok); display: flex; align-items: center; gap: 7px; }
+  .check ol { margin: 0; max-width: none; }
+  .check li { font-size: 14.5px; }
+
+  .exp { max-width: var(--measure); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 16px 18px; margin: 0 0 16px; }
+  .exp.star { border-color: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
+  .exp h4 { margin: 0 0 4px; font-size: 15.5px; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .exp .tag { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; text-transform: uppercase; letter-spacing: .09em; padding: 2px 7px; border-radius: 4px; background: var(--danger-soft); color: var(--danger); border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent); }
+  .exp p { max-width: none; font-size: 14.5px; }
+  .exp pre { max-width: none; }
+
+  table { width: 100%; border-collapse: collapse; margin: 0 0 20px; font-size: 14.5px; max-width: var(--measure); }
+  .wide-table { max-width: none; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-3); font-weight: 600; border-bottom: 1px solid var(--line); }
+  .scroller { overflow-x: auto; margin-bottom: 20px; }
+  .st { font-family: "IBM Plex Mono", monospace; font-size: 12px; white-space: nowrap; }
+  .st.done { color: var(--ok); }
+  .st.todo { color: var(--text-3); }
+  .st.part { color: var(--accent); }
+
+  .flow { max-width: var(--measure); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; margin: 0 0 22px; }
+  .flow ol { list-style: none; padding: 0; margin: 0; max-width: none; }
+  .flow li { display: grid; grid-template-columns: 26px 1fr; gap: 12px; align-items: start; margin: 0; padding: 7px 0; font-size: 14.5px; }
+  .flow li + li { border-top: 1px dashed var(--line); }
+  .flow .i { font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--accent); padding-top: 4px; font-variant-numeric: tabular-nums; }
+  .flow li.loop { color: var(--accent); font-weight: 500; }
+
+  .note { max-width: var(--measure); font-size: 14px; color: var(--text-2); border-left: 2px solid var(--line); padding-left: 14px; margin: 0 0 18px; }
+
+  footer { max-width: var(--measure); margin-top: 72px; padding-top: 26px; border-top: 1px solid var(--line); color: var(--text-3); font-size: 14px; }
+  .footlinks { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+  .footlinks a { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; color: var(--text-2); font-size: 13.5px; background: var(--surface); }
+  .footlinks a:hover { border-color: var(--accent); color: var(--accent); }
+  .footlinks a.primary { background: var(--academy-soft); border-color: var(--academy-line); color: var(--academy); font-weight: 600; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+  }
+</style>
+
+<div class="topbar">
+  <span class="brand"><span class="dot"></span>LocalForge <small>guía de lectura</small></span>
+  <span class="switch">
+    <a class="to-academy" href="https://agentforge-academy-chi.vercel.app" target="_blank" rel="noopener">
+      AgentForge Academy <span aria-hidden="true">↗</span>
+    </a>
+    <button class="theme-btn" id="theme" type="button" aria-label="Cambiar tema">◐</button>
+  </span>
+</div>
+
+<div class="shell">
+  <div class="cols">
+    <nav class="rail" aria-label="Sesiones">
+      <h2>Sesiones</h2>
+      <ol id="rail-list">
+        <li><a href="#s0"><span class="n">00</span><span>Verlo correr <span class="mins">10 min</span></span></a></li>
+        <li><a href="#s1"><span class="n">01</span><span>models.py <span class="mins">30 min</span></span></a></li>
+        <li><a href="#s2"><span class="n">02</span><span>loop.py <span class="mins">40 min</span></span></a></li>
+        <li><a href="#s3"><span class="n">03</span><span>tools/base.py <span class="mins">30 min</span></span></a></li>
+        <li><a href="#s4"><span class="n">04</span><span>ollama.py <span class="mins">30 min</span></span></a></li>
+        <li><a href="#s5"><span class="n">05</span><span>Rompelo <span class="mins">45 min</span></span></a></li>
+        <li><a href="#falta"><span class="n">→</span><span>Qué le falta</span></a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <div class="hero">
+        <div class="eyebrow">recorrido guiado del código</div>
+        <h1>LocalForge Anotado</h1>
+        <p class="lead">
+          Un coding agent que corre sobre un LLM local, leído de a poco y en el orden correcto.
+          Cada decisión del código está cruzada con <strong>la clase de la Academy que la explica</strong>.
+        </p>
+        <div class="facts">
+          <div class="fact"><div class="v">5</div><div class="k">sesiones</div></div>
+          <div class="fact"><div class="v">1534</div><div class="k">líneas de código</div></div>
+          <div class="fact"><div class="v">59</div><div class="k">links a clases</div></div>
+          <div class="fact"><div class="v">5</div><div class="k">experimentos</div></div>
+        </div>
+      </div>
+
+      <p class="prose">
+        Esto no es documentación de referencia. Cada sección te dice qué archivo abrir y en qué
+        línea mirar, te hace una pregunta, y recién después te da la respuesta.
+        <strong>Intentá contestar antes de abrirla.</strong> Si la respuesta te sorprende, ahí aprendiste algo.
+      </p>
+
+      <div class="academy">
+        <div class="hd"><span class="cap">🎓</span><span class="who">cómo se conectan los dos proyectos</span></div>
+        <p>
+          <strong>La Academy</strong> enseña los conceptos: 8 mundos, 56 clases, del agent loop a los evals.
+          <strong>LocalForge</strong> es esa teoría hecha código, corriendo en una RTX 4090.
+        </p>
+        <p>
+          Las marcas violetas de esta página son links directos a la clase exacta. Funciona en las dos
+          direcciones: estudiaste el concepto y acá lo ves implementado, o no entendés una decisión del
+          código y saltás a la clase que la explica.
+        </p>
+        <p style="margin-top:11px">
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/map" target="_blank" rel="noopener">Ver el roadmap completo</a>
+        </p>
+      </div>
+
+      <!-- ============ mapa mental ============ -->
+      <div class="sec-head prose">
+        <div class="kicker"><span class="num">ANTES DE EMPEZAR</span></div>
+        <h2>El mapa mental</h2>
+      </div>
+
+      <p class="prose">Todo el proyecto hace una sola cosa:</p>
+
+      <div class="flow">
+        <ol>
+          <li><span class="i">1</span><span>Vos escribís un objetivo.</span></li>
+          <li><span class="i">2</span><span>El harness se lo manda al modelo junto con la lista de herramientas.</span></li>
+          <li><span class="i">3</span><span>El modelo responde: o texto final, o <em>“quiero usar estas herramientas”</em>.</span></li>
+          <li><span class="i">4</span><span>Si pidió herramientas, el harness las ejecuta y le devuelve los resultados.</span></li>
+          <li class="loop"><span class="i">↺</span><span>Vuelve a preguntarle al modelo — <strong>y esto se repite</strong>.</span></li>
+          <li><span class="i">5</span><span>Cuando responde sin pedir herramientas: terminó.</span></li>
+        </ol>
+      </div>
+
+      <p class="prose">
+        Eso es un agente. El resto del código existe para que ese ciclo <strong>no se descontrole</strong>:
+        que termine siempre, que no gaste infinito, que valide lo que el modelo devuelve, y que un
+        error no mate todo.
+      </p>
+
+      <h3>Cómo leer un proyecto así</h3>
+      <p class="prose">
+        No leas los archivos en orden alfabético. <strong>Seguí el flujo de los datos:</strong> primero el
+        vocabulario (qué objetos existen), después el control (quién llama a quién), después los
+        bordes (dónde entran datos de afuera).
+      </p>
+      <ol class="prose">
+        <li><strong>Los tests son la especificación.</strong> Si no entendés qué hace algo, buscá su test: te dice qué se espera, con un ejemplo concreto.</li>
+        <li><strong>Los comentarios largos marcan decisiones.</strong> Acá no explican <em>qué</em> hace la línea; explican <em>por qué está así</em>.</li>
+        <li><strong>Corré el código mientras lo leés.</strong> Ver el valor real de una variable vale más que diez minutos mirándola.</li>
+      </ol>
+
+      <!-- ============ sesion 0 ============ -->
+      <div class="sec-head prose" id="s0">
+        <div class="kicker"><span class="num">SESIÓN 00</span><span class="mins">10 min</span></div>
+        <h2>Verlo correr antes de leer nada</h2>
+      </div>
+
+      <p class="prose">No leas código todavía. Mirá qué hace.</p>
+      <pre><span class="c">cd ~/Desktop/LocalForge</span>
+uv run localforge ask . <span class="c">"Que hace la clase AgentHarness?"</span></pre>
+
+      <pre class="term"><span class="c">[   0.0s]</span> ── turno 1
+<span class="c">[   0.7s]</span>   modelo: tool_use · 850→35 tok | 0.7s
+<span class="c">[   0.7s]</span>   <span class="ar">→</span> list_files(path='.')
+<span class="c">[   0.8s]</span>   <span class="ok">✓</span> list_files 564 chars
+<span class="c">[   0.8s]</span> ── turno 2
+<span class="c">[   2.1s]</span>   modelo: tool_use · 1134→117 tok | 1.4s
+<span class="c">[   2.1s]</span>   <span class="ar">→</span> read_file(path='src/localforge/harness/loop.py')
+<span class="c">[   2.1s]</span>   <span class="ok">✓</span> read_file 4248 chars
+<span class="c">[   2.1s]</span> ── turno 3
+<span class="c">[  12.8s]</span>   modelo: end_turn · 4975→835 tok | 10.7s</pre>
+
+      <p class="prose"><strong>Leé esa salida línea por línea:</strong></p>
+      <ul class="prose">
+        <li><code>turno 1/2/3</code> — el ciclo dando vueltas. Cada turno es <strong>una llamada al modelo</strong>.</li>
+        <li><code>tool_use</code> vs <code>end_turn</code> — la señal de si quiere herramientas o ya terminó.</li>
+        <li><code>850→35 tok</code> — tokens que entran / salen. Mirá cómo el de entrada <strong>crece</strong>: 850 → 1134 → 4975. Eso es la conversación acumulándose.</li>
+        <li><code>→ list_files(...)</code> — el modelo <strong>pidió</strong> una herramienta. No la ejecutó él.</li>
+        <li><code>✓ list_files 564 chars</code> — el harness la ejecutó y obtuvo un resultado.</li>
+      </ul>
+
+      <div class="academy">
+        <div class="hd"><span class="cap">🎓</span><span class="who">el ciclo, con diagrama animado</span></div>
+        <p>Si esa salida no te cerró del todo, mirá el diagrama de esta clase antes de seguir:</p>
+        <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l5" target="_blank" rel="noopener">W1·C5 — Tool calling: el ciclo completo</a>
+      </div>
+
+      <!-- ============ sesion 1 ============ -->
+      <div class="sec-head prose" id="s1">
+        <div class="kicker"><span class="num">SESIÓN 01</span><span class="mins">30 min</span></div>
+        <h2>El vocabulario</h2>
+        <div class="file">📂 <b>src/localforge/models.py</b> · 265 líneas</div>
+      </div>
+
+      <p class="prose">
+        Este archivo no <em>hace</em> nada: define las cosas que existen. Leelo primero porque todos
+        los demás archivos usan estos nombres.
+      </p>
+
+      <div class="academy">
+        <div class="hd"><span class="cap">🎓</span><span class="who">la clase de este archivo</span></div>
+        <p>Explica por qué los type hints de Python no validan nada y por qué la salida de un LLM es entrada no confiable.</p>
+        <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l1" target="_blank" rel="noopener">W1·C1 — Pydantic: el borde de confianza</a>
+      </div>
+
+      <h3>1.1 Los tres enums <span class="ln">líneas 27-67</span></h3>
+      <p class="prose">Mirá <code>FailureReason</code>: seis valores fijos — <code>max_turns</code>, <code>wall_clock</code>, <code>token_budget</code>, <code>loop_detected</code>, <code>provider_error</code>, <code>cancelled</code>.</p>
+
+      <div class="q"><span class="label">Pregunta</span><p>¿Por qué es un enum y no un string libre donde escribir el motivo que se te ocurra?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>Porque estos valores se van a <strong>agrupar</strong>. Cuando tengas 200 ejecuciones y quieras saber por qué falla tu agente, necesitás poder contar: <em>“el 60% de los fallos son loop_detected”</em>. Eso te dice exactamente qué arreglar.</p>
+        <p>Si cada rama escribe un mensaje libre distinto (“se acabaron los turnos”, “límite alcanzado”), no podés agrupar nada y sólo sabés que “falló”.</p>
+      </div></details>
+
+      <div class="academy">
+        <div class="hd"><span class="cap">🎓</span><span class="who">a dónde lleva esto</span></div>
+        <p>Las siete categorías de fallo y por qué cada una tiene un arreglo distinto. Este enum es el primer paso hacia esa taxonomía.</p>
+        <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w7-l48" target="_blank" rel="noopener">W7·C48 — Taxonomía de fallos</a>
+      </div>
+
+      <h3>1.2 ToolCall y ToolResult <span class="ln">líneas 97 y 110</span></h3>
+      <p class="prose">Van <strong>en par</strong>: el modelo emite un <code>ToolCall</code>, el harness produce un <code>ToolResult</code>.</p>
+      <pre><span class="c">class</span> ToolCall(BaseModel):      <span class="c"># línea 97</span>
+    id: str                     <span class="c"># ← la clave de correlación</span>
+    name: str
+    arguments: dict[str, Any]
+
+<span class="c">class</span> ToolResult(BaseModel):    <span class="c"># línea 110</span>
+    call_id: str                <span class="c"># ← apunta al id de arriba</span>
+<span class="hl">    success: bool               <span class="c"># ← mirá que NO tiene default</span></span></pre>
+
+      <div class="q"><span class="label">Pregunta</span><p>¿Por qué <code>success: bool</code> no tiene un valor por defecto como <code>= True</code>?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>Porque un default optimista convierte <strong>cada olvido en un falso positivo</strong>.</p>
+        <p>Si en algún lado se construye un <code>ToolResult</code> apurado sin pasar <code>success</code> y el default fuera <code>True</code>, el harness le dice al modelo “la operación salió bien” y el agente sigue construyendo sobre una premisa falsa. <strong>Sin ningún error, sin ningún log.</strong></p>
+        <p>Al no tener default, Python te obliga a decidir. Es más molesto de escribir y ese es el punto.</p>
+        <p><strong>Regla:</strong> en campos de resultado y de seguridad, el default seguro es el pesimista — o directamente no hay default.</p>
+      </div></details>
+
+      <div class="academy">
+        <div class="hd"><span class="cap">🎓</span><span class="who">este caso exacto es un ejercicio</span></div>
+        <p>El “Fix the bug” de esa clase usa <strong>este mismo modelo <code>ToolResult</code></strong>. Si lo hiciste, acabás de ver el arreglo en producción.</p>
+        <p>El mismo criterio vuelve en los permisos: el default de un permiso desconocido nunca es <code>ALLOW</code>.</p>
+        <p style="margin-top:10px; display:flex; gap:7px; flex-wrap:wrap">
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l1" target="_blank" rel="noopener">W1·C1 — Un default que miente</a>
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w5-l34" target="_blank" rel="noopener">W5·C34 — Permisos</a>
+        </p>
+      </div>
+
+      <h3>1.3 El validador de coherencia <span class="ln">línea 126</span></h3>
+      <pre><span class="c">@model_validator(mode="after")</span>
+<span class="c">def</span> _coherent(self) -&gt; ToolResult:
+    <span class="c">if</span> self.success <span class="c">and</span> self.error <span class="c">is not None</span>:
+        <span class="c">raise</span> ValueError("un resultado exitoso no puede traer error")
+<span class="hl">    <span class="c">if not</span> self.success <span class="c">and not</span> self.error:</span>
+        <span class="c">raise</span> ValueError("un fallo debe explicar por que fallo")</pre>
+      <p class="prose">
+        <code>mode="after"</code> corre <strong>después</strong> de validar cada campo por separado, así que puede
+        razonar sobre la relación <em>entre</em> campos — algo que ningún campo suelto puede expresar.
+        La segunda regla es la importante: <strong>un fallo está obligado a explicar por qué falló.</strong>
+      </p>
+
+      <h3>1.4 <code>as_content()</code> <span class="ln">línea 134</span></h3>
+      <pre><span class="c">def</span> as_content(self) -&gt; str:
+    <span class="c">if</span> self.success:
+        <span class="c">return</span> self.output <span class="c">or</span> "(sin salida)"
+<span class="hl">    <span class="c">return</span> f"ERROR: {self.error}"</span></pre>
+      <div class="q"><span class="label">Pregunta</span><p>Cuando una herramienta falla, ¿por qué el error se convierte en <strong>texto que vuelve al modelo</strong> en vez de lanzar una excepción?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>Tu instinto de backend dice: falla rápido y ruidoso.</p>
+        <p>Pero en un agente eso significa que <strong>la tarea entera muere</strong> porque el modelo probó una ruta razonable que resultó no existir. Un humano haría <code>ls</code> y probaría otra vez.</p>
+        <p>Con excepciones propagando, un agente de 20 pasos tiene ~20 oportunidades de morir por algo perfectamente recuperable.</p>
+        <p>Devolviendo el error como texto, el modelo lee “no existe src/mian.py” y en el próximo turno pide <code>list_files</code>. <strong>Se autocorrige sin que escribas una línea de lógica de recuperación.</strong></p>
+      </div></details>
+
+      <div class="academy">
+        <div class="hd"><span class="cap">🎓</span><span class="who">la idea más contraintuitiva del curso</span></div>
+        <p>Ahí está la regla para decidir qué <em>sí</em> debe cortar la ejecución: credenciales inválidas, presupuesto agotado, el mismo error tres veces.</p>
+        <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l5" target="_blank" rel="noopener">W1·C5 — El error como feedback</a>
+      </div>
+
+      <h3>1.5 AgentTask y AgentOutcome <span class="ln">líneas 202 y 229</span></h3>
+      <pre>max_turns: int = Field(default=20, ge=1, le=100)
+wall_clock_s: float = Field(default=300.0, gt=0)
+token_budget: int = Field(default=200_000, gt=0)</pre>
+      <p class="prose">
+        Esos tres números son <strong>lo único que separa a tu agente de un proceso que corre para siempre
+        gastando plata</strong>. Volvés a verlos en la Sesión 02.
+      </p>
+      <p class="prose">
+        Y mirá todo lo que trae <code>AgentOutcome</code>: <code>status</code>, <code>reason</code>,
+        <code>turns</code>, <code>input_tokens</code>, <code>output_tokens</code>, <code>duration_ms</code>, <code>trajectory</code>.
+      </p>
+      <div class="q"><span class="label">Pregunta</span><p>¿Por qué no devolver simplemente el string con la respuesta final?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>Porque un string <strong>no te deja distinguir “terminó bien” de “se acabaron los turnos”</strong>. Las dos cosas son texto.</p>
+        <p>Sin tokens no sabés cuánto costó. Sin turnos no sabés si fue eficiente. Y sin <code>trajectory</code> — la lista de herramientas en orden — no podés responder “¿leyó el archivo antes de editarlo?”.</p>
+        <p>Todo eso es lo que permite <strong>comparar dos versiones del harness con datos</strong> en vez de con impresiones.</p>
+      </div></details>
+
+      <div class="academy">
+        <div class="hd"><span class="cap">🎓</span><span class="who">dos clases se cruzan acá</span></div>
+        <p>El challenge de la primera te hace escribir esta misma clase desde cero. La segunda explica por qué <code>input_tokens</code> y <code>output_tokens</code> van separados: el output cuesta ~5× más.</p>
+        <p style="margin-top:10px; display:flex; gap:7px; flex-wrap:wrap">
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l6" target="_blank" rel="noopener">W1·C6 — AgentOutcome</a>
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w7-l47" target="_blank" rel="noopener">W7·C47 — Costo y latencia</a>
+        </p>
+      </div>
+
+      <div class="check">
+        <h4>✓ Checkpoint Sesión 01</h4>
+        <ol>
+          <li>¿Por qué <code>FailureReason</code> es un enum cerrado?</li>
+          <li>¿Por qué <code>success</code> no tiene default?</li>
+          <li>¿Qué pasa cuando una herramienta falla — excepción o texto? ¿Por qué?</li>
+        </ol>
+      </div>
+
+      <!-- ============ sesion 2 ============ -->
+      <div class="sec-head prose" id="s2">
+        <div class="kicker"><span class="num">SESIÓN 02</span><span class="mins">40 min</span></div>
+        <h2>El corazón</h2>
+        <div class="file">📂 <b>src/localforge/harness/loop.py</b> · 240 líneas</div>
+      </div>
+
+      <p class="prose">Este es <strong>el archivo más importante del proyecto</strong>. Todo lo demás existe para servirlo.</p>
+
+      <div class="academy">
+        <div class="hd"><span class="cap">🎓</span><span class="who">la clase de este archivo</span></div>
+        <p>Su walkthrough recorre un loop casi idéntico, línea por línea. El Boss del Mundo 1 integra todo.</p>
+        <p style="margin-top:10px; display:flex; gap:7px; flex-wrap:wrap">
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l6" target="_blank" rel="noopener">W1·C6 — El agent loop</a>
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l7-boss" target="_blank" rel="noopener">W1·C7 — Boss</a>
+        </p>
+      </div>
+
+      <h3>2.1 El estado del loop <span class="ln">líneas 85-97</span></h3>
+      <pre>messages: list[AgentMessage] = [...]   <span class="c"># la conversación</span>
+tokens_in = 0                          <span class="c"># cuánto gastamos</span>
+tokens_out = 0
+seen: Counter[str] = Counter()         <span class="c"># para detectar repeticiones</span>
+trajectory: list[str] = []             <span class="c"># qué herramientas usó</span>
+records: list[TurnRecord] = []
+
+started = time.monotonic()
+<span class="hl">deadline = started + task.wall_clock_s</span></pre>
+      <p class="prose">Seis variables locales. <strong>No están escondidas en <code>self</code></strong>, y eso es a propósito.</p>
+      <div class="q"><span class="label">Pregunta</span><p>¿Por qué importa que el estado esté en variables locales explícitas?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>Porque <strong>esta tupla exacta es lo que más adelante hay que guardar en disco</strong> para que el agente sobreviva a un crash y retome donde estaba.</p>
+        <p>Lo que es fácil de nombrar es fácil de serializar. Si el estado estuviera repartido en diez atributos mezclados con conexiones HTTP y handles de archivos, guardar y restaurar sería un problema.</p>
+        <p>Fijate también en <code>time.monotonic()</code> y no <code>time.time()</code>: monotonic sólo avanza. <code>time.time()</code> puede moverse para atrás si el sistema ajusta el reloj (NTP, cambio de horario), y ahí tu presupuesto se vuelve loco.</p>
+      </div></details>
+
+      <div class="academy">
+        <div class="hd"><span class="cap">🎓</span><span class="who">a dónde lleva esto</span></div>
+        <p>Esta tupla es exactamente lo que ahí se serializa. La regla de esas clases —<em>datos se persisten, recursos se reconstruyen</em>— es la razón de que acá no haya ninguna conexión HTTP mezclada con el estado.</p>
+        <p style="margin-top:10px; display:flex; gap:7px; flex-wrap:wrap">
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w6-l36" target="_blank" rel="noopener">W6·C36 — State persistence</a>
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w6-l37" target="_blank" rel="noopener">W6·C37 — Checkpoints</a>
+        </p>
+      </div>
+
+      <h3>2.2 La composición de presupuestos <span class="ln">líneas 119-137</span></h3>
+      <pre><span class="c">for</span> turn <span class="c">in</span> range(task.max_turns):
+    remaining = deadline - time.monotonic()
+    <span class="c">if</span> remaining &lt;= 0:
+        <span class="c">return</span> finish(..., reason=FailureReason.WALL_CLOCK, turns=turn)
+
+    response = <span class="c">await</span> asyncio.wait_for(
+        self.provider.complete(messages, definitions, system=system),
+<span class="hl">        timeout=min(self.cfg.request_timeout_s, remaining),</span>
+    )</pre>
+      <p class="prose">
+        Primero verificás, después llamás al modelo. Al revés ya gastaste la llamada que sabías que
+        no podías pagar — y con contexto grande esa última llamada puede ser la más cara de todas.
+      </p>
+      <div class="q"><span class="label">Pregunta</span><p>El <code>for turn in range(max_turns)</code> ya limita las iteraciones. ¿Por qué hace falta además un timeout?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p><strong>Porque limitar iteraciones no es lo mismo que limitar tiempo.</strong> Hay dos tipos de terminación y necesitás los dos:</p>
+        <ul>
+          <li><strong>Lógica</strong> — el loop hace una cantidad acotada de vueltas. La da el <code>for</code>.</li>
+          <li><strong>Temporal</strong> — el loop termina en tiempo acotado. La da el <code>wait_for</code>.</li>
+        </ul>
+        <p>Sin la segunda, un solo turno puede colgarse para siempre: si el servidor acepta la conexión y nunca responde, <strong>nunca llegás a la segunda iteración</strong>. El límite de 20 turnos es irrelevante. En producción eso es indistinguible de un deadlock: el agente no falla, se queda quieto.</p>
+        <p>Y el <code>min()</code> es la parte fina: el turno tiene su límite, pero <strong>nunca puede pasarse del presupuesto total que queda</strong>. Si quedan 8 segundos, el turno tiene 8.</p>
+      </div></details>
+
+      <div class="academy">
+        <div class="hd"><span class="cap">🎓</span><span class="who">dos clases, y un ejercicio que ya hiciste</span></div>
+        <p>El <em>predict</em> de la primera es exactamente esta pregunta. El <em>build</em> de la segunda te hace escribir este <code>min()</code> a mano: si lo hiciste, acabás de encontrar tu propio ejercicio en el código real.</p>
+        <p>El patrón vuelve en la tercera, donde se aprende que <code>asyncio.wait_for</code> <strong>no alcanza</strong> para matar un proceso dentro de un container.</p>
+        <p style="margin-top:10px; display:flex; gap:7px; flex-wrap:wrap">
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l6" target="_blank" rel="noopener">W1·C6 — ¿Puede no terminar?</a>
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l2" target="_blank" rel="noopener">W1·C2 — Budget en 3 niveles</a>
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w5-l32" target="_blank" rel="noopener">W5·C32 — Resource limits</a>
+        </p>
+      </div>
+
+      <h3>2.3 <code>max_tokens</code> no es un final válido <span class="ln">líneas 162-170</span></h3>
+      <pre><span class="c">if not</span> response.tool_calls:
+<span class="hl">    <span class="c">if</span> response.stop_reason <span class="c">is</span> StopReason.MAX_TOKENS:</span>
+        messages.append(AgentMessage(role="user", content="Tu respuesta quedo cortada. Continua."))
+        <span class="c">continue</span>
+    <span class="c">return</span> finish(AgentStatus.COMPLETED, output=response.content <span class="c">or</span> "", turns=turn + 1)</pre>
+      <p class="prose">
+        Si el modelo llegó al techo de tokens a mitad de una frase, <strong>no hay tool calls</strong> — así que
+        sin ese <code>if</code>, el código haría <code>return</code> de un texto cortado como si fuera la respuesta
+        final. Nadie se entera: no hay excepción, el estado queda <code>COMPLETED</code>, y el resultado es basura.
+      </p>
+      <p class="prose">Fijate que es <code>continue</code>, no <code>return</code>: consume un turno del presupuesto, que es lo correcto.</p>
+
+      <div class="academy">
+        <div class="hd"><span class="cap">🎓</span><span class="who">este bug exacto, con el arreglo al lado</span></div>
+        <p>La clase explica <code>stop_reason</code> como <em>la señal de control del loop</em>: ignorarla es el bug nº1 de un agente casero.</p>
+        <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l4" target="_blank" rel="noopener">W1·C4 — El loop que acepta respuestas truncadas</a>
+      </div>
+
+      <h3>2.4 Detección de loops <span class="ln">líneas 176-187</span></h3>
+      <pre><span class="c">for</span> call <span class="c">in</span> response.tool_calls:
+    key = _signature(call)
+    seen[key] += 1
+<span class="hl">    <span class="c">if</span> seen[key] &gt;= REPEAT_LIMIT:   <span class="c"># 3</span></span>
+        <span class="c">return</span> finish(..., reason=FailureReason.LOOP_DETECTED, ...)</pre>
+      <div class="q"><span class="label">Pregunta</span><p>Ya hay límite de turnos, de tiempo y de tokens. ¿Para qué una cuarta condición?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>Porque un modelo atascado <strong>no viola ninguna de las otras tres</strong>. Tiene presupuesto de sobra: está leyendo el mismo archivo tres veces esperando que cambie.</p>
+        <p>Sin este chequeo, el agente quema los 20 turnos completos repitiéndose. Con él, corta en 3 y te dice qué estaba repitiendo.</p>
+        <p>Por qué 3 y no 2: repetir una vez puede ser un reintento legítimo tras un error transitorio. Tres veces idénticas significa que el modelo no está incorporando el resultado.</p>
+      </div></details>
+
+      <div class="academy">
+        <div class="hd"><span class="cap">🎓</span><span class="who">la quinta salida, la que se olvida</span></div>
+        <p>El quiz de la primera tiene el caso diagnóstico: <em>“tu agente termina siempre en 20 turnos exactos”</em> — la firma de un loop de repetición. En la segunda esto evoluciona: en vez de cortar, se le inyecta un mensaje para que cambie de estrategia.</p>
+        <p style="margin-top:10px; display:flex; gap:7px; flex-wrap:wrap">
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l6" target="_blank" rel="noopener">W1·C6 — Terminación</a>
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w3-l19" target="_blank" rel="noopener">W3·C19 — Retry y reflection</a>
+        </p>
+      </div>
+
+      <h3>2.5 La línea más importante del proyecto <span class="ln">líneas 201-204</span></h3>
+      <pre><span class="hl">by_id = {r.call_id: r <span class="c">for</span> r <span class="c">in</span> results}</span>
+missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.tool_calls} - set(by_id)
+<span class="c">if</span> missing:
+    <span class="c">raise</span> RuntimeError(f"faltan tool results para: {missing}")</pre>
+      <div class="q"><span class="label">Pregunta</span><p>¿Por qué armar un diccionario por <code>call_id</code> en vez de recorrer las dos listas con <code>zip(calls, results)</code>?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p><strong>Porque las herramientas se ejecutan en paralelo y el orden de finalización no es el de pedido.</strong></p>
+        <p>Si el modelo pide leer <code>main.py</code> (800 ms) y <code>README.md</code> (50 ms), el README termina primero. Correlacionando por posición, el modelo recibe <strong>el contenido del README etiquetado como main.py</strong>.</p>
+        <p>Y acá está lo peligroso: <strong>eso no produce ningún error</strong>. Los dos son strings válidos. El modelo razona impecablemente sobre datos que tu harness corrompió, y el síntoma se ve como “el modelo alucina”.</p>
+        <p>Es el bug que se diagnostica mal casi siempre: se cambia el prompt, se prueba otro modelo, se sube el contexto — y el bug determinista sigue ahí.</p>
+        <p>El <code>raise</code> de abajo es una red de seguridad: si falta un resultado es un bug <strong>nuestro</strong> y queremos que explote fuerte.</p>
+      </div></details>
+
+      <div class="academy">
+        <div class="hd"><span class="cap">🎓</span><span class="who">el concepto más repetido de toda la Academy</span></div>
+        <p>La regla que sale de ahí: <strong>cuando el síntoma es “el modelo alucina”, sospechá primero de tu harness.</strong> Lo vas a comprobar vos mismo en el Experimento 1.</p>
+        <p style="margin-top:10px; display:flex; gap:7px; flex-wrap:wrap">
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l5" target="_blank" rel="noopener">W1·C5 — Resultados desordenados</a>
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l7-boss" target="_blank" rel="noopener">W1·C7 — El agente que “alucina”</a>
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w7-l48" target="_blank" rel="noopener">W7·C48 — Execution failure</a>
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/interview" target="_blank" rel="noopener">Modo entrevista</a>
+        </p>
+      </div>
+
+      <div class="check">
+        <h4>✓ Checkpoint Sesión 02</h4>
+        <ol>
+          <li>¿Por qué el <code>for</code> solo no garantiza que el agente termine?</li>
+          <li>¿Qué pasa si correlacionás resultados por posición en vez de por <code>call_id</code>?</li>
+          <li>¿Por qué <code>max_tokens</code> no se trata como una respuesta final?</li>
+          <li>Nombrá las 5 condiciones de terminación.</li>
+        </ol>
+      </div>
+      <p class="note">Las cuatro están en el Boss del Mundo 1. Si podés contestarlas, ganás ese boss.</p>
+
+      <!-- ============ sesion 3 ============ -->
+      <div class="sec-head prose" id="s3">
+        <div class="kicker"><span class="num">SESIÓN 03</span><span class="mins">30 min</span></div>
+        <h2>El borde de confianza</h2>
+        <div class="file">📂 <b>src/localforge/tools/base.py</b> · 194 líneas</div>
+      </div>
+
+      <h3>3.1 Una definición, dos usos <span class="ln">línea 61</span></h3>
+      <pre>schema = tool.args_model.model_json_schema()</pre>
+      <p class="prose">
+        Una sola definición produce <strong>dos cosas</strong>: la descripción que lee el modelo para saber qué
+        mandar, y el validador que parsea lo que mandó. Si fueran dos fuentes separadas, tarde o
+        temprano agregás un campo en una y te olvidás de la otra — y el agente entra en un bucle de
+        reintentos que nunca puede ganar.
+      </p>
+
+      <h3>3.2 Cuatro formas de fallar <span class="ln">líneas 97-170</span></h3>
+      <p class="prose">Los cuatro casos devuelven un <code>ToolResult</code>. <strong>Ninguno lanza una excepción.</strong></p>
+      <div class="scroller">
+        <table>
+          <thead><tr><th>Línea</th><th>Caso</th><th>Qué le dice al modelo</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">104</td><td>La herramienta no existe</td><td>“tool desconocida 'X'. Disponibles: …” ← <strong>le da la lista</strong></td></tr>
+            <tr><td class="mono">120</td><td>Argumentos inválidos</td><td>El campo exacto que está mal, vía <code>exc.errors()</code></td></tr>
+            <tr><td class="mono">137</td><td>Timeout</td><td>“la tool superó N s”</td></tr>
+            <tr><td class="mono">149</td><td>Explotó algo inesperado</td><td><code>TipoDeError: mensaje</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="prose"><strong>El patrón:</strong> cada error incluye <em>qué hacer al respecto</em>.</p>
+
+      <h3>3.3 El <code>except Exception</code> <span class="ln">línea 149</span></h3>
+      <div class="q"><span class="label">Pregunta</span><p>¿Por qué <code>except Exception</code> y no <code>except BaseException</code>?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>Porque <code>asyncio.CancelledError</code> <strong>hereda de <code>BaseException</code>, no de <code>Exception</code></strong>.</p>
+        <p>Con <code>except BaseException</code> atraparías las cancelaciones y <strong>romperías todo el sistema de timeouts</strong> sin darte cuenta: el <code>wait_for</code> de más arriba quedaría esperando a una corrutina que decidió ignorar el pedido de cancelar.</p>
+        <p>Ese detalle de una palabra es lo que hace que los timeouts anidados funcionen.</p>
+      </div></details>
+
+      <div class="academy">
+        <div class="hd"><span class="cap">🎓</span><span class="who">el ejercicio de esta función</span></div>
+        <p>El <em>build</em> te hace escribir esta validación, incluido por qué <code>except ValidationError</code> y no <code>except Exception</code>: atrapar todo haría que un bug <em>tuyo</em> se le reporte al modelo como culpa suya, y el modelo intente corregir algo que no puede arreglar.</p>
+        <p style="margin-top:10px; display:flex; gap:7px; flex-wrap:wrap">
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l5" target="_blank" rel="noopener">W1·C5 — Validar argumentos</a>
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l2" target="_blank" rel="noopener">W1·C2 — CancelledError</a>
+        </p>
+      </div>
+
+      <h3>3.4 Nunca truncar en silencio <span class="ln">línea 179</span></h3>
+      <pre>head + f"\n\n[...truncado: se muestran {limit} de {len(text)} caracteres.
+<span class="hl">        Usa los parametros offset/limit de la tool para leer el resto.]"</span></pre>
+      <p class="prose">
+        Si el modelo cree que vio el archivo entero cuando no fue así, razona sobre información
+        faltante <strong>sin ninguna señal de que le falta algo</strong>. El mensaje dice qué pasó <em>y cómo seguir</em>.
+      </p>
+
+      <!-- ============ sesion 4 ============ -->
+      <div class="sec-head prose" id="s4">
+        <div class="kicker"><span class="num">SESIÓN 04</span><span class="mins">30 min</span></div>
+        <h2>La suciedad del mundo real</h2>
+        <div class="file">📂 <b>src/localforge/providers/ollama.py</b> · 209 líneas</div>
+      </div>
+
+      <p class="prose">
+        Este archivo existe para que <strong>el resto del proyecto no se entere</strong> de las rarezas de Ollama.
+        Antes, mirá <code>providers/base.py</code>: el <code>Protocol</code> tiene <strong>un solo método</strong>.
+        Cada método que agregás es un método que todo backend futuro tiene que implementar.
+      </p>
+
+      <div class="academy">
+        <div class="hd"><span class="cap">🎓</span><span class="who">la clase de este archivo</span></div>
+        <p>Structural typing vs nominal (<code>Protocol</code> vs <code>ABC</code>), la regla de la interface angosta, y por qué <code>runtime_checkable</code> <strong>no</strong> valida firmas — sólo comprueba que los métodos existan por nombre.</p>
+        <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l3" target="_blank" rel="noopener">W1·C3 — Protocol</a>
+      </div>
+
+      <h3>Las tres rarezas que quedan encapsuladas acá</h3>
+      <div class="scroller">
+        <table class="wide-table">
+          <thead><tr><th>Rareza de Ollama</th><th>Por qué importa</th><th>Cómo se resuelve</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>No devuelve <code>id</code></strong> en las tool calls</td>
+              <td>El harness correlaciona por <code>call_id</code>. Sin id no hay correlación.</td>
+              <td>El provider los <strong>sintetiza</strong> <span class="mono">(línea 83)</span></td>
+            </tr>
+            <tr>
+              <td><strong>Trunca en silencio</strong> si el prompt excede <code>num_ctx</code></td>
+              <td>Se come el system prompt por la izquierda. El agente “se olvida” de que tiene tools.</td>
+              <td><code>num_ctx</code> explícito en cada request <span class="mono">(104)</span></td>
+            </tr>
+            <tr>
+              <td><code>done_reason: "stop"</code> <strong>aunque pida tools</strong></td>
+              <td>La señal de control del loop sería incorrecta.</td>
+              <td><code>TOOL_USE</code> se deriva de la <em>presencia</em> de tool calls <span class="mono">(176)</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="note">
+        Acá se ve por qué conviene escribir el adapter a mano: la Academy enseña el contrato ideal,
+        y el mundo real tiene esta clase de desprolijidades en cada backend. El primer punto es un
+        <strong>hallazgo propio de LocalForge</strong>, documentado en <code>PROJECT_STATE.md</code>.
+      </p>
+
+      <!-- ============ sesion 5 ============ -->
+      <div class="sec-head prose" id="s5">
+        <div class="kicker"><span class="num">SESIÓN 05</span><span class="mins">45 min</span></div>
+        <h2>Rompelo</h2>
+      </div>
+
+      <p class="prose">
+        Leer no alcanza. Los fallos de un agente son contraintuitivos porque <strong>casi ninguno se ve
+        como un error</strong>. La única forma de que se te graben es provocarlos.
+      </p>
+      <p class="prose">Hacé cada experimento, corré el agente, y volvé a dejar el código como estaba con <code>git checkout .</code></p>
+
+      <div class="exp star">
+        <h4>Experimento 1 — Romper la correlación <span class="tag">el más importante</span></h4>
+        <p>En <code>harness/loop.py</code> línea ~201, reemplazá <code>by_id</code> por una versión que correlacione por orden de finalización:</p>
+        <pre>by_id = {c.id: r <span class="c">for</span> c, r <span class="c">in</span> zip(response.tool_calls,
+                     sorted(results, key=<span class="c">lambda</span> r: r.duration_ms))}</pre>
+        <pre>uv run localforge ask . <span class="c">"Compara cli.py con models.py"</span></pre>
+        <p><strong>Qué vas a ver:</strong> el modelo describe un archivo con el contenido de otro. Sin errores. Sin logs. Una respuesta perfectamente coherente y completamente falsa.</p>
+        <p><strong>Por qué importa:</strong> esto se ve igual que “el modelo alucina”. Si no conocés el bug, cambiás el prompt, probás otro modelo, subís el contexto — y nunca lo encontrás.</p>
+      </div>
+
+      <div class="exp">
+        <h4>Experimento 2 — Ahogar el contexto</h4>
+        <pre>LOCALFORGE_NUM_CTX=2048 uv run localforge ask . "Explicame el proyecto"</pre>
+        <p><strong>Qué vas a ver:</strong> el agente se comporta raro, ignora las herramientas o responde cualquier cosa. Ollama se comió el system prompt por la izquierda y no avisó.</p>
+      </div>
+
+      <div class="exp">
+        <h4>Experimento 3 — Sacar el truncado</h4>
+        <p>En <code>tools/base.py</code> línea 186, hacé que <code>_truncate</code> devuelva siempre <code>(text, False)</code>. Corré el agente sobre un repo con archivos grandes y mirá cómo crece <code>input_tokens</code> por turno.</p>
+      </div>
+
+      <div class="exp">
+        <h4>Experimento 4 — Volver al prompt sin grounding</h4>
+        <pre>git show a3d4a02:src/localforge/harness/prompt.py &gt; src/localforge/harness/prompt.py
+uv run localforge ask . "Explicame la arquitectura"</pre>
+        <p><strong>Qué vas a ver:</strong> el agente responde leyendo <strong>cero archivos</strong>, inventando a partir de los nombres. Compará con <code>git diff</code> qué cambió en el prompt.</p>
+      </div>
+
+      <div class="exp">
+        <h4>Experimento 5 — Terminación</h4>
+        <pre>uv run localforge ask . "Analiza todo el proyecto" --max-turns 1</pre>
+        <p><strong>Qué vas a ver:</strong> <code>failed (max_turns)</code> — un final <strong>explícito y con motivo</strong>, no un cuelgue.</p>
+      </div>
+
+      <div class="academy">
+        <div class="hd"><span class="cap">🎓</span><span class="who">después de cada experimento</span></div>
+        <p>Volvé a la clase correspondiente. Vas a leer el mismo caso sabiendo exactamente cómo se siente.</p>
+        <p style="margin-top:10px; display:flex; gap:7px; flex-wrap:wrap">
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l5" target="_blank" rel="noopener">Exp. 1 y 3 → W1·C5</a>
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w2-l9" target="_blank" rel="noopener">Exp. 2 → W2·C9</a>
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w3-l18" target="_blank" rel="noopener">Exp. 4 → W3·C18</a>
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l6" target="_blank" rel="noopener">Exp. 5 → W1·C6</a>
+        </p>
+      </div>
+
+      <!-- ============ que falta ============ -->
+      <div class="sec-head prose" id="falta">
+        <div class="kicker"><span class="num">DESPUÉS</span></div>
+        <h2>Qué le falta a LocalForge</h2>
+      </div>
+
+      <p class="prose">
+        Ésta es la otra mitad de la conexión: <strong>el roadmap de la Academy es el backlog del proyecto.</strong>
+        Hoy estás parado al final del Mundo 1.
+      </p>
+
+      <div class="scroller">
+        <table class="wide-table">
+          <thead><tr><th>Mundo</th><th></th><th>Qué le daría</th><th>Señal de que ya hace falta</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l1" target="_blank" rel="noopener">W1</a></td>
+              <td class="st done">hecho</td>
+              <td>Modelos, Protocol, tools, agent loop</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td><a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w2-l8" target="_blank" rel="noopener">W2</a></td>
+              <td class="st todo">pendiente</td>
+              <td>ContextBuilder, budgets, compactación</td>
+              <td><code>input_tokens</code> cerca de <code>num_ctx</code>. Hoy: <strong>4975 de 32768</strong> → todavía no</td>
+            </tr>
+            <tr>
+              <td><a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w3-l15" target="_blank" rel="noopener">W3</a></td>
+              <td class="st todo">pendiente</td>
+              <td>Máquina de estados, verifier, repair loop</td>
+              <td>El día que el agente <strong>escriba</strong> código</td>
+            </tr>
+            <tr>
+              <td><a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w4-l22" target="_blank" rel="noopener">W4</a></td>
+              <td class="st todo">pendiente</td>
+              <td>Skills del repo, MCP</td>
+              <td>Cuando quieras que sepa <em>cómo se hacen las cosas acá</em></td>
+            </tr>
+            <tr>
+              <td><a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w5-l29" target="_blank" rel="noopener">W5</a></td>
+              <td class="st part">parcial</td>
+              <td>ALLOW/ASK/DENY, Docker, límites</td>
+              <td><strong>Antes</strong> de agregar <code>write_file</code>. No negociable</td>
+            </tr>
+            <tr>
+              <td><a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w6-l36" target="_blank" rel="noopener">W6</a></td>
+              <td class="st todo">pendiente</td>
+              <td>Checkpoints, recovery, idempotencia</td>
+              <td>Cuando perder una tarea de minutos duela</td>
+            </tr>
+            <tr>
+              <td><a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w7-l43" target="_blank" rel="noopener">W7</a></td>
+              <td class="st todo">pendiente</td>
+              <td>Golden tasks, trayectoria, taxonomía</td>
+              <td>Cuando quieras saber si un cambio mejoró <em>de verdad</em></td>
+            </tr>
+            <tr>
+              <td><a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w8-l50" target="_blank" rel="noopener">W8</a></td>
+              <td class="st todo">pendiente</td>
+              <td>Worktrees, subagentes, reviewer</td>
+              <td>Sólo con un agente individual sólido</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="prose">
+        <strong>La única restricción dura:</strong> <code>write_file</code> y <code>run_command</code> no se agregan
+        sin los permisos del W5. Hoy toda la seguridad del proyecto descansa en que el agente es de
+        solo lectura — por eso el riesgo de prompt injection es acotado. Ese equilibrio se rompe el
+        día que exista una herramienta con efectos.
+      </p>
+
+      <h3>El hallazgo de grounding, y por qué es W3</h3>
+      <p class="prose">
+        En la primera corrida real el agente respondió <strong>sin leer un solo archivo</strong>, infiriendo de
+        los nombres. Lo arreglamos con el system prompt y pasó a leer 3. Pero eso es una mejora
+        <strong>probabilística</strong>.
+      </p>
+      <p class="prose">
+        La garantía dura es un <strong>verifier de trayectoria</strong>: rechazar la respuesta final si el agente
+        no leyó ningún archivo. Es exactamente el principio de esa clase —<em>la afirmación del modelo
+        no es evidencia</em>— y el chequeo se escribe sobre <code>outcome.trajectory</code>, que ya existe.
+      </p>
+
+      <div class="academy">
+        <div class="hd"><span class="cap">🎓</span><span class="who">el próximo paso conceptual</span></div>
+        <p style="display:flex; gap:7px; flex-wrap:wrap">
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w3-l18" target="_blank" rel="noopener">W3·C18 — Verifier</a>
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w7-l46" target="_blank" rel="noopener">W7·C46 — Trajectory evals</a>
+        </p>
+      </div>
+
+      <footer>
+        <p>
+          <strong>Si te trabás:</strong> cualquier función se entiende más rápido corriéndola sola con
+          <code>uv run python</code> y tocándola en el REPL.
+        </p>
+        <div class="footlinks">
+          <a class="primary" href="https://agentforge-academy-chi.vercel.app" target="_blank" rel="noopener">🎓 AgentForge Academy ↗</a>
+          <a href="https://agentforge-academy-chi.vercel.app/#/map" target="_blank" rel="noopener">Roadmap · 56 clases</a>
+          <a href="https://agentforge-academy-chi.vercel.app/#/harness" target="_blank" rel="noopener">Harness Builder</a>
+          <a href="https://agentforge-academy-chi.vercel.app/#/interview" target="_blank" rel="noopener">Modo entrevista</a>
+        </div>
+        <p style="margin-top:20px; font-size:13px">
+          LocalForge · coding agent local sobre <code>qwen3:14b</code> en una RTX 4090 ·
+          el detalle completo está en <code>PROJECT_STATE.md</code> y <code>docs/GUIA.md</code>
+        </p>
+      </footer>
+    </main>
+  </div>
+</div>
+
+<script>
+  // Tema: ciclo claro / oscuro / sistema.
+  (function () {
+    var root = document.documentElement;
+    var btn = document.getElementById("theme");
+    var order = [null, "light", "dark"];
+    var i = 0;
+    try {
+      var saved = localStorage.getItem("lf-theme");
+      if (saved) { i = order.indexOf(saved); if (i < 0) i = 0; apply(); }
+    } catch (e) { /* sin storage: queda en modo sistema */ }
+
+    function apply() {
+      var v = order[i];
+      if (v) { root.setAttribute("data-theme", v); } else { root.removeAttribute("data-theme"); }
+      btn.textContent = v === "light" ? "☀" : v === "dark" ? "☾" : "◐";
+      btn.title = v ? "Tema " + v : "Tema del sistema";
+    }
+    apply();
+
+    btn.addEventListener("click", function () {
+      i = (i + 1) % order.length;
+      apply();
+      try { localStorage.setItem("lf-theme", order[i] || ""); } catch (e) {}
+    });
+  })();
+
+  // Rail: marca la sesión visible.
+  (function () {
+    var links = Array.prototype.slice.call(document.querySelectorAll("#rail-list a"));
+    var targets = links
+      .map(function (a) { return document.getElementById(a.getAttribute("href").slice(1)); })
+      .filter(Boolean);
+    if (!targets.length || !("IntersectionObserver" in window)) return;
+
+    var seen = {};
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { seen[e.target.id] = e.isIntersecting; });
+      for (var n = 0; n < targets.length; n++) {
+        var id = targets[n].id;
+        if (seen[id]) {
+          links.forEach(function (a) {
+            a.classList.toggle("current", a.getAttribute("href") === "#" + id);
+          });
+          break;
+        }
+      }
+    }, { rootMargin: "-70px 0px -65% 0px" });
+
+    targets.forEach(function (t) { obs.observe(t); });
+  })();
+</script>
