@@ -43,7 +43,18 @@ uv run localforge ask . "¿Dónde se valida la entrada del usuario?" -v
 
 ## Configuración
 
-Todo por variables de entorno (ver `.env.example`):
+Todo por variables de entorno. Precedencia: **shell > `.env` > default del código**.
+
+```bash
+cp .env.example .env    # y ajustalo a tu maquina
+```
+
+Los defaults del código son neutrales a proposito: lo que depende del hardware (qué modelo tenés
+instalado, cuántos turnos y cuánto tiempo necesita) vive en el `.env`, que no se commitea.
+Del `.env` sólo se leen las claves con prefijo `LOCALFORGE_` — el agente corre *sobre* otros
+repositorios, y esos repos tienen su propio `.env` con secretos ajenos.
+
+`uv run localforge health` imprime la configuración efectiva y de qué archivo salió.
 
 | Variable | Default | Qué controla |
 |---|---|---|
@@ -53,6 +64,12 @@ Todo por variables de entorno (ver `.env.example`):
 | `LOCALFORGE_MAX_TURNS` | `20` | Límite de turnos del loop |
 | `LOCALFORGE_WALL_CLOCK_S` | `300` | Presupuesto de tiempo por task |
 | `LOCALFORGE_TOOL_TIMEOUT_S` | `30` | Timeout por tool |
+| `LOCALFORGE_REQUEST_TIMEOUT_S` | `180` | Timeout de una llamada al modelo |
+| `LOCALFORGE_TOKEN_BUDGET` | `200000` | Presupuesto de tokens por task |
+| `LOCALFORGE_TOOL_OUTPUT_LIMIT` | `8000` | Chars de un tool result que entran al contexto |
+
+**El modelo tiene que soportar tool calling.** Para verificarlo: `ollama show <modelo>` debe
+listar `tools` en *Capabilities*.
 
 ## Arquitectura
 

@@ -14,7 +14,7 @@ import sys
 import time
 from pathlib import Path
 
-from localforge.config import settings
+from localforge.config import DOTENV_APPLIED, find_dotenv, settings
 from localforge.harness import AgentHarness
 from localforge.models import AgentTask, ModelResponse, ToolCall, ToolResult
 from localforge.providers import build_provider
@@ -135,6 +135,16 @@ async def cmd_health() -> int:
     for key, value in info.items():
         print(f"  {key:18} {value}")
     print(f"  {'num_ctx':18} {settings.num_ctx}")
+    print(f"  {'max_turns':18} {settings.max_turns}")
+    print(f"  {'wall_clock_s':18} {settings.wall_clock_s:g}s")
+
+    # De donde salio la config: sin esto, un .env que no se esta leyendo es
+    # indistinguible de uno que se lee y dice lo mismo.
+    origin = find_dotenv()
+    if origin:
+        print(f"  {'config':18} {origin} ({len(DOTENV_APPLIED)} vars aplicadas)")
+    else:
+        print(f"  {'config':18} defaults del codigo + entorno (sin .env)")
     return 0
 
 

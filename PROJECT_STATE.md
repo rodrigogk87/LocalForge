@@ -2,7 +2,7 @@
 
 > **Fuente de verdad del proyecto.** Si sos un agente retomando este trabajo sin haber visto
 > la conversación previa, leé este archivo entero antes de tocar código.
-> Última actualización: **2026-09-19**
+> Última actualización: **2026-09-20**
 
 ---
 
@@ -192,6 +192,35 @@ LocalForge/
 | Hardware | RTX 4090, 24 GB VRAM |
 | `num_ctx` | 32768 (explícito en cada request) |
 | Binario | `%LOCALAPPDATA%\Programs\Ollama\ollama.exe` (no está en PATH) |
+
+### Segunda máquina verificada (2026-09-20) — MacBook Pro M1 Pro
+
+El proyecto corre entero en un Mac sin tocar código: 24/24 tests, `health` y `ask` end-to-end.
+
+| | |
+|---|---|
+| Provider | Ollama 0.31.2 |
+| Modelo | `gemma4:e4b` (9.6 GB en disco, **3.3 GB residentes**) |
+| Hardware | M1 Pro, 16 GB unified memory, 8 cores |
+| Carga | **100% GPU**, `num_ctx` 32768 completo |
+| Python | 3.14.6 vía `uv` |
+
+`gemma4:e4b` es MatFormer E4B: 8B de parámetros en disco pero sólo ~4B activos, así que entra
+cómodo en 16 GB compartidos. Soporta `tools`, que es el requisito duro (`ollama show` lo lista).
+
+**Diferencia de comportamiento, no sólo de velocidad.** Misma tarea ("explicame la arquitectura"):
+
+| | RTX 4090 · qwen3:14b | M1 Pro · gemma4:e4b |
+|---|---|---|
+| Turnos | 3 | **11** |
+| Tokens | 7.946 | **67.011** |
+| Tiempo | 12,8s | **126s** |
+| `read_file` por turno | 3 en paralelo | **1** |
+
+qwen3 pide tres `read_file` en un turno; gemma4 pide uno. El paralelismo del executor queda sin
+usar y el costo por tarea crece linealmente con la cantidad de archivos. **Por eso `max_turns=20`
+y `wall_clock_s=300` son números de la 4090**: en esta máquina se agotan antes de terminar en
+cualquier repo mediano. Ver `.env` (no commiteado): 35 turnos y 900s.
 
 ### Limitaciones encontradas
 
@@ -423,11 +452,17 @@ sin mirar `success`. Aceptado. Los fallos **no** recuperables (credenciales, pre
 1. **El binario de Ollama no está en el PATH del shell.** Está en
    `%LOCALAPPDATA%\Programs\Ollama\ollama.exe`. El servidor corre igual (se autoarranca), y
    LocalForge habla por HTTP, así que no afecta a la app — solo a comandos manuales `ollama ...`.
-2. **No se verificó end-to-end contra el modelo real todavía** (descarga en curso). Riesgo abierto:
-   que `qwen3:14b` emita tool calls con un formato que el provider parsee mal.
-3. `list_files` no respeta `.gitignore`.
-4. `EventSink` está declarado como clase-protocolo pero se usa como callable suelto; funciona,
+2. `list_files` no respeta `.gitignore`.
+3. `EventSink` está declarado como clase-protocolo pero se usa como callable suelto; funciona,
    pero es ruido de tipos que conviene limpiar.
+4. **El grounding depende del modelo, y con uno chico el prompt no alcanza.** En el M1 con
+   `gemma4:e4b`, ante *"¿en qué archivo se valida que una ruta no se escape del workspace?"* el
+   agente listó el árbol, **adivinó** `cli.py`, lo leyó dos veces, nunca encontró `safe_path`
+   (está en `tools/fs.py`) y contestó *"el más probable lugar"* — justo la palabra que el system
+   prompt prohíbe. Es el mismo fallo de grounding de la sección de arriba, reapareciendo cuando el
+   modelo es más débil. Confirma dos cosas ya sabidas: **`search_code` es la carencia que más
+   duele** (sin buscar, localizar una definición es adivinar qué archivo abrir), y la garantía
+   dura es el verifier de trayectoria, no el prompt.
 
 ---
 
@@ -443,6 +478,22 @@ sin mirar `success`. Aceptado. Los fallos **no** recuperables (credenciales, pre
 - `harness/loop.py`: agent loop con 5 condiciones de terminación.
 - `cli.py`: `health` y `ask` con observabilidad en vivo del loop.
 - 24 tests, todos en verde.
+
+**2026-09-20 — configuración por máquina.** El proyecto se corrió en un segundo equipo (M1 Pro) y
+eso destapó dos agujeros en la config:
+
+- **El `.env` no se leía.** Había `.env.example` y `.gitignore` excluía `.env`, lo que sugiere
+  "copiá el ejemplo y anda" — pero nada en `src/` leía el archivo. `config.py::load_dotenv()` lo
+  implementa en ~20 líneas de stdlib (sin `python-dotenv`: sería la primera dependencia que no es
+  infraestructura). **Sólo adopta claves con prefijo `LOCALFORGE_`**, porque el agente corre sobre
+  otros repos y esos repos tienen su propio `.env` con credenciales. El shell le gana al archivo.
+- **El entorno se leía al importar, no al construir.** Los valores vivían en los defaults del
+  dataclass, que Python evalúa una sola vez al definir la clase: `Settings()` después de tocar
+  `os.environ` devolvía silenciosamente lo de la importación. Ahora hay `Settings.from_env()` y
+  los defaults del dataclass son **neutrales** (ninguna máquina en particular). Efecto lateral
+  bueno: `Settings()` a secas es hermético, que es justo lo que quiere un test.
+- `health` ahora imprime la config efectiva y **de qué archivo salió**: un `.env` que no se está
+  leyendo era indistinguible de uno que se lee y dice lo mismo.
 
 ---
 
