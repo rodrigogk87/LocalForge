@@ -40,13 +40,13 @@ Las dos direcciones sirven:
 | Mundo de la Academy | Qué cubre | Estado en LocalForge |
 |---|---|---|
 | **W1** Python Agent Foundations | Pydantic, async, Protocol, API, tool calling, agent loop | ✅ **implementado entero** |
-| **W2** Context Engineering | Budgets, selección, retrieval, compactación | 🟡 **medido, presupuestado y compactado** — falta retrieval (Sesión 6) |
-| **W3** Harness Engineering | Estados, planner, verifier, retry, hooks | ⬜ próxima fase |
-| **W4** Skills & Protocols | Skills, progressive disclosure, MCP, A2A | ⬜ |
-| **W5** Sandbox Engineering | Threat model, Docker, permisos, aprobación | 🟡 sólo `safe_path` |
-| **W6** Durable Agents | Checkpoints, recovery, idempotencia, memoria | ⬜ nada sobrevive al proceso |
-| **W7** Agent Evals | Datasets, trayectoria, costo, taxonomía de fallos | ⬜ |
-| **W8** Coding Agents | Edición, worktrees, subagentes | ⬜ |
+| **W2** Context Engineering | Budgets, selección, retrieval, compactación | 🟡 medido, presupuestado y compactado — falta retrieval |
+| **W3** Harness Engineering | Estados, planner, verifier, retry, hooks | 🟡 estados + verifier + repair loop — falta planner |
+| **W4** Skills & Protocols | Skills, progressive disclosure, MCP, A2A | 🟡 skills con disclosure — falta MCP |
+| **W5** Sandbox Engineering | Threat model, Docker, permisos, aprobación | 🟡 permisos ALLOW/ASK/DENY — **falta el sandbox** |
+| **W6** Durable Agents | Checkpoints, recovery, idempotencia, memoria | 🟡 checkpoints + resume — falta queue y memoria |
+| **W7** Agent Evals | Datasets, trayectoria, costo, taxonomía de fallos | 🟡 todo salvo model-as-judge |
+| **W8** Coding Agents | Edición, worktrees, subagentes | 🟡 subagentes aislados — falta worktrees |
 
 **Estás entrando al World 2.** Las sesiones 0 a 5 son W1 hecho código; la sesión 6 es la primera
 pieza de W2. El resto del roadmap es lo que le falta al proyecto.

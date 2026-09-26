@@ -12,7 +12,7 @@ sistema de permisos.
 
 from __future__ import annotations
 
-import importlib
+import subprocess
 import sys
 from pathlib import Path
 
@@ -252,9 +252,18 @@ def test_el_paquete_importa_en_cualquier_orden(primero: str) -> None:
     """Regresion: permissions vivia en harness/ y el import era circular.
 
     Los tests pasaban igual porque la suite importaba en un orden que funcionaba.
-    Este test fuerza cada orden en un interprete limpio.
+    Este test fuerza cada orden en un interprete LIMPIO.
+
+    Corre en un subproceso y no con `del sys.modules[...]`, y esa decision se
+    pago cara: la primera version borraba los modulos del proceso de pytest y los
+    reimportaba, lo que creaba clases Pydantic NUEVAS. Los tests que corrian
+    despues fallaban con "Input should be a valid ToolCall" pasandole un ToolCall,
+    porque eran dos clases distintas con el mismo nombre. Un test de imports que
+    ensucia el interprete rompe a los demas.
     """
-    for mod in [m for m in list(sys.modules) if m.startswith("localforge")]:
-        del sys.modules[mod]
-    importlib.import_module(primero)
-    importlib.import_module("localforge.cli")
+    proc = subprocess.run(
+        [sys.executable, "-c", f"import {primero}; import localforge.cli"],
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 0, proc.stderr

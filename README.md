@@ -89,5 +89,5 @@ Agregar `LlamaCppProvider` u `OpenAIProvider` no toca el loop.
 ## Tests
 
 ```bash
-uv run pytest -q
+uv run pytest -q     # 184 tests
 ```

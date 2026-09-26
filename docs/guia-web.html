@@ -343,7 +343,7 @@
         </p>
         <div class="facts">
           <div class="fact"><div class="v">6</div><div class="k">sesiones</div></div>
-          <div class="fact"><div class="v">2137</div><div class="k">líneas de código</div></div>
+          <div class="fact"><div class="v">4595</div><div class="k">líneas de código</div></div>
           <div class="fact"><div class="v">59</div><div class="k">links a clases</div></div>
           <div class="fact"><div class="v">5</div><div class="k">experimentos</div></div>
         </div>
@@ -352,6 +352,8 @@
       <p class="prose">
         Esto no es documentación de referencia. Cada sección te dice qué archivo abrir y en qué
         línea mirar, te hace una pregunta, y recién después te da la respuesta.
+        Las seis sesiones cubren <strong>Mundo 1 y la primera pieza del Mundo 2</strong>; el código de
+        las fases 3 a 8 existe y está documentado en <code>PROJECT_STATE.md</code>, todavía sin sesión propia acá.
         <strong>Intentá contestar antes de abrirla.</strong> Si la respuesta te sorprende, ahí aprendiste algo.
       </p>
 
@@ -1051,7 +1053,7 @@ uv run localforge ask . "Explicame la arquitectura"</pre>
 
       <p class="prose">
         Ésta es la otra mitad de la conexión: <strong>el roadmap de la Academy es el backlog del proyecto.</strong>
-        Hoy estás en el Mundo 2: el contexto ya se presupuesta, pero le falta la búsqueda.
+        Al 26/09 las ocho fases tienen trabajo real. Lo que falta de cada una está en <code>PROJECT_STATE.md</code>; los dos huecos grandes son el <strong>sandbox</strong> (W5) y <strong>MCP</strong> (W4).
       </p>
 
       <div class="scroller">
@@ -1072,39 +1074,39 @@ uv run localforge ask . "Explicame la arquitectura"</pre>
             </tr>
             <tr>
               <td><a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w3-l15" target="_blank" rel="noopener">W3</a></td>
-              <td class="st todo">pendiente</td>
-              <td>Máquina de estados, verifier, repair loop</td>
-              <td>El día que el agente <strong>escriba</strong> código</td>
+              <td class="st part">parcial</td>
+              <td>Estados, verifier y repair loop</td>
+              <td>hecho el 26/09 · falta planner</td>
             </tr>
             <tr>
               <td><a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w4-l22" target="_blank" rel="noopener">W4</a></td>
-              <td class="st todo">pendiente</td>
-              <td>Skills del repo, MCP</td>
-              <td>Cuando quieras que sepa <em>cómo se hacen las cosas acá</em></td>
+              <td class="st part">parcial</td>
+              <td>Skills con progressive disclosure</td>
+              <td>hecho el 26/09 · <strong>falta MCP</strong></td>
             </tr>
             <tr>
               <td><a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w5-l29" target="_blank" rel="noopener">W5</a></td>
               <td class="st part">parcial</td>
-              <td>ALLOW/ASK/DENY, Docker, límites</td>
-              <td><strong>Antes</strong> de agregar <code>write_file</code>. No negociable</td>
+              <td>Permisos ALLOW/ASK/DENY</td>
+              <td>permisos hechos · <strong>falta el sandbox</strong></td>
             </tr>
             <tr>
               <td><a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w6-l36" target="_blank" rel="noopener">W6</a></td>
-              <td class="st todo">pendiente</td>
-              <td>Checkpoints, recovery, idempotencia</td>
-              <td>Cuando perder una tarea de minutos duela</td>
+              <td class="st part">parcial</td>
+              <td>Checkpoints atómicos y <code>resume</code></td>
+              <td>hecho el 26/09 · falta queue y memoria</td>
             </tr>
             <tr>
               <td><a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w7-l43" target="_blank" rel="noopener">W7</a></td>
-              <td class="st todo">pendiente</td>
-              <td>Golden tasks, trayectoria, taxonomía</td>
-              <td>Cuando quieras saber si un cambio mejoró <em>de verdad</em></td>
+              <td class="st part">parcial</td>
+              <td>Dataset, checks, taxonomía, comparador</td>
+              <td>hecho el 26/09 · falta model-as-judge</td>
             </tr>
             <tr>
               <td><a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w8-l50" target="_blank" rel="noopener">W8</a></td>
-              <td class="st todo">pendiente</td>
-              <td>Worktrees, subagentes, reviewer</td>
-              <td>Sólo con un agente individual sólido</td>
+              <td class="st part">parcial</td>
+              <td>Subagentes con contexto aislado</td>
+              <td>hecho el 26/09 · falta worktrees</td>
             </tr>
           </tbody>
         </table>

@@ -37,6 +37,10 @@ verifica resultados y devuelve evidencia.
 
 **Fase 1 (Agent Foundations) — COMPLETA Y VERIFICADA END-TO-END contra el LLM local real.**
 
+**Fase 4 (Skills) — skills con progressive disclosure implementadas; MCP NO.**
+
+**Fase 8 (Multi-agent) — subagentes con contexto aislado implementados; worktrees y paralelismo NO.**
+
 **Fase 7 (Agent Evals) — dataset, checks deterministas y comparador implementados.** Falta
 model-as-judge y una primera corrida real (necesita Ollama).
 
@@ -85,7 +89,9 @@ respuesta final` funciona. Evidencia reproducible más abajo.
 | **Checkpoints por turno con escritura atómica** | ✅ Fase 6, con tests |
 | **`resume` retoma sin re-ejecutar nada** | ✅ con tests |
 | **Evals: golden tasks, taxonomía, costo, comparación** | ✅ Fase 7, con tests |
-| Suite de tests | ✅ 159 passed |
+| **Skills con progressive disclosure** | ✅ Fase 4, con tests |
+| **Subagentes con contexto aislado** | ✅ Fase 8, con tests |
+| Suite de tests | ✅ 184 passed |
 
 ### Evidencia de la verificación (2026-09-19)
 
@@ -138,10 +144,11 @@ un **verifier de trayectoria**: rechazar la respuesta final si el agente no ley�
 - No hay `write_file`, `run_command`, `run_tests`, `git_diff`.
 - No hay retrieval ni selección por relevancia (resto de la Fase 2).
 - No hay planner ni hooks de ciclo de vida (resto de la Fase 3).
-- No hay skills ni MCP (Fase 4).
+- No hay MCP (resto de la Fase 4).
 - No hay sandbox, límites de recursos ni políticas de red (resto de la Fase 5).
 - No hay queue, workers ni memoria entre sesiones (resto de la Fase 6).
 - No hay model-as-judge ni datasets grandes (resto de la Fase 7).
+- No hay worktrees ni paralelismo entre subagentes (resto de la Fase 8).
 - No hay API HTTP (FastAPI) ni UI.
 
 ---
@@ -683,6 +690,76 @@ uv run localforge eval .        # corre el dataset contra el LLM local
 
 ---
 
+## Skills y extensibilidad (Fase 4)
+
+**Implementado (2026-09-26).** `src/localforge/skills.py` + `tools/skills.py`.
+
+Una skill es un directorio con un `SKILL.md` (frontmatter `name`/`description` + cuerpo) en
+`.localforge/skills/` o `.claude/skills/`.
+
+**Progressive disclosure es toda la idea** (W4·C23). El system prompt lleva **una línea por skill**
+— nombre y descripción. El cuerpo entra sólo cuando el modelo llama a `load_skill`. Cinco skills de
+3000 palabras serían 15000 palabras en el contexto de *cada turno*, se usen o no.
+
+Es la misma economía que `ToolDefinition`: se manda el schema, no la implementación. Y cierra un
+hueco de la Fase 2 — `skills` era una de las cuatro capas que `ContextBreakdown` reportaba con
+`present=False`. Ahora tiene un número.
+
+Detalles que importan:
+
+- **Sin dependencia de YAML.** Se parsean pares `clave: valor`. Aceptar YAML completo sería parsear
+  input arbitrario de un repo ajeno con una librería que sabe construir objetos.
+- **Una skill sin `description` se ignora.** Sin descripción el modelo no puede decidir si cargarla,
+  así que ocuparía una línea sin servir para nada.
+- **Un `SKILL.md` ilegible no impide que el agente arranque.** Se saltea esa skill y sigue.
+- Hay un test que verifica que el cuerpo **no** aparece en el system prompt.
+
+**Falta MCP** (W4·C25-C27). Es un protocolo con transporte stdio y JSON-RPC, y testearlo de verdad
+necesita un server MCP real contra el que hablar. Es un trabajo aparte, no una tarde.
+
+---
+
+## Multi-agente (Fase 8)
+
+**Subagentes implementados (2026-09-26).** `src/localforge/harness/subagent.py`.
+
+Es la pieza que la Fase 2 dejó pendiente por escrito: *"aislamiento de contexto necesita
+subagentes, que son W8"*.
+
+El problema: "entendé cómo funciona la autenticación" puede requerir leer diez archivos. Si el
+agente principal los lee, arrastra 30k tokens en **cada turno posterior** para usar dos párrafos.
+Un subagente investiga en su propia ventana y devuelve sólo la conclusión:
+
+```
+padre:     "investigá la autenticación"   -> 200 tokens de respuesta
+subagente: 10 archivos, 28k tokens        -> se descartan al terminar
+```
+
+Eso es lo único que hace, y es mucho. **No es paralelismo ni especialización: es presupuesto de
+contexto.**
+
+Tres propiedades para que no sea un pie en la trampa:
+
+| Propiedad | Cómo |
+|---|---|
+| **Límite de profundidad** | Al llegar a `MAX_DEPTH`, el registry del hijo **no incluye** `delegate`. No se le pide al modelo que se contenga: se le quita la posibilidad. |
+| **El presupuesto sale del padre** | Si no, "delegá" se vuelve "ignorá los límites": diez subagentes con presupuesto propio gastan diez veces el de la tarea. |
+| **Un fallo del hijo es un resultado** | Si se queda sin turnos, el padre lee "no pude" más qué hacer al respecto, y sigue. |
+
+El hijo **no verifica**: su salida la juzga el padre, que sabe para qué la pidió. Verificar dos
+veces con el mismo criterio sólo duplica el costo.
+
+Hay un test que mete un marcador en los archivos que lee el hijo y verifica que **no aparece en
+ningún mensaje del contexto del padre**. Si eso se rompe, delegar cuesta más que no delegar.
+
+`delegate` no está en la lista de lectura, así que **cae en ASK** como cualquier tool nueva — la
+política de la Fase 5 funcionando por construcción.
+
+**Falta de W8:** worktrees de git (necesita escritura), paralelismo real entre subagentes (hoy
+`delegate` es secuencial), y el rol de reviewer.
+
+---
+
 ## Decisiones de arquitectura
 
 ### 2026-09-19 — Ollama como primer provider, detrás de un Protocol
@@ -838,7 +915,7 @@ Ordenados por lo que más duele hoy, no por el orden de las fases:
    `write_file` y `run_command` **no se agregan sin permisos ALLOW/ASK/DENY** (Fase 5). Hoy el
    agente es de solo lectura y por eso el riesgo de prompt injection es acotado. Ese equilibrio se
    rompe exactamente el día que exista una tool con efectos.
-3. Skills (Fase 4) y subagentes (Fase 8), que son lo único que queda sin empezar.
+3. MCP (Fase 4) y worktrees/paralelismo (Fase 8): lo único de cada fase que sigue sin empezar.
 
 ---
 

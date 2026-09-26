@@ -33,6 +33,7 @@ from localforge.harness.checkpoint import Checkpoint, CheckpointStore
 from localforge.harness.context import ContextBudget, ContextBuilder
 from localforge.harness.prompt import build_system_prompt
 from localforge.permissions import Approver, PermissionPolicy
+from localforge.skills import discover_skills
 from localforge.harness.state import StateMachine
 from localforge.harness.verify import Verifier, default_verifier
 from localforge.models import (
@@ -137,7 +138,10 @@ class AgentHarness:
             policy=self.policy,
             approver=self.approver,
         )
-        system = build_system_prompt(workspace, self.registry)
+        skills = discover_skills(workspace)
+        system = build_system_prompt(workspace, self.registry, skills)
+        if skills:
+            self.on_event("skills_found", skills=[s.name for s in skills])
         definitions = self.registry.definitions()
 
         # --- estado del loop -------------------------------------------------

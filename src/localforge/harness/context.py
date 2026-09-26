@@ -409,8 +409,22 @@ class ContextBuilder:
                 compactable=True,
             ),
         ]
+        # `skills` ya existe: el bloque de disclosure va DENTRO del system
+        # prompt, asi que sus tokens ya estan contados en `instructions`. Se
+        # reporta aparte igual, porque saber cuanto cuesta la capa es el punto de
+        # medirla -- y el costo de una skill cargada aparece en `observations`,
+        # que es donde vuelve como tool result.
+        skills_tokens = est.estimate(_skills_block(system))
+        layers.append(
+            Layer(
+                name="skills",
+                tokens=skills_tokens,
+                chars=len(_skills_block(system)),
+                present=skills_tokens > 0,
+            )
+        )
         # Las capas que el roadmap nombra y LocalForge todavia no tiene.
-        for absent in ("environment", "skills", "memory", "retrieved"):
+        for absent in ("environment", "memory", "retrieved"):
             layers.append(Layer(name=absent, tokens=0, chars=0, present=False))
 
         order = {name: i for i, name in enumerate(LAYER_ORDER)}
@@ -423,6 +437,20 @@ class ContextBuilder:
             compacted_messages=compacted,
             recovered_tokens=recovered,
         )
+
+
+def _skills_block(system: str) -> str:
+    """Extrae el bloque de skills del system prompt, para poder medirlo aparte.
+
+    Se mide sobre el prompt ya armado en vez de recibir las skills: asi la
+    medicion no puede desincronizarse de lo que realmente se mando.
+    """
+    marker = "SKILLS DISPONIBLES"
+    if marker not in system:
+        return ""
+    start = system.index(marker)
+    end = system.find("\n\nResponde en el idioma", start)
+    return system[start : end if end > 0 else len(system)]
 
 
 __all__ = [

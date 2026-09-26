@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from localforge.skills import Skill, disclosure_block
 from localforge.tools.base import ToolRegistry
 
 _TEMPLATE = """Sos un asistente de ingenieria que trabaja sobre un repositorio de codigo real.
@@ -55,13 +56,19 @@ REGLAS DURAS:
   hacer distinto. No repitas la misma llamada con los mismos argumentos.
 
 Herramientas disponibles: {tool_names}
-
+{skills}
 Responde en el idioma en que te hable el usuario."""
 
 
-def build_system_prompt(workspace: Path, registry: ToolRegistry) -> str:
+def build_system_prompt(
+    workspace: Path, registry: ToolRegistry, skills: list[Skill] | None = None
+) -> str:
+    block = disclosure_block(skills or [])
     return _TEMPLATE.format(
         repo_name=workspace.name,
         repo_path=workspace.as_posix(),
         tool_names=", ".join(registry.names()),
+        # El bloque va vacio si no hay skills: una linea que diga "no hay
+        # skills" igual costaria tokens en cada turno.
+        skills=f"\n{block}\n" if block else "",
     )

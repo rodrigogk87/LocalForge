@@ -1,10 +1,11 @@
 from localforge.tools.base import Tool, ToolError, ToolExecutor, ToolRegistry
 from localforge.tools.fs import ListFilesTool, ReadFileTool, safe_path
 from localforge.tools.search import SearchCodeTool
+from localforge.tools.skills import LoadSkillTool
 
 __all__ = [
     "Tool", "ToolError", "ToolExecutor", "ToolRegistry",
-    "ListFilesTool", "ReadFileTool", "SearchCodeTool", "safe_path",
+    "ListFilesTool", "ReadFileTool", "SearchCodeTool", "LoadSkillTool", "safe_path",
     "default_registry",
 ]
 
@@ -18,4 +19,4 @@ def default_registry() -> ToolRegistry:
 
     write_file y run_command llegan cuando exista el control de permisos.
     """
-    return ToolRegistry([ListFilesTool(), SearchCodeTool(), ReadFileTool()])
+    return ToolRegistry([ListFilesTool(), SearchCodeTool(), ReadFileTool(), LoadSkillTool()])

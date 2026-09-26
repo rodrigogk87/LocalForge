@@ -184,7 +184,7 @@ def default_policy(extra_sensitive: Sequence[str] = ()) -> PermissionPolicy:
     Se lee de arriba hacia abajo y el orden es el diseño:
 
     1. Nunca leer archivos sensibles, ni siquiera con las tools de lectura.
-    2. Las tres tools de lectura estan permitidas sin preguntar.
+    2. Las tools de lectura estan permitidas sin preguntar.
     3. Cualquier otra tool -- incluidas las que todavia no existen, como
        `write_file` o `run_command` -- cae en ASK.
 
@@ -208,6 +208,7 @@ def default_policy(extra_sensitive: Sequence[str] = ()) -> PermissionPolicy:
             Rule(tool="list_files", decision=Decision.ALLOW),
             Rule(tool="search_code", decision=Decision.ALLOW),
             Rule(tool="read_file", decision=Decision.ALLOW),
+            Rule(tool="load_skill", decision=Decision.ALLOW),
         ],
         default=Decision.ASK,
         default_reason="es una tool con efectos y necesita aprobacion",
