@@ -16,6 +16,7 @@ from pathlib import Path
 
 from localforge.config import DOTENV_APPLIED, find_dotenv, settings
 from localforge.harness import AgentHarness
+from localforge.harness.checkpoint import FileCheckpointStore
 from localforge.harness.context import ContextBreakdown, ContextBudget
 from localforge.models import ToolCall as _ToolCall
 from localforge.permissions import (
@@ -88,7 +89,10 @@ class ConsoleSink:
     def __call__(self, event: str, **payload: object) -> None:
         stamp = _c(f"[{time.monotonic() - self._t0:6.1f}s]", DIM)
 
-        if event == "turn_start":
+        if event == "resumed":
+            print(_c(f"{stamp} retomando desde el turno {payload['turn']}", YELLOW))
+
+        elif event == "turn_start":
             print(f"{stamp} {_c(RULE + ' turno ' + str(payload['turn']), BOLD)}")
 
         elif event == "context_built":
@@ -233,7 +237,13 @@ async def cmd_health() -> int:
 
 
 async def cmd_ask(
-    repo: str, objective: str, *, verbose: bool, max_turns: int, read_only: bool = False
+    repo: str,
+    objective: str,
+    *,
+    verbose: bool,
+    max_turns: int,
+    read_only: bool = False,
+    save: bool = False,
 ) -> int:
     repo_path = Path(repo).expanduser().resolve()
     if not repo_path.is_dir():
@@ -256,6 +266,7 @@ async def cmd_ask(
         on_event=ConsoleSink(verbose),
         policy=policy,
         approver=_build_approver(read_only),
+        checkpoints=FileCheckpointStore(settings.state_dir) if save else None,
     )
 
     task = AgentTask(
@@ -272,6 +283,8 @@ async def cmd_ask(
     modo = "solo lectura" if read_only else f"default (ASK -> {'consola' if sys.stdin.isatty() else 'denegado, sin TTY'})"
     print(f"{_c('permisos', DIM)} {modo}")
     print(f"{_c('tarea', DIM)}  {objective}")
+    if save:
+        print(f"{_c('run id', DIM)} {task.id}  {_c('(localforge resume <id> para retomar)', DIM)}")
     print()
 
     try:
@@ -292,6 +305,75 @@ async def cmd_ask(
     return 0 if outcome.succeeded else 2
 
 
+async def cmd_resume(task_id: str, *, verbose: bool) -> int:
+    store = FileCheckpointStore(settings.state_dir)
+    snapshot = store.load(task_id)
+    if snapshot is None:
+        print(_c(f"{BAD_MARK} no hay ninguna corrida guardada con id '{task_id}'", RED))
+        ids = store.list_ids()
+        if ids:
+            print("  disponibles: " + ", ".join(ids[:10]))
+        else:
+            print("  no hay ninguna. Corré con --save para guardar checkpoints.")
+        return 1
+
+    provider = build_provider()
+    try:
+        await provider.health()
+    except ProviderError as exc:
+        print(_c(f"{BAD_MARK} {exc}", RED))
+        await provider.aclose()
+        return 1
+
+    harness = AgentHarness(
+        provider,
+        default_registry(),
+        on_event=ConsoleSink(verbose),
+        policy=default_policy(),
+        approver=_build_approver(False),
+        checkpoints=store,
+    )
+    print(f"{_c('repo', DIM)}   {snapshot.task.repo_path}")
+    print(f"{_c('tarea', DIM)}  {snapshot.task.objective}")
+    print(f"{_c('desde', DIM)}  turno {snapshot.turn} · {snapshot.state_path}")
+    print()
+    try:
+        outcome = await harness.resume(task_id)
+    finally:
+        await provider.aclose()
+
+    print()
+    print(_c(f"{RULE} {outcome.summary()}", GREEN if outcome.succeeded else RED))
+    print()
+    if outcome.output:
+        print(outcome.output)
+    return 0 if outcome.succeeded else 2
+
+
+def cmd_runs() -> int:
+    store = FileCheckpointStore(settings.state_dir)
+    ids = store.list_ids()
+    if not ids:
+        print("no hay corridas guardadas. Corré `localforge ask ... --save`.")
+        return 0
+    print(f"{len(ids)} corrida(s) en {settings.state_dir / 'runs'}:\n")
+    for task_id in ids:
+        try:
+            snap = store.load(task_id)
+        except Exception as exc:  # noqa: BLE001 - un checkpoint roto no rompe el listado
+            print(f"  {task_id}  {_c(f'ilegible: {exc}', RED)}")
+            continue
+        if snap is None:
+            continue
+        print(f"  {task_id}")
+        print(f"    {_c(snap.task.objective[:70], DIM)}")
+        print(
+            f"    turno {snap.turn} · {snap.status.value} · "
+            f"{snap.tokens_in + snap.tokens_out} tok · tools: {len(snap.trajectory)}"
+        )
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(prog="localforge", description="Coding agent local")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -308,6 +390,17 @@ def main() -> int:
         action="store_true",
         help="Deniega toda tool con efectos sin preguntar. Para repos que no son tuyos.",
     )
+    ask.add_argument(
+        "--save",
+        action="store_true",
+        help="Guarda un checkpoint por turno para poder retomar con `resume`.",
+    )
+
+    res = sub.add_parser("resume", help="Retoma una corrida guardada")
+    res.add_argument("task_id", help="Id de la corrida (lo lista `localforge runs`)")
+    res.add_argument("-v", "--verbose", action="store_true")
+
+    sub.add_parser("runs", help="Lista las corridas guardadas")
 
     args = parser.parse_args()
 
@@ -321,8 +414,13 @@ def main() -> int:
                 verbose=args.verbose,
                 max_turns=args.max_turns,
                 read_only=args.read_only,
+                save=args.save,
             )
         )
+    if args.command == "resume":
+        return asyncio.run(cmd_resume(args.task_id, verbose=args.verbose))
+    if args.command == "runs":
+        return cmd_runs()
     parser.print_help()
     return 1
 

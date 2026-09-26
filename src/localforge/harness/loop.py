@@ -29,6 +29,7 @@ from collections import Counter
 from pathlib import Path
 
 from localforge.config import Settings, settings as default_settings
+from localforge.harness.checkpoint import Checkpoint, CheckpointStore
 from localforge.harness.context import ContextBudget, ContextBuilder
 from localforge.harness.prompt import build_system_prompt
 from localforge.permissions import Approver, PermissionPolicy
@@ -79,6 +80,7 @@ class AgentHarness:
         max_repairs: int = 2,
         policy: PermissionPolicy | None = None,
         approver: Approver | None = None,
+        checkpoints: CheckpointStore | None = None,
     ) -> None:
         self.provider = provider
         self.registry = registry
@@ -98,8 +100,26 @@ class AgentHarness:
         # es quien puede verlos junto con los argumentos ya validados.
         self.policy = policy
         self.approver = approver
+        # Sin store, el agente sigue funcionando y no sobrevive al proceso. La
+        # persistencia es opt-in porque escribir en el disco del usuario no
+        # deberia ser un efecto silencioso de correr el agente.
+        self.checkpoints = checkpoints
 
-    async def run(self, task: AgentTask) -> AgentOutcome:
+    async def resume(self, task_id: str) -> AgentOutcome:
+        """Retoma una corrida desde su ultimo checkpoint.
+
+        No re-ejecuta nada: el checkpoint se graba DESPUES de aplicar los
+        resultados de las tools al estado, asi que todo lo que esta guardado ya
+        paso. Resumir es seguir, no repetir.
+        """
+        if self.checkpoints is None:
+            raise RuntimeError("no hay checkpoint store configurado: no se puede resumir")
+        snapshot = self.checkpoints.load(task_id)
+        if snapshot is None:
+            raise FileNotFoundError(f"no hay checkpoint para la task '{task_id}'")
+        return await self.run(snapshot.task, resume_from=snapshot)
+
+    async def run(self, task: AgentTask, *, resume_from: Checkpoint | None = None) -> AgentOutcome:
         workspace = Path(task.repo_path).resolve()
         if not workspace.is_dir():
             return AgentOutcome(
@@ -124,14 +144,32 @@ class AgentHarness:
         # Explicito y local a proposito: esta tupla es exactamente lo que en la
         # Fase 6 se serializa en un checkpoint. Lo que es facil de nombrar es
         # facil de persistir.
-        messages: list[AgentMessage] = [AgentMessage(role="user", content=task.objective)]
-        tokens_in = 0
-        tokens_out = 0
-        seen: Counter[str] = Counter()
-        trajectory: list[str] = []
-        records: list[TurnRecord] = []
-        machine = StateMachine()
-        rejected_by: list[str] = []
+        if resume_from is None:
+            messages: list[AgentMessage] = [AgentMessage(role="user", content=task.objective)]
+            tokens_in = 0
+            tokens_out = 0
+            seen: Counter[str] = Counter()
+            trajectory: list[str] = []
+            records: list[TurnRecord] = []
+            machine = StateMachine()
+            rejected_by: list[str] = []
+            first_turn = 0
+        else:
+            # Restaurar es leer la misma tupla al reves. Que la lista de campos
+            # de aca sea identica a la de arriba no es casualidad: es la prueba
+            # de que el estado del loop esta completamente nombrado.
+            messages = list(resume_from.messages)
+            tokens_in = resume_from.tokens_in
+            tokens_out = resume_from.tokens_out
+            seen = Counter(resume_from.seen)
+            trajectory = list(resume_from.trajectory)
+            records = list(resume_from.records)
+            machine = StateMachine(status=resume_from.status)
+            rejected_by = list(resume_from.rejected_by)
+            first_turn = resume_from.turn
+            if resume_from.chars_per_token:
+                self.context.estimator.chars_per_token = resume_from.chars_per_token
+            self.on_event("resumed", turn=first_turn, task_id=str(task.id))
 
         started = time.monotonic()
         deadline = started + task.wall_clock_s
@@ -163,9 +201,37 @@ class AgentHarness:
                 rejected_by=rejected_by,
             )
 
-        machine.to(AgentStatus.RUNNING, note="arranca la primera vuelta")
+        if machine.status is AgentStatus.CREATED:
+            machine.to(AgentStatus.RUNNING, note="arranca la primera vuelta")
 
-        for turn in range(task.max_turns):
+        def snapshot(turn: int) -> None:
+            """Graba el estado si hay donde. Se llama al CERRAR cada turno.
+
+            Al cerrar y no al abrir: un checkpoint tomado antes de aplicar los
+            resultados de las tools obligaria a re-ejecutarlas al resumir, y
+            entonces resumir no seria idempotente.
+            """
+            if self.checkpoints is None:
+                return
+            self.checkpoints.save(
+                Checkpoint(
+                    task=task,
+                    turn=turn,
+                    status=machine.status,
+                    messages=messages,
+                    tokens_in=tokens_in,
+                    tokens_out=tokens_out,
+                    seen=dict(seen),
+                    trajectory=trajectory,
+                    records=records,
+                    state_path=machine.compact_path(),
+                    repairs=machine.repairs,
+                    rejected_by=rejected_by,
+                    chars_per_token=self.context.estimator.chars_per_token,
+                )
+            )
+
+        for turn in range(first_turn, task.max_turns):
             # Los presupuestos se chequean ANTES de gastar. Al reves ya pagaste
             # la llamada que sabias que no podias pagar.
             remaining = deadline - time.monotonic()
@@ -277,6 +343,7 @@ class AgentHarness:
                 messages.append(AgentMessage(role="assistant", content=answer))
                 messages.append(AgentMessage(role="user", content=verdict.feedback))
                 machine.to(AgentStatus.RUNNING, turn=turn + 1)
+                snapshot(turn + 1)
                 continue
 
             # --- deteccion de loops -----------------------------------------
@@ -326,6 +393,7 @@ class AgentHarness:
             record.tool_results = results
             records.append(record)
             self.on_event("tools_done", turn=turn + 1, results=results)
+            snapshot(turn + 1)
 
         return finish(AgentStatus.FAILED, reason=FailureReason.MAX_TURNS, turns=task.max_turns)
 

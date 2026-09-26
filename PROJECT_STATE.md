@@ -37,6 +37,9 @@ verifica resultados y devuelve evidencia.
 
 **Fase 1 (Agent Foundations) — COMPLETA Y VERIFICADA END-TO-END contra el LLM local real.**
 
+**Fase 6 (Durable Agents) — checkpoints y resume implementados.** Falta queue/worker y memoria
+entre sesiones.
+
 **Fase 5 (Sandbox Engineering) — permisos implementados; sandbox NO.** ALLOW/ASK/DENY con
 fail-closed y aprobación humana. Falta el aislamiento real (Docker, límites de recursos, red).
 
@@ -76,7 +79,9 @@ respuesta final` funciona. Evidencia reproducible más abajo.
 | **Permisos ALLOW/ASK/DENY con fail-closed** | ✅ Fase 5, con tests |
 | **Secretos (`.env`, claves) no se pueden leer** | ✅ con tests |
 | **Aprobación humana por consola** | ✅ |
-| Suite de tests | ✅ 118 passed |
+| **Checkpoints por turno con escritura atómica** | ✅ Fase 6, con tests |
+| **`resume` retoma sin re-ejecutar nada** | ✅ con tests |
+| Suite de tests | ✅ 133 passed |
 
 ### Evidencia de la verificación (2026-09-19)
 
@@ -131,7 +136,7 @@ un **verifier de trayectoria**: rechazar la respuesta final si el agente no ley�
 - No hay planner ni hooks de ciclo de vida (resto de la Fase 3).
 - No hay skills ni MCP (Fase 4).
 - No hay sandbox, límites de recursos ni políticas de red (resto de la Fase 5).
-- No hay persistencia, checkpoints ni recovery (Fase 6). **Nada sobrevive al proceso.**
+- No hay queue, workers ni memoria entre sesiones (resto de la Fase 6).
 - No hay evals (Fase 7).
 - No hay API HTTP (FastAPI) ni UI.
 
@@ -351,10 +356,51 @@ archivo inexistente → lista los vecinos del directorio).
 
 ## Persistencia
 
-**No existe.** Todo vive en memoria durante una ejecución de la CLI.
-Si el proceso muere, se pierde absolutamente todo. Es la Fase 6.
+**Fase 6 implementada (2026-09-26).** `src/localforge/harness/checkpoint.py`.
 
-El estado del loop ya está identificado y es serializable (ver "Agent Loop" paso 2).
+Desde la Fase 1 el loop tenía un comentario diciendo que su estado local *"es exactamente lo que en
+la Fase 6 se serializa en un checkpoint"*. Se pudo cobrar esa promesa por una sola razón: **el
+estado estaba nombrado.** La lista de campos que se restauran es idéntica a la que se inicializa —
+esa simetría es la prueba de que el estado del loop está completo.
+
+### Las tres propiedades que separan esto de un `json.dump`
+
+| Propiedad | Por qué |
+|---|---|
+| **Escritura atómica** | Temporal en el mismo directorio + `fsync` + `os.replace`. Un crash a mitad de escritura deja el checkpoint **anterior** intacto en vez de un archivo truncado. Un checkpoint corrupto es peor que no tenerlo: te hace creer que podés resumir. El `fsync` va antes del rename porque si no, el rename puede llegar al disco antes que el contenido. |
+| **Versión de esquema** | El checkpoint que escribe hoy lo lee el proceso de mañana con el código cambiado. Sin versión, un campo renombrado es un crash confuso en el peor momento. Se rechaza explícito y temprano. |
+| **Idempotencia** | El checkpoint se graba **al cerrar** el turno, después de aplicar los resultados de las tools. Así, al resumir, nunca se re-ejecuta una tool cuyo resultado ya está guardado. Resumir es seguir, no repetir. |
+
+### Qué se persiste, y por qué cada cosa
+
+Además de lo obvio (`messages`, tokens, `trajectory`, `records`):
+
+- **El `Counter` de detección de loops.** Sin él, al resumir el agente se olvida de que ya repitió
+  dos veces la misma llamada y el límite se reinicia: un agente en loop podría girar para siempre
+  cruzando reinicios.
+- **Los tokens acumulados.** Si se reiniciaran en cada crash, el presupuesto dejaría de ser un
+  presupuesto.
+- **La calibración del estimador** (`chars_per_token`). Barata de perder, gratis de guardar.
+- **El camino de estados.** Para no perder la historia de reparaciones.
+
+### Uso
+
+```bash
+uv run localforge ask . "explicame el repo" --save   # imprime el run id
+uv run localforge runs                              # lista las corridas
+uv run localforge resume <id>                       # retoma
+```
+
+La persistencia es **opt-in**: escribir en el disco del usuario no debería ser un efecto silencioso
+de correr el agente. Sin `--save`, el comportamiento es idéntico al de antes.
+
+### Qué falta de Fase 6
+
+- **Queue y workers** (W6·C40). Hoy la corrida es un proceso en primer plano.
+- **Durable execution** estilo Temporal (W6·C41).
+- **Memoria entre sesiones** (las cuatro clases de memoria). El checkpoint es memoria *de una
+  corrida*; no hay nada que el agente recuerde de una task a la otra.
+- **Recovery automático.** Hoy resumir es manual: alguien corre `resume`.
 
 ---
 
@@ -566,14 +612,15 @@ sesgos, y es Fase 7.
 
 ## Durable execution
 
-**No existe.** Sin checkpoints, sin recovery, sin idempotencia, sin queue.
-Un crash pierde la ejecución completa. Es la Fase 6.
+**Parcial.** Hay checkpoints y `resume` manual (ver "Persistencia"). No hay queue, ni workers, ni
+recovery automático, ni idempotencia a nivel de efectos — que hoy es gratis porque todas las tools
+son de lectura, pero deja de serlo el día que exista `write_file`.
 
 ---
 
 ## Evals
 
-**No existen.** Hay 118 tests unitarios, que no son lo mismo: testean el harness, no la
+**No existen.** Hay 133 tests unitarios, que no son lo mismo: testean el harness, no la
 **calidad del agente**. Fase 7.
 
 ---
@@ -733,8 +780,7 @@ Ordenados por lo que más duele hoy, no por el orden de las fases:
    `write_file` y `run_command` **no se agregan sin permisos ALLOW/ASK/DENY** (Fase 5). Hoy el
    agente es de solo lectura y por eso el riesgo de prompt injection es acotado. Ese equilibrio se
    rompe exactamente el día que exista una tool con efectos.
-3. Checkpoints y resume (Fase 6). El estado del loop ya está identificado y es serializable.
-4. Evals (Fase 7). `FailureReason` es un vocabulario cerrado desde el día 1 justamente para esto.
+3. Evals (Fase 7). `FailureReason` es un vocabulario cerrado desde el día 1 justamente para esto.
 
 ---
 
@@ -754,6 +800,11 @@ uv run localforge health
 uv run localforge ask . "Explicame este proyecto"
 uv run localforge ask ../agent-harness-lab "¿Cómo está organizado el contenido?" -v
 uv run pytest -q
+
+# --- corridas guardadas ---
+uv run localforge ask . "explicame el repo" --save
+uv run localforge runs
+uv run localforge resume <id>
 ```
 
 ---
@@ -780,8 +831,9 @@ y `search_code` están escritos y testeados, pero no corridos contra el LLM loca
 **Primero:** arrancar Ollama y correr `uv run localforge ask . "explicame la arquitectura" -v` para
 validar la Fase 2 contra inferencia real. Es lo único que le falta a lo que ya está escrito.
 
-**Después:** checkpoints de la Fase 6. El estado del loop está identificado y nombrado desde la
-Fase 1 (`messages`, tokens, `seen`, `trajectory`, `records`, y ahora la máquina de estados).
+**Después:** evals de la Fase 7. `FailureReason` es un vocabulario cerrado desde el día 1
+justamente para poder agrupar fallos, y `outcome` ya trae trayectoria, estados, reparaciones,
+tokens y tiempo: las señales están, falta el runner que las compare.
 
 **Restricción dura, actualizada:** los permisos ya existen, así que `write_file` está desbloqueado
 (cae en ASK con aprobación humana y `safe_path`). **`run_command` sigue bloqueado**, y no por falta
