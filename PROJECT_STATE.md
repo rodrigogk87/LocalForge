@@ -37,6 +37,9 @@ verifica resultados y devuelve evidencia.
 
 **Fase 1 (Agent Foundations) — COMPLETA Y VERIFICADA END-TO-END contra el LLM local real.**
 
+**Fase 3 (Harness Engineering) — máquina de estados, verifier y repair loop implementados.**
+Falta planner (deliberado: ver más abajo) y hooks de ciclo de vida.
+
 **Fase 2 (Context Engineering) — primera porción implementada y testeada.** ContextBuilder,
 presupuesto por capa, estimador calibrado y compactación. Falta retrieval, que está bloqueado por
 `search_code`. Verificada con tests y con `ScriptedProvider`; **todavía no corrida contra el LLM
@@ -64,7 +67,10 @@ respuesta final` funciona. Evidencia reproducible más abajo.
 | **ContextBuilder con presupuesto por capa** | ✅ Fase 2, con tests |
 | **Compactación de observaciones, nunca en silencio** | ✅ con tests |
 | **Estimador de tokens calibrado contra `prompt_eval_count`** | ✅ con tests |
-| Suite de tests | ✅ 59 passed |
+| **Máquina de estados con transiciones prohibidas** | ✅ Fase 3, con tests |
+| **Verifier de trayectoria + repair loop** | ✅ Fase 3, con tests |
+| `CONTEXT_OVERFLOW` corta limpio | ✅ |
+| Suite de tests | ✅ 85 passed |
 
 ### Evidencia de la verificación (2026-09-19)
 
@@ -116,7 +122,7 @@ un **verifier de trayectoria**: rechazar la respuesta final si el agente no ley�
 
 - No hay `write_file`, `run_command`, `run_tests`, `git_diff`.
 - No hay retrieval ni selección por relevancia (resto de la Fase 2).
-- No hay state machine, planner, verifier ni repair loop (Fase 3).
+- No hay planner ni hooks de ciclo de vida (resto de la Fase 3).
 - No hay skills ni MCP (Fase 4).
 - No hay permisos, sandbox ni aprobación humana (Fase 5).
 - No hay persistencia, checkpoints ni recovery (Fase 6). **Nada sobrevive al proceso.**
@@ -268,7 +274,7 @@ cualquier repo mediano. Ver `.env` (no commiteado): 35 turnos y 900s.
    - ejecuta tools en paralelo, correlaciona **por call_id**, assertion de que no falte ninguno
 4. Si sale del `for` → `FAILED(max_turns)`.
 
-### Condiciones de terminación (5)
+### Condiciones de terminación (7)
 
 | # | Reason | Implementado |
 |---|---|---|
@@ -277,14 +283,15 @@ cualquier repo mediano. Ver `.env` (no commiteado): 35 turnos y 900s.
 | 3 | `WALL_CLOCK` | ✅ |
 | 4 | `TOKEN_BUDGET` | ✅ |
 | 5 | `LOOP_DETECTED` | ✅ |
+| 6 | `VERIFICATION_FAILED` | ✅ Fase 3 |
+| 7 | `CONTEXT_OVERFLOW` | ✅ |
 | — | `PROVIDER_ERROR` | ✅ |
 
 ### Qué falta
 
-- `max_repairs` (llega con el Verifier, Fase 3)
-- estados intermedios (PLANNING, WAITING_TOOL, VERIFYING) — hoy `AgentStatus` tiene 5 valores
+- planner (estado `PLANNING` y su transición; hoy no existe a propósito)
 - checkpoints por turno (Fase 6)
-- hooks de ciclo de vida (Fase 3) — hoy hay un `on_event` simple para observabilidad
+- hooks que puedan **vetar**, no sólo observar (Fase 5) — hoy `on_event` sólo observa
 
 ---
 
@@ -401,11 +408,13 @@ Acortar el system prompt para ahorrar contexto es trabajar en el lugar equivocad
 - **Compactación por resumen del modelo**. La versión actual es determinista y gratis; la del
   resumen cuesta una llamada extra y conserva más señal.
 
-### Agujero conocido, sin tapar
+### El agujero de overflow, tapado
 
-Si el contexto **no entra ni compactando todo lo compactable**, el builder manda lo que queda
-igual. No falla, no avisa al loop, y Ollama trunca por la izquierda. Falta un
-`FailureReason.CONTEXT_OVERFLOW` que corte limpio en vez de degradar en silencio.
+Si el contexto no entra ni compactando todo lo compactable, el loop corta con
+`FailureReason.CONTEXT_OVERFLOW` en vez de mandarlo igual y dejar que Ollama trunque en silencio
+por la izquierda (comiéndose el system prompt). Hay un margen del 10% porque el total es una
+**estimación**: abortar una corrida sana por un 3% de error del estimador sería peor que el
+problema que evita.
 
 ---
 
@@ -427,15 +436,71 @@ se agregue `write_file` o `run_command` — **no agregar esas tools sin permisos
 
 ## Verificación
 
-**No existe verificación de resultados.** Hoy, cuando el modelo deja de pedir tools, el harness
-acepta su respuesta como `COMPLETED`.
+**Fase 3 implementada (2026-09-26).** `src/localforge/harness/verify.py` y `harness/state.py`.
 
-Eso es correcto para tareas de solo lectura ("explicame el repo"), donde no hay nada que verificar
-más allá del texto. **Deja de ser correcto en cuanto el agente modifique archivos.**
+Hasta acá, cuando el modelo dejaba de pedir tools el harness aceptaba su respuesta. O sea que
+**el modelo era juez de su propio trabajo.** El verifier mueve esa decisión al harness, que puede
+mirar *lo que el agente hizo* en vez de lo que dice que hizo.
 
-Lo que sí se verifica hoy: los argumentos de cada tool call contra su schema Pydantic.
+### Máquina de estados
 
-Fase 3: tests, lint, types, schemas, git diff + repair loop con `max_repairs`.
+`AgentStatus` sumó `WAITING_TOOL`, `VERIFYING` y `REPAIRING`. Lo que la vuelve una máquina no son
+los estados: son las **transiciones prohibidas**, que viven en `harness/state.py`.
+
+```
+CREATED → RUNNING ⇄ WAITING_TOOL
+             ↓
+          VERIFYING → COMPLETED
+             ↓
+          REPAIRING → RUNNING
+```
+
+No se puede pasar a `COMPLETED` sin pasar por `VERIFYING`: ese es el punto. Cualquier estado no
+terminal puede caer en `FAILED`/`CANCELLED`, porque los presupuestos cortan desde donde sea.
+
+**No existe `PLANNING`, aunque el roadmap lo mencione.** No hay planner. Un estado por el que el
+agente pasa sin hacer nada es decoración que miente sobre lo que el sistema hace.
+
+`outcome.state_path` guarda el camino, colapsando ciclos:
+`created -> (running -> waiting_tool) x5 -> running -> verifying -> repairing -> running -> verifying -> completed`.
+
+### Los verifiers
+
+| Verifier | Qué rechaza |
+|---|---|
+| `TrajectoryVerifier` | Una respuesta sin **ninguna** llamada a `read_file` o `search_code`. `list_files` **no cuenta**: un listado dice cómo se llaman las cosas, no qué hacen — y aceptarlo es exactamente el fallo original. |
+| `NoHedgingVerifier` | Lenguaje especulativo ("posiblemente", "el más probable") **cuando el agente leyó poco**. Con evidencia abundante se tolera: hedgear sobre lo que no leíste es epistémicamente correcto, no un fallo. |
+| `CompositeVerifier` | Corre varios y devuelve el **primer** rechazo. Uno por vez produce una reparación por vez, que es más fácil de verificar después. |
+
+El `feedback` del verdict es texto **dirigido al modelo**: no dice "verificación fallida", dice qué
+hacer distinto. Por eso el repair loop puede simplemente reinyectarlo.
+
+### Repair loop
+
+Si el verifier rechaza, el feedback vuelve como un mensaje más y el agente tiene otra oportunidad,
+hasta `max_repairs` (default 2). Agotadas, `FAILED(VERIFICATION_FAILED)` — **devolviendo igual la
+última respuesta**: es mala, pero el usuario la prefiere a nada, y el `reason` deja claro que no
+pasó la verificación.
+
+Apagar la verificación requiere pasar un verifier permisivo explícito. Es deliberado: desactivar
+una garantía tiene que ser visible en el código que la desactiva.
+
+### Qué cierra esto, y qué no
+
+**Cierra** el bug conocido #4: el grounding deja de ser probabilístico. El prompt pide y
+`search_code` habilita, pero el verifier **garantiza** — es lo único que puede rechazar una
+respuesta no fundamentada.
+
+**No cierra** la calidad de la respuesta. El verifier juzga una propiedad *estructural* de la
+trayectoria, no si la explicación es buena. Eso necesita model-as-judge (W7·C45) con sus propios
+sesgos, y es Fase 7.
+
+### Qué falta de Fase 3
+
+- **Planner.** Hoy el modelo decide su próximo paso turno a turno, sin plan explícito.
+- **Hooks de ciclo de vida.** Hay `on_event`, que sólo observa. Un hook que pueda *vetar* (por
+  ejemplo, negar una tool call antes de ejecutarla) es la Fase 5.
+- **Verifiers de resultado**: tests, lint, types, git diff. Llegan cuando el agente escriba código.
 
 ---
 
@@ -448,7 +513,7 @@ Un crash pierde la ejecución completa. Es la Fase 6.
 
 ## Evals
 
-**No existen.** Hay 40 tests unitarios, que no son lo mismo: testean el harness, no la
+**No existen.** Hay 85 tests unitarios, que no son lo mismo: testean el harness, no la
 **calidad del agente**. Fase 7.
 
 ---
@@ -604,14 +669,11 @@ Ordenados por lo que más duele hoy, no por el orden de las fases:
 1. **Correr lo nuevo contra el LLM local.** El código está y los tests pasan, pero la validación
    con inferencia real falta (ver "Trabajo actual"). Es el paso más chico y el más urgente: hasta
    que no corra, el estimador nunca se calibró contra un tokenizer de verdad.
-2. **Tapar el agujero de `CONTEXT_OVERFLOW`.** Si no entra ni compactando todo, hoy se manda igual
-   y Ollama trunca en silencio. Un `FailureReason` nuevo y un corte limpio.
-3. **Decidir la próxima capacidad**, y la decisión tiene una restricción dura:
+2. **Decidir la próxima capacidad**, y la decisión tiene una restricción dura:
    `write_file` y `run_command` **no se agregan sin permisos ALLOW/ASK/DENY** (Fase 5). Hoy el
    agente es de solo lectura y por eso el riesgo de prompt injection es acotado. Ese equilibrio se
    rompe exactamente el día que exista una tool con efectos.
-4. Verifier de trayectoria (Fase 3): rechazar la respuesta final si el agente no leyó ningún
-   archivo. Es la garantía dura que el prompt no puede dar.
+3. Permisos ALLOW/ASK/DENY (Fase 5). Es el prerequisito duro de `write_file` y `run_command`.
 
 ---
 
@@ -657,8 +719,8 @@ y `search_code` están escritos y testeados, pero no corridos contra el LLM loca
 **Primero:** arrancar Ollama y correr `uv run localforge ask . "explicame la arquitectura" -v` para
 validar la Fase 2 contra inferencia real. Es lo único que le falta a lo que ya está escrito.
 
-**Después:** el verifier de trayectoria de la Fase 3. Es lo que convierte el grounding de
-probabilístico en garantizado, y se escribe sobre `outcome.trajectory`, que ya existe.
+**Después:** los permisos ALLOW/ASK/DENY de la Fase 5, que son el prerequisito duro de cualquier
+tool con efectos.
 
 **Restricción dura que NO hay que violar:** no agregar `write_file` ni `run_command` antes de que
 exista el sistema de permisos ALLOW/ASK/DENY. Hoy la seguridad del proyecto descansa en que el

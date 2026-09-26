@@ -27,12 +27,24 @@ def _utcnow() -> datetime:
 class AgentStatus(StrEnum):
     """Ciclo de vida de una task.
 
-    Arranca chico a proposito: en la Fase 3 esto se convierte en una maquina
-    de estados con transiciones prohibidas (PLANNING, VERIFYING, etc.).
+    Las transiciones permitidas entre estos valores viven en
+    `harness/state.py`: aca solo estan los nombres. Un enum no puede expresar
+    "de VERIFYING no se puede volver a WAITING_TOOL", y esa es justamente la
+    parte que hace que sea una maquina de estados y no una etiqueta.
+
+    No hay PLANNING porque no hay planner. Un estado por el que el agente pasa
+    sin hacer nada miente sobre lo que el sistema hace.
     """
 
     CREATED = "created"
     RUNNING = "running"
+    # El agente pidio tools y espera resultados. Se distingue de RUNNING porque
+    # es el unico momento en que corre codigo que no es del harness.
+    WAITING_TOOL = "waiting_tool"
+    # Hay una respuesta candidata y el verifier la esta juzgando.
+    VERIFYING = "verifying"
+    # El verifier rechazo y el agente tiene otra oportunidad, con feedback.
+    REPAIRING = "repairing"
     COMPLETED = "completed"
     FAILED = "failed"
     CANCELLED = "cancelled"
@@ -64,6 +76,13 @@ class FailureReason(StrEnum):
     LOOP_DETECTED = "loop_detected"
     PROVIDER_ERROR = "provider_error"
     CANCELLED = "cancelled"
+    # El verifier rechazo la respuesta y se agotaron los reintentos. Se
+    # distingue de los demas porque el agente TERMINO de trabajar: el problema
+    # es la calidad del resultado, no la ejecucion.
+    VERIFICATION_FAILED = "verification_failed"
+    # El contexto no entra ni compactando todo lo compactable. Cortar aca es
+    # mejor que mandarlo igual y dejar que Ollama trunque en silencio.
+    CONTEXT_OVERFLOW = "context_overflow"
 
 
 # ---------------------------------------------------------------------------
@@ -247,6 +266,13 @@ class AgentOutcome(BaseModel):
     trajectory: list[str] = Field(default_factory=list)
     turn_records: list[TurnRecord] = Field(default_factory=list)
 
+    # Fase 3. El camino de estados y cuantas veces el verifier rechazo son
+    # señales de eval: distinguen "salio bien de una" de "salio bien al tercer
+    # intento", que para medir un harness no es lo mismo.
+    state_path: str = ""
+    repairs: int = 0
+    rejected_by: list[str] = Field(default_factory=list)
+
     @property
     def succeeded(self) -> bool:
         return self.status == AgentStatus.COMPLETED
@@ -259,6 +285,8 @@ class AgentOutcome(BaseModel):
         head = f"{self.status.value}"
         if self.reason:
             head += f" ({self.reason.value})"
+        if self.repairs:
+            head += f" | {self.repairs} reparacion(es)"
         return (
             f"{head} | {self.turns} turnos | {self.total_tokens} tokens "
             f"| {self.duration_ms / 1000:.1f}s | tools: {', '.join(self.trajectory) or '-'}"

@@ -89,8 +89,26 @@ def task_for(repo: Path, **kw) -> AgentTask:
     return AgentTask(**{**defaults, **kw})
 
 
-def harness(provider: ScriptedProvider) -> AgentHarness:
-    return AgentHarness(provider, default_registry(), cfg=Settings())
+class AcceptAll:
+    """Verifier que acepta cualquier respuesta.
+
+    Los tests de MECANICA del loop lo usan a proposito: que el loop corra y que
+    el verifier juzgue son dos propiedades distintas, y un test que dependa de
+    las dos falla por dos motivos y no dice cual. La verificacion se testea
+    aparte, en test_verify.py, incluida su integracion con el harness real.
+    """
+
+    name = "accept-all"
+
+    def verify(self, task, answer, trajectory):  # noqa: ANN001, ANN201
+        from localforge.harness.verify import Verdict
+
+        return Verdict.passed(self.name)
+
+
+def harness(provider: ScriptedProvider, **kw) -> AgentHarness:
+    kw.setdefault("verifier", AcceptAll())
+    return AgentHarness(provider, default_registry(), cfg=Settings(), **kw)
 
 
 # --- camino feliz -----------------------------------------------------------

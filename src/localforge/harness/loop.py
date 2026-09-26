@@ -11,6 +11,13 @@ Condiciones de terminacion implementadas:
                          no duracion: un turno puede colgarse para siempre)
   4. token_budget     -- limite de gasto
   5. loop_detected    -- el modelo repite la misma accion sin progresar
+  6. verification_failed -- el verifier rechazo y se agotaron las reparaciones
+  7. context_overflow  -- no entra en la ventana ni compactando todo
+
+Las dos ultimas son de fases posteriores y aparecen aca porque las condiciones
+de terminacion son una sola lista: cada fase que agrega una capacidad agrega
+tambien su forma de fallar. Un agente con mas features tiene mas maneras de
+terminar, no menos.
 """
 
 from __future__ import annotations
@@ -24,6 +31,8 @@ from pathlib import Path
 from localforge.config import Settings, settings as default_settings
 from localforge.harness.context import ContextBudget, ContextBuilder
 from localforge.harness.prompt import build_system_prompt
+from localforge.harness.state import StateMachine
+from localforge.harness.verify import Verifier, default_verifier
 from localforge.models import (
     AgentMessage,
     AgentOutcome,
@@ -42,12 +51,18 @@ from localforge.tools.base import ToolExecutor, ToolRegistry
 # identicas significa que el modelo no esta incorporando el resultado.
 REPEAT_LIMIT = 3
 
+# Cuanto se le permite pasarse a la ESTIMACION de contexto antes de abortar. El
+# estimador tiene error conocido (ver harness/context.py); abortar una corrida
+# sana por un 3% de error seria peor que el problema que evita.
+_OVERFLOW_MARGIN = 1.10
+
 
 class AgentHarness:
     """El runtime que rodea al modelo.
 
-    Hoy hace: contexto (con presupuesto), tools, estado y terminacion.
-    Todavia NO hace: verificacion, permisos, checkpoints. Esas son las fases
+    Hoy hace: contexto (con presupuesto), tools, maquina de estados,
+    verificacion con repair loop y terminacion.
+    Todavia NO hace: permisos, sandbox, checkpoints. Esas son las fases
     siguientes y se enganchan en los bordes de este loop.
     """
 
@@ -59,6 +74,8 @@ class AgentHarness:
         cfg: Settings | None = None,
         on_event: "EventSink | None" = None,
         context: ContextBuilder | None = None,
+        verifier: Verifier | None = None,
+        max_repairs: int = 2,
     ) -> None:
         self.provider = provider
         self.registry = registry
@@ -67,6 +84,13 @@ class AgentHarness:
         # El builder es inyectable para poder testear presupuestos chicos sin
         # tocar la config global.
         self.context = context or ContextBuilder(ContextBudget.from_settings(self.cfg))
+        # `verifier=None` usa el default; para desactivar la verificacion hay
+        # que pasar uno que acepte todo. Es deliberado: apagar una garantia
+        # tiene que ser explicito en el codigo que la apaga.
+        self.verifier = verifier if verifier is not None else default_verifier()
+        # Cuantas veces se le devuelve el rechazo al modelo antes de rendirse.
+        # Sin techo, un modelo que no entiende el reproche gira hasta max_turns.
+        self.max_repairs = max_repairs
 
     async def run(self, task: AgentTask) -> AgentOutcome:
         workspace = Path(task.repo_path).resolve()
@@ -97,6 +121,8 @@ class AgentHarness:
         seen: Counter[str] = Counter()
         trajectory: list[str] = []
         records: list[TurnRecord] = []
+        machine = StateMachine()
+        rejected_by: list[str] = []
 
         started = time.monotonic()
         deadline = started + task.wall_clock_s
@@ -108,6 +134,10 @@ class AgentHarness:
             output: str = "",
             turns: int,
         ) -> AgentOutcome:
+            # La maquina se mueve al estado terminal aca y en ningun otro lado,
+            # asi el camino registrado siempre termina donde termino la corrida.
+            if machine.status is not status and not machine.status.is_terminal:
+                machine.to(status, turn=turns, note=reason.value if reason else "")
             return AgentOutcome(
                 task_id=task.id,
                 status=status,
@@ -119,7 +149,12 @@ class AgentHarness:
                 duration_ms=int((time.monotonic() - started) * 1000),
                 trajectory=trajectory,
                 turn_records=records,
+                state_path=machine.compact_path(),
+                repairs=machine.repairs,
+                rejected_by=rejected_by,
             )
+
+        machine.to(AgentStatus.RUNNING, note="arranca la primera vuelta")
 
         for turn in range(task.max_turns):
             # Los presupuestos se chequean ANTES de gastar. Al reves ya pagaste
@@ -142,6 +177,24 @@ class AgentHarness:
                 definitions=definitions,
             )
             self.on_event("context_built", turn=turn + 1, breakdown=built.breakdown)
+
+            # Si no entra ni despues de compactar todo lo compactable, cortar
+            # limpio. La alternativa es mandarlo igual y dejar que Ollama
+            # trunque en silencio por la izquierda, comiendose el system prompt:
+            # el agente sigue "funcionando" sin sus instrucciones.
+            # El margen existe porque `total` es una ESTIMACION; sin el, un
+            # estimador todavia sin calibrar podria abortar una corrida sana.
+            if built.breakdown.total > built.breakdown.available * _OVERFLOW_MARGIN:
+                return finish(
+                    AgentStatus.FAILED,
+                    reason=FailureReason.CONTEXT_OVERFLOW,
+                    output=(
+                        f"el contexto no entra: ~{built.breakdown.total} tokens estimados contra "
+                        f"{built.breakdown.available} disponibles, ya compactado. "
+                        f"Subí LOCALFORGE_NUM_CTX o acotá la tarea."
+                    ),
+                    turns=turn + 1,
+                )
 
             try:
                 # El timeout del turno nunca puede exceder lo que queda del
@@ -188,9 +241,34 @@ class AgentHarness:
                         AgentMessage(role="user", content="Tu respuesta quedo cortada. Continua.")
                     )
                     continue
-                return finish(
-                    AgentStatus.COMPLETED, output=response.content or "", turns=turn + 1
-                )
+                # --- verificacion -------------------------------------------
+                # El modelo dejo de pedir tools, pero "termine" no es su
+                # decision: es la del harness, que puede mirar lo que HIZO.
+                answer = response.content or ""
+                machine.to(AgentStatus.VERIFYING, turn=turn + 1)
+                verdict = self.verifier.verify(task, answer, trajectory)
+                self.on_event("verified", turn=turn + 1, verdict=verdict)
+
+                if verdict.ok:
+                    return finish(AgentStatus.COMPLETED, output=answer, turns=turn + 1)
+
+                rejected_by.append(verdict.check)
+                if machine.repairs >= self.max_repairs:
+                    # Se agotaron las reparaciones. Devolvemos igual la ultima
+                    # respuesta: es mala, pero el usuario la prefiere a nada, y
+                    # el `reason` deja claro que no paso la verificacion.
+                    return finish(
+                        AgentStatus.FAILED,
+                        reason=FailureReason.VERIFICATION_FAILED,
+                        output=answer,
+                        turns=turn + 1,
+                    )
+
+                machine.to(AgentStatus.REPAIRING, turn=turn + 1, note=verdict.check)
+                messages.append(AgentMessage(role="assistant", content=answer))
+                messages.append(AgentMessage(role="user", content=verdict.feedback))
+                machine.to(AgentStatus.RUNNING, turn=turn + 1)
+                continue
 
             # --- deteccion de loops -----------------------------------------
             for call in response.tool_calls:
@@ -214,7 +292,9 @@ class AgentHarness:
                 )
             )
             self.on_event("tools_start", turn=turn + 1, calls=response.tool_calls)
+            machine.to(AgentStatus.WAITING_TOOL, turn=turn + 1)
             results = await executor.run_all(response.tool_calls)
+            machine.to(AgentStatus.RUNNING, turn=turn + 1)
 
             # Correlacion por call_id, JAMAS por posicion.
             by_id = {r.call_id: r for r in results}

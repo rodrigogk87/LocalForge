@@ -110,6 +110,15 @@ class ConsoleSink:
                 for line in head:
                     print(f"{stamp}   {_c(PIPE + ' ' + line[:110], DIM)}")
 
+        elif event == "verified":
+            verdict = payload["verdict"]
+            if verdict.ok:
+                print(f"{stamp}   {_c(OK_MARK, GREEN)} verificado ({verdict.check})")
+            else:
+                print(f"{stamp}   {_c(BAD_MARK + ' rechazado por ' + verdict.check, YELLOW)}")
+                if self.verbose:
+                    print(f"{stamp}   {_c(PIPE + ' ' + verdict.feedback[:150], DIM)}")
+
         elif event == "tools_start":
             calls = payload["calls"]
             assert isinstance(calls, list)
@@ -203,6 +212,10 @@ async def cmd_ask(repo: str, objective: str, *, verbose: bool, max_turns: int) -
     print()
     color = GREEN if outcome.succeeded else RED
     print(_c(f"{RULE} {outcome.summary()}", color))
+    if outcome.state_path:
+        print(_c(f"   estados: {outcome.state_path}", DIM))
+    if outcome.rejected_by:
+        print(_c(f"   rechazos: {', '.join(outcome.rejected_by)}", DIM))
     print()
     if outcome.output:
         print(outcome.output)
