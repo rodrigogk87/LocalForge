@@ -37,6 +37,9 @@ verifica resultados y devuelve evidencia.
 
 **Fase 1 (Agent Foundations) — COMPLETA Y VERIFICADA END-TO-END contra el LLM local real.**
 
+**Fase 5 (Sandbox Engineering) — permisos implementados; sandbox NO.** ALLOW/ASK/DENY con
+fail-closed y aprobación humana. Falta el aislamiento real (Docker, límites de recursos, red).
+
 **Fase 3 (Harness Engineering) — máquina de estados, verifier y repair loop implementados.**
 Falta planner (deliberado: ver más abajo) y hooks de ciclo de vida.
 
@@ -70,7 +73,10 @@ respuesta final` funciona. Evidencia reproducible más abajo.
 | **Máquina de estados con transiciones prohibidas** | ✅ Fase 3, con tests |
 | **Verifier de trayectoria + repair loop** | ✅ Fase 3, con tests |
 | `CONTEXT_OVERFLOW` corta limpio | ✅ |
-| Suite de tests | ✅ 85 passed |
+| **Permisos ALLOW/ASK/DENY con fail-closed** | ✅ Fase 5, con tests |
+| **Secretos (`.env`, claves) no se pueden leer** | ✅ con tests |
+| **Aprobación humana por consola** | ✅ |
+| Suite de tests | ✅ 118 passed |
 
 ### Evidencia de la verificación (2026-09-19)
 
@@ -124,7 +130,7 @@ un **verifier de trayectoria**: rechazar la respuesta final si el agente no ley�
 - No hay retrieval ni selección por relevancia (resto de la Fase 2).
 - No hay planner ni hooks de ciclo de vida (resto de la Fase 3).
 - No hay skills ni MCP (Fase 4).
-- No hay permisos, sandbox ni aprobación humana (Fase 5).
+- No hay sandbox, límites de recursos ni políticas de red (resto de la Fase 5).
 - No hay persistencia, checkpoints ni recovery (Fase 6). **Nada sobrevive al proceso.**
 - No hay evals (Fase 7).
 - No hay API HTTP (FastAPI) ni UI.
@@ -420,17 +426,71 @@ problema que evita.
 
 ## Seguridad
 
-**Estado: mínimo deliberado, y el agente es de solo lectura.**
+**Fase 5, permisos: implementados (2026-09-26).** `src/localforge/permissions.py`.
 
-- ✅ `safe_path()` con `resolve()` antes de comparar → path traversal bloqueado y testeado.
-- ✅ Solo hay tools de lectura. No puede escribir ni ejecutar comandos.
-- ✅ El modelo nunca ejecuta: propone, el harness ejecuta.
-- ❌ No hay ALLOW/ASK/DENY, sandbox, límites de recursos ni aprobación humana.
+El harness ya tenía la asimetría correcta desde la Fase 1 — **el modelo propone, el harness
+ejecuta** — y `tools/base.py` decía en su docstring que ahí se enchufarían los permisos. Se
+enchufaron exactamente ahí, en `run_one`, sin que el loop se enterara.
 
-**Riesgo conocido y aceptado hoy:** el contenido de los archivos que lee entra al contexto sin
-delimitar. Un repo hostil podría intentar prompt injection. Hoy el daño posible es acotado
-porque **no hay ninguna tool con efectos**. Esto deja de ser aceptable en el momento exacto en que
-se agregue `write_file` o `run_command` — **no agregar esas tools sin permisos** (Fase 5).
+### Las tres decisiones que importan
+
+| Decisión | Por qué |
+|---|---|
+| **El default nunca es ALLOW** | Una tool que la política no conoce se deniega. Mismo criterio que `ToolResult.success` sin default: en seguridad, el default seguro es el pesimista. Un permiso que falla abierto convierte cada olvido en un agujero. |
+| **Un DENY vuelve como `ToolResult`, no como excepción** | El modelo lee "no tenés permiso" y busca otro camino. Matar al agente por una decisión de política sería tratarla como un fallo del sistema. |
+| **ASK sin nadie a quien preguntar es DENY** | Sin TTY no hay humano. "No pude preguntar" no puede resolverse como "dale". La elección depende del entorno, no de un flag: en CI, donde más importa, no hay forma de olvidarse del flag seguro. |
+
+### La política por defecto
+
+Se lee de arriba hacia abajo, y el orden **es** el diseño:
+
+1. `DENY` sobre archivos sensibles (`.env`, `*.pem`, `id_rsa*`, `*.tfvars`, `.git-credentials`,
+   `service-account*.json`…) **para cualquier tool**, incluidas las de lectura.
+2. `ALLOW` para `list_files`, `search_code`, `read_file`.
+3. `ASK` para todo lo demás.
+
+El punto 3 es el que da la garantía a futuro: **cuando alguien agregue `write_file` o
+`run_command`, va a caer en ASK por construcción**, sin que haya que acordarse de agregarlo acá.
+
+**El DENY sobre secretos no es teórico.** El contenido de lo que el agente lee entra al contexto, y
+el contexto viaja al modelo: leer un `.env` es exfiltrarlo. Hoy el modelo es local, y el día que el
+provider sea remoto es literal. Hay un test que verifica que el valor del secreto no aparece **en
+ninguna parte** de lo que vuelve al modelo, ni siquiera en el mensaje de error.
+
+El motivo del DENY es accionable, no un "prohibido": *"si necesitás saber qué variables usa el
+proyecto, buscá dónde se leen en el código (`search_code`) o mirá el `.env.example`"*.
+
+### Aprobación humana
+
+`ConsoleApprover` muestra tool, argumentos y motivo, y espera un sí explícito (`s`/`y`, o `t` para
+recordar esa tool en la corrida). Cualquier otra cosa es no: un enter distraído no autoriza una
+escritura. Usa `asyncio.to_thread` para no bloquear el loop mientras el humano piensa.
+
+`localforge ask --read-only` deniega todo lo que no sea lectura sin preguntar.
+
+### Qué falta de Fase 5 — y es la mitad importante
+
+**No hay sandbox.** Un permiso decide *si* se ejecuta; un sandbox contiene *lo que pasa* cuando se
+ejecuta. Falta todo eso:
+
+- ❌ Aislamiento de filesystem real (hoy sólo `safe_path`, que es validación, no contención)
+- ❌ Docker / contenedores (W5·C30)
+- ❌ Límites de CPU, memoria y procesos (W5·C32)
+- ❌ Políticas de red (W5·C33)
+
+**Por eso `run_command` sigue sin agregarse**, aunque los permisos ya existan. Ejecutar comandos
+arbitrarios sin contención es el agujero que ningún ALLOW/ASK/DENY tapa: una vez que el comando
+corre, el permiso ya hizo todo lo que podía hacer.
+
+`write_file` **sí** está desbloqueado por los permisos (queda en ASK, con aprobación humana y
+`safe_path`), pero es una decisión de capacidad que no se tomó todavía.
+
+### Riesgo conocido y aceptado
+
+El contenido de los archivos que lee entra al contexto sin delimitar: un repo hostil podría
+intentar prompt injection (W5·C29). El daño posible sigue acotado porque **no hay ninguna tool con
+efectos**. Ese equilibrio se rompe el día que exista una, y ese día hace falta el sandbox, no sólo
+el permiso.
 
 ---
 
@@ -513,7 +573,7 @@ Un crash pierde la ejecución completa. Es la Fase 6.
 
 ## Evals
 
-**No existen.** Hay 85 tests unitarios, que no son lo mismo: testean el harness, no la
+**No existen.** Hay 118 tests unitarios, que no son lo mismo: testean el harness, no la
 **calidad del agente**. Fase 7.
 
 ---
@@ -673,7 +733,8 @@ Ordenados por lo que más duele hoy, no por el orden de las fases:
    `write_file` y `run_command` **no se agregan sin permisos ALLOW/ASK/DENY** (Fase 5). Hoy el
    agente es de solo lectura y por eso el riesgo de prompt injection es acotado. Ese equilibrio se
    rompe exactamente el día que exista una tool con efectos.
-3. Permisos ALLOW/ASK/DENY (Fase 5). Es el prerequisito duro de `write_file` y `run_command`.
+3. Checkpoints y resume (Fase 6). El estado del loop ya está identificado y es serializable.
+4. Evals (Fase 7). `FailureReason` es un vocabulario cerrado desde el día 1 justamente para esto.
 
 ---
 
@@ -719,12 +780,14 @@ y `search_code` están escritos y testeados, pero no corridos contra el LLM loca
 **Primero:** arrancar Ollama y correr `uv run localforge ask . "explicame la arquitectura" -v` para
 validar la Fase 2 contra inferencia real. Es lo único que le falta a lo que ya está escrito.
 
-**Después:** los permisos ALLOW/ASK/DENY de la Fase 5, que son el prerequisito duro de cualquier
-tool con efectos.
+**Después:** checkpoints de la Fase 6. El estado del loop está identificado y nombrado desde la
+Fase 1 (`messages`, tokens, `seen`, `trajectory`, `records`, y ahora la máquina de estados).
 
-**Restricción dura que NO hay que violar:** no agregar `write_file` ni `run_command` antes de que
-exista el sistema de permisos ALLOW/ASK/DENY. Hoy la seguridad del proyecto descansa en que el
-agente es de solo lectura.
+**Restricción dura, actualizada:** los permisos ya existen, así que `write_file` está desbloqueado
+(cae en ASK con aprobación humana y `safe_path`). **`run_command` sigue bloqueado**, y no por falta
+de permisos sino por falta de **sandbox**: una vez que el comando corre, el permiso ya hizo todo lo
+que podía hacer. Ejecutar comandos arbitrarios sin contención es un agujero que ningún
+ALLOW/ASK/DENY tapa.
 
 **Regla del proyecto:** trabajar incrementalmente — diseñar una parte chica, implementarla,
 ejecutarla de verdad contra el LLM local, medir, actualizar este archivo, y recién ahí seguir.

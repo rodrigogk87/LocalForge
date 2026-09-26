@@ -17,6 +17,13 @@ from pathlib import Path
 from localforge.config import DOTENV_APPLIED, find_dotenv, settings
 from localforge.harness import AgentHarness
 from localforge.harness.context import ContextBreakdown, ContextBudget
+from localforge.models import ToolCall as _ToolCall
+from localforge.permissions import (
+    Approver,
+    DenyingApprover,
+    default_policy,
+    read_only_policy,
+)
 from localforge.models import AgentTask, ModelResponse, ToolCall, ToolResult
 from localforge.providers import build_provider
 from localforge.providers.base import ProviderError
@@ -144,6 +151,56 @@ class ConsoleSink:
 # ---------------------------------------------------------------------------
 
 
+class ConsoleApprover:
+    """Aprobacion humana por consola.
+
+    Muestra la tool, sus argumentos y el motivo, y espera un si explicito.
+    Cualquier cosa que no sea "s" o "y" es un no: un enter distraido no puede
+    autorizar una escritura.
+    """
+
+    def __init__(self) -> None:
+        self.recordar: dict[str, bool] = {}
+
+    async def approve(self, call: _ToolCall, reason: str) -> bool:
+        if call.name in self.recordar:
+            return self.recordar[call.name]
+
+        args = ", ".join(f"{k}={v!r}" for k, v in call.arguments.items())
+        print()
+        print(_c(f"  {BAD_MARK} el agente pide permiso", YELLOW))
+        print(f"    tool   {call.name}({args[:160]})")
+        print(f"    motivo {reason}")
+        try:
+            # asyncio.to_thread para no bloquear el event loop mientras el
+            # humano piensa: si hay tools corriendo en paralelo, siguen.
+            respuesta = (
+                await asyncio.to_thread(input, "    ¿permitir? [s/N/t=siempre esta tool] ")
+            ).strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print(_c("    sin respuesta -> denegado", DIM))
+            return False
+
+        if respuesta == "t":
+            self.recordar[call.name] = True
+            return True
+        ok = respuesta in ("s", "si", "y", "yes")
+        print(_c(f"    -> {'permitido' if ok else 'denegado'}", GREEN if ok else RED))
+        return ok
+
+
+def _build_approver(read_only: bool) -> Approver:
+    """Quien resuelve los ASK.
+
+    Sin TTY no hay humano, y un ASK que nadie puede contestar es un DENY. Que la
+    eleccion dependa del entorno y no de un flag es deliberado: en CI, donde mas
+    importa, no hay forma de olvidarse de pasar el flag seguro.
+    """
+    if read_only or not sys.stdin.isatty():
+        return DenyingApprover()
+    return ConsoleApprover()
+
+
 async def cmd_health() -> int:
     provider = build_provider()
     try:
@@ -161,6 +218,8 @@ async def cmd_health() -> int:
     budget = ContextBudget.from_settings(settings)
     print(f"  {'ctx disponible':18} {budget.available} (reserva {budget.reserve_output} para la salida)")
     print(f"  {'max_turns':18} {settings.max_turns}")
+    policy = default_policy()
+    print(f"  {'permisos':18} default={policy.default.value}, {len(policy.rules)} reglas")
     print(f"  {'wall_clock_s':18} {settings.wall_clock_s:g}s")
 
     # De donde salio la config: sin esto, un .env que no se esta leyendo es
@@ -173,7 +232,9 @@ async def cmd_health() -> int:
     return 0
 
 
-async def cmd_ask(repo: str, objective: str, *, verbose: bool, max_turns: int) -> int:
+async def cmd_ask(
+    repo: str, objective: str, *, verbose: bool, max_turns: int, read_only: bool = False
+) -> int:
     repo_path = Path(repo).expanduser().resolve()
     if not repo_path.is_dir():
         print(_c(f"{BAD_MARK} '{repo}' no es un directorio", RED))
@@ -188,7 +249,14 @@ async def cmd_ask(repo: str, objective: str, *, verbose: bool, max_turns: int) -
         return 1
 
     registry = default_registry()
-    harness = AgentHarness(provider, registry, on_event=ConsoleSink(verbose))
+    policy = read_only_policy() if read_only else default_policy()
+    harness = AgentHarness(
+        provider,
+        registry,
+        on_event=ConsoleSink(verbose),
+        policy=policy,
+        approver=_build_approver(read_only),
+    )
 
     task = AgentTask(
         objective=objective,
@@ -201,6 +269,8 @@ async def cmd_ask(repo: str, objective: str, *, verbose: bool, max_turns: int) -
     print(f"{_c('repo', DIM)}   {repo_path}")
     print(f"{_c('modelo', DIM)} {info['model']} @ {info['host']}")
     print(f"{_c('tools', DIM)}  {', '.join(registry.names())}")
+    modo = "solo lectura" if read_only else f"default (ASK -> {'consola' if sys.stdin.isatty() else 'denegado, sin TTY'})"
+    print(f"{_c('permisos', DIM)} {modo}")
     print(f"{_c('tarea', DIM)}  {objective}")
     print()
 
@@ -233,6 +303,11 @@ def main() -> int:
     ask.add_argument("objective", help="Que queres que haga el agente")
     ask.add_argument("-v", "--verbose", action="store_true", help="Muestra el texto del modelo")
     ask.add_argument("--max-turns", type=int, default=settings.max_turns)
+    ask.add_argument(
+        "--read-only",
+        action="store_true",
+        help="Deniega toda tool con efectos sin preguntar. Para repos que no son tuyos.",
+    )
 
     args = parser.parse_args()
 
@@ -240,7 +315,13 @@ def main() -> int:
         return asyncio.run(cmd_health())
     if args.command == "ask":
         return asyncio.run(
-            cmd_ask(args.repo, args.objective, verbose=args.verbose, max_turns=args.max_turns)
+            cmd_ask(
+                args.repo,
+                args.objective,
+                verbose=args.verbose,
+                max_turns=args.max_turns,
+                read_only=args.read_only,
+            )
         )
     parser.print_help()
     return 1

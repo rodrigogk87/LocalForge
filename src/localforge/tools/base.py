@@ -1,8 +1,12 @@
 """Interface de tools, registry y ejecucion.
 
-El modelo NUNCA ejecuta nada: propone. El harness resuelve, valida, ejecuta y
-reporta. Esa asimetria es el punto donde en la Fase 5 se enchufan permisos,
-sandbox y aprobacion humana sin tocar el loop.
+El modelo NUNCA ejecuta nada: propone. El harness resuelve, valida, **autoriza**,
+ejecuta y reporta. Esa asimetria es el punto donde se enchufan los permisos y la
+aprobacion humana (Fase 5) sin tocar el loop -- y efectivamente se enchufaron
+aca, en `run_one`, sin que el loop se enterara.
+
+Falta el sandbox: un permiso decide *si* se ejecuta, un sandbox contiene *lo que
+pasa* cuando se ejecuta.
 """
 
 from __future__ import annotations
@@ -14,6 +18,14 @@ from typing import Any, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ValidationError
 
+from localforge.permissions import (
+    Approver,
+    Decision,
+    DenyingApprover,
+    PermissionPolicy,
+    Verdict,
+    default_policy,
+)
 from localforge.models import ToolCall, ToolDefinition, ToolResult
 
 
@@ -87,12 +99,22 @@ class ToolExecutor:
         timeout_s: float = 30.0,
         output_limit: int = 8_000,
         max_parallel: int = 4,
+        policy: PermissionPolicy | None = None,
+        approver: Approver | None = None,
     ) -> None:
         self.registry = registry
         self.workspace = workspace
         self.timeout_s = timeout_s
         self.output_limit = output_limit
         self._sem = asyncio.Semaphore(max_parallel)
+        # Sin politica explicita se usa la default, que es restrictiva. Pasar
+        # `policy=None` no significa "sin permisos": no hay forma de apagar el
+        # control desde los argumentos, hay que construir una politica permisiva
+        # a mano y que se vea en el codigo.
+        if policy is None:
+            policy = default_policy()
+        self.policy = policy
+        self.approver = approver or DenyingApprover()
 
     async def run_one(self, call: ToolCall) -> ToolResult:
         started = time.monotonic()
@@ -128,6 +150,26 @@ class ToolExecutor:
                 name=call.name,
                 success=False,
                 error=f"argumentos invalidos para {call.name}: {detail}",
+                duration_ms=elapsed(),
+            )
+
+        # --- autorizacion -------------------------------------------------
+        # Va DESPUES de validar los argumentos, porque la decision puede depender
+        # de ellos (leer `src/main.py` y leer `.env` son la misma tool), y ANTES
+        # de ejecutar, que es lo unico que importa.
+        verdict = self.policy.decide(call)
+        if verdict.decision is Decision.ASK:
+            approved = await self.approver.approve(call, verdict.reason)
+            verdict = _resolve_ask(verdict, approved)
+
+        if verdict.decision is not Decision.ALLOW:
+            # Un permiso denegado vuelve como feedback, no como excepcion: el
+            # modelo lee el motivo y busca otro camino.
+            return ToolResult(
+                call_id=call.id,
+                name=call.name,
+                success=False,
+                error=f"permiso denegado para {call.name}: {verdict.reason}",
                 duration_ms=elapsed(),
             )
 
@@ -196,3 +238,18 @@ class ToolExecutor:
             "Usa los parametros offset/limit de la tool para leer el resto.]",
             True,
         )
+
+
+def _resolve_ask(verdict, approved: bool):  # noqa: ANN001, ANN202
+    """Convierte un ASK resuelto en ALLOW o DENY.
+
+    Aparte a proposito: es el unico lugar del codigo donde un ASK se transforma,
+    y quien lea el permiso sabe que un ASK nunca queda sin resolver.
+    """
+    if approved:
+        return Verdict(Decision.ALLOW, "aprobado por el usuario")
+    return Verdict(
+        Decision.DENY,
+        (verdict.reason + " — " if verdict.reason else "")
+        + "no fue aprobado (en modo no interactivo un ASK se resuelve como DENY)",
+    )

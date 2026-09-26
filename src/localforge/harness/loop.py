@@ -31,6 +31,7 @@ from pathlib import Path
 from localforge.config import Settings, settings as default_settings
 from localforge.harness.context import ContextBudget, ContextBuilder
 from localforge.harness.prompt import build_system_prompt
+from localforge.permissions import Approver, PermissionPolicy
 from localforge.harness.state import StateMachine
 from localforge.harness.verify import Verifier, default_verifier
 from localforge.models import (
@@ -76,6 +77,8 @@ class AgentHarness:
         context: ContextBuilder | None = None,
         verifier: Verifier | None = None,
         max_repairs: int = 2,
+        policy: PermissionPolicy | None = None,
+        approver: Approver | None = None,
     ) -> None:
         self.provider = provider
         self.registry = registry
@@ -91,6 +94,10 @@ class AgentHarness:
         # Cuantas veces se le devuelve el rechazo al modelo antes de rendirse.
         # Sin techo, un modelo que no entiende el reproche gira hasta max_turns.
         self.max_repairs = max_repairs
+        # El harness no decide permisos: los transporta hasta el executor, que
+        # es quien puede verlos junto con los argumentos ya validados.
+        self.policy = policy
+        self.approver = approver
 
     async def run(self, task: AgentTask) -> AgentOutcome:
         workspace = Path(task.repo_path).resolve()
@@ -107,6 +114,8 @@ class AgentHarness:
             workspace,
             timeout_s=self.cfg.tool_timeout_s,
             output_limit=self.cfg.tool_output_limit,
+            policy=self.policy,
+            approver=self.approver,
         )
         system = build_system_prompt(workspace, self.registry)
         definitions = self.registry.definitions()
