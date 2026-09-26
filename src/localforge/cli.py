@@ -16,6 +16,7 @@ from pathlib import Path
 
 from localforge.config import DOTENV_APPLIED, find_dotenv, settings
 from localforge.harness import AgentHarness
+from localforge.evals import localforge_suite, run_suite
 from localforge.harness.checkpoint import FileCheckpointStore
 from localforge.harness.context import ContextBreakdown, ContextBudget
 from localforge.models import ToolCall as _ToolCall
@@ -350,6 +351,55 @@ async def cmd_resume(task_id: str, *, verbose: bool) -> int:
     return 0 if outcome.succeeded else 2
 
 
+async def cmd_eval(repo: str, *, verbose: bool) -> int:
+    """Corre el dataset de golden tasks contra el LLM local."""
+    repo_path = Path(repo).expanduser().resolve()
+    if not repo_path.is_dir():
+        print(_c(f"{BAD_MARK} '{repo}' no es un directorio", RED))
+        return 1
+
+    provider = build_provider()
+    try:
+        info = await provider.health()
+    except ProviderError as exc:
+        print(_c(f"{BAD_MARK} {exc}", RED))
+        await provider.aclose()
+        return 1
+
+    suite = localforge_suite(str(repo_path))
+    print(f"{_c('repo', DIM)}   {repo_path}")
+    print(f"{_c('modelo', DIM)} {info['model']}")
+    print(f"{_c('tareas', DIM)} {len(suite)}")
+    print()
+
+    def progreso(result) -> None:  # noqa: ANN001
+        mark = _c(OK_MARK, GREEN) if result.passed else _c(BAD_MARK, RED)
+        print(f"  {mark} {result.task_id} ({result.outcome.turns} turnos, {result.wall_seconds:.0f}s)")
+        for check in result.failed_checks:
+            print(f"      {_c('- ' + check.name + ': ' + check.detail, DIM)}")
+
+    async def run_one(task):  # noqa: ANN001, ANN202
+        harness = AgentHarness(
+            provider,
+            default_registry(),
+            on_event=ConsoleSink(verbose) if verbose else None,
+            policy=default_policy(),
+            # En un eval no hay humano: los ASK se deniegan, que es lo correcto
+            # y ademas hace el resultado reproducible.
+            approver=DenyingApprover(),
+        )
+        return await harness.run(task)
+
+    try:
+        report = await run_suite(run_one, suite, label=info["model"], on_task=progreso)
+    finally:
+        await provider.aclose()
+
+    print()
+    print(report.render())
+    return 0 if report.passed == report.total else 2
+
+
 def cmd_runs() -> int:
     store = FileCheckpointStore(settings.state_dir)
     ids = store.list_ids()
@@ -402,6 +452,10 @@ def main() -> int:
 
     sub.add_parser("runs", help="Lista las corridas guardadas")
 
+    ev = sub.add_parser("eval", help="Corre el dataset de golden tasks y reporta")
+    ev.add_argument("repo", nargs="?", default=".", help="Repositorio sobre el que evaluar")
+    ev.add_argument("-v", "--verbose", action="store_true")
+
     args = parser.parse_args()
 
     if args.command == "health":
@@ -421,6 +475,8 @@ def main() -> int:
         return asyncio.run(cmd_resume(args.task_id, verbose=args.verbose))
     if args.command == "runs":
         return cmd_runs()
+    if args.command == "eval":
+        return asyncio.run(cmd_eval(args.repo, verbose=args.verbose))
     parser.print_help()
     return 1
 

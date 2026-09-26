@@ -37,6 +37,9 @@ verifica resultados y devuelve evidencia.
 
 **Fase 1 (Agent Foundations) — COMPLETA Y VERIFICADA END-TO-END contra el LLM local real.**
 
+**Fase 7 (Agent Evals) — dataset, checks deterministas y comparador implementados.** Falta
+model-as-judge y una primera corrida real (necesita Ollama).
+
 **Fase 6 (Durable Agents) — checkpoints y resume implementados.** Falta queue/worker y memoria
 entre sesiones.
 
@@ -81,7 +84,8 @@ respuesta final` funciona. Evidencia reproducible más abajo.
 | **Aprobación humana por consola** | ✅ |
 | **Checkpoints por turno con escritura atómica** | ✅ Fase 6, con tests |
 | **`resume` retoma sin re-ejecutar nada** | ✅ con tests |
-| Suite de tests | ✅ 133 passed |
+| **Evals: golden tasks, taxonomía, costo, comparación** | ✅ Fase 7, con tests |
+| Suite de tests | ✅ 159 passed |
 
 ### Evidencia de la verificación (2026-09-19)
 
@@ -137,7 +141,7 @@ un **verifier de trayectoria**: rechazar la respuesta final si el agente no ley�
 - No hay skills ni MCP (Fase 4).
 - No hay sandbox, límites de recursos ni políticas de red (resto de la Fase 5).
 - No hay queue, workers ni memoria entre sesiones (resto de la Fase 6).
-- No hay evals (Fase 7).
+- No hay model-as-judge ni datasets grandes (resto de la Fase 7).
 - No hay API HTTP (FastAPI) ni UI.
 
 ---
@@ -620,8 +624,62 @@ son de lectura, pero deja de serlo el día que exista `write_file`.
 
 ## Evals
 
-**No existen.** Hay 133 tests unitarios, que no son lo mismo: testean el harness, no la
-**calidad del agente**. Fase 7.
+**Fase 7 implementada (2026-09-26).** `src/localforge/evals.py`.
+
+Los 159 tests testean el **harness**: que el loop termine, que un permiso deniegue, que un
+checkpoint se restaure. **Nada de eso dice si el agente es bueno.** Un agente puede pasar los 159 y
+contestar pavadas. Los evals miden lo otro.
+
+### Tres decisiones
+
+| Decisión | Por qué |
+|---|---|
+| **Checks deterministas, sin model-as-judge** | Un juez LLM trae sus propios sesgos — posición, verbosidad, autocomplacencia (W7·C45). Antes de medir con una regla torcida, medir lo que se puede medir exacto: *"¿menciona `safe_path`?"* y *"¿llamó a `search_code`?"* se verifican sin otro modelo. |
+| **La trayectoria se evalúa igual que la respuesta** (W7·C46) | Dos agentes con la misma respuesta final no son equivalentes si uno leyó 3 archivos y el otro 30. El costo y el camino son parte del resultado. |
+| **La taxonomía sale gratis** | `FailureReason` es un enum cerrado desde la Fase 1 *con este momento en mente*. Agrupar 200 corridas por motivo es un `Counter` sobre un campo que ya existe. Con strings libres sería imposible. |
+
+### Los checks
+
+`Succeeded`, `Mentions`, `UsedTool`, `NoHedging`, `CitesFileAndLine`, `WithinBudget`
+(turnos/tokens/segundos). Se evalúan sobre el `AgentOutcome` **completo**, no sólo sobre el texto —
+por eso el mismo mecanismo sirve para medir respuesta, camino y costo.
+
+### El dataset
+
+`localforge_suite()`: cuatro golden tasks sobre este repo. La primera es **la pregunta que el agente
+contestó mal en el M1** (adivinó `cli.py`, nunca encontró `safe_path`), convertida en caso de
+regresión: si una versión futura vuelve a fallarla, el eval lo dice.
+
+La cuarta pide leer el `.env`. **No exige `Succeeded`**: lo correcto ahí es que el agente *no pueda*.
+Un eval que premiara el éxito en esa tarea estaría midiendo al revés.
+
+### Distinción que el reporte hace y conviene no perder
+
+Un fallo de **ejecución** (`max_turns`, `wall_clock`) y un fallo de **calidad** (terminó bien pero no
+mencionó lo que había que mencionar) son categorías distintas y se arreglan distinto. El reporte las
+separa: la segunda aparece como `calidad` en la taxonomía.
+
+### Comparación de harnesses (W7·C49)
+
+`compare(a, b)` diffea dos reportes **por tarea**, no por promedio. Dos harnesses con el mismo 75%
+pueden fallar tareas distintas. El reporte cuenta mejoras y regresiones por separado y avisa
+explícitamente: *"una regresión puede esconderse detrás de un pass rate que subió."*
+
+`run_suite` recibe una función `run(task) -> outcome`, no un harness, justamente para que se puedan
+comparar dos configuraciones, dos modelos, o un mock.
+
+### Uso
+
+```bash
+uv run localforge eval .        # corre el dataset contra el LLM local
+```
+
+### Qué falta de Fase 7
+
+- **Model-as-judge** (W7·C45) para lo que no es verificable determinísticamente.
+- **Una primera corrida real.** Los evals están testeados (el medidor tiene sus propios tests, con
+  outcomes armados a mano) pero **nunca corrieron contra el LLM local**: necesita Ollama.
+- Datasets más grandes y repos de distinto tamaño.
 
 ---
 
@@ -780,7 +838,7 @@ Ordenados por lo que más duele hoy, no por el orden de las fases:
    `write_file` y `run_command` **no se agregan sin permisos ALLOW/ASK/DENY** (Fase 5). Hoy el
    agente es de solo lectura y por eso el riesgo de prompt injection es acotado. Ese equilibrio se
    rompe exactamente el día que exista una tool con efectos.
-3. Evals (Fase 7). `FailureReason` es un vocabulario cerrado desde el día 1 justamente para esto.
+3. Skills (Fase 4) y subagentes (Fase 8), que son lo único que queda sin empezar.
 
 ---
 
@@ -800,6 +858,9 @@ uv run localforge health
 uv run localforge ask . "Explicame este proyecto"
 uv run localforge ask ../agent-harness-lab "¿Cómo está organizado el contenido?" -v
 uv run pytest -q
+
+# --- evals ---
+uv run localforge eval .
 
 # --- corridas guardadas ---
 uv run localforge ask . "explicame el repo" --save
@@ -831,9 +892,8 @@ y `search_code` están escritos y testeados, pero no corridos contra el LLM loca
 **Primero:** arrancar Ollama y correr `uv run localforge ask . "explicame la arquitectura" -v` para
 validar la Fase 2 contra inferencia real. Es lo único que le falta a lo que ya está escrito.
 
-**Después:** evals de la Fase 7. `FailureReason` es un vocabulario cerrado desde el día 1
-justamente para poder agrupar fallos, y `outcome` ya trae trayectoria, estados, reparaciones,
-tokens y tiempo: las señales están, falta el runner que las compare.
+**Después:** `uv run localforge eval .` con Ollama prendido, para tener la primera medición real.
+Todo lo construido desde el 20/09 está testeado pero no corrido contra inferencia real.
 
 **Restricción dura, actualizada:** los permisos ya existen, así que `write_file` está desbloqueado
 (cae en ASK con aprobación humana y `safe_path`). **`run_command` sigue bloqueado**, y no por falta
