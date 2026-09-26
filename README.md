@@ -76,7 +76,7 @@ listar `tools` en *Capabilities*.
 ```
 usuario → CLI → AgentHarness → ModelProvider → LLM local
                      ↓
-                ToolExecutor → tools (filesystem)
+                ToolExecutor → tools (list_files, search_code, read_file)
                      ↓
                 ToolResult → vuelve al contexto → LLM
                      ↓

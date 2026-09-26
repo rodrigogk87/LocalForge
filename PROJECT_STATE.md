@@ -52,7 +52,7 @@ respuesta final` funciona. Evidencia reproducible más abajo.
 | Modelo de datos completo (Pydantic) | ✅ |
 | `ModelProvider` como Protocol | ✅ |
 | `OllamaProvider` contra `/api/chat` real | ✅ **verificado con inferencia real** |
-| Tools `list_files` y `read_file` | ✅ con tests |
+| Tools `list_files`, `search_code` y `read_file` | ✅ con tests |
 | Validación de argumentos con Pydantic | ✅ |
 | Agent loop con tool calling | ✅ **verificado end-to-end** |
 | **Tool calls en paralelo** | ✅ 3 `read_file` en un turno, concurrentes |
@@ -64,7 +64,7 @@ respuesta final` funciona. Evidencia reproducible más abajo.
 | **ContextBuilder con presupuesto por capa** | ✅ Fase 2, con tests |
 | **Compactación de observaciones, nunca en silencio** | ✅ con tests |
 | **Estimador de tokens calibrado contra `prompt_eval_count`** | ✅ con tests |
-| Suite de tests | ✅ 40 passed |
+| Suite de tests | ✅ 59 passed |
 
 ### Evidencia de la verificación (2026-09-19)
 
@@ -114,7 +114,6 @@ un **verifier de trayectoria**: rechazar la respuesta final si el agente no ley�
 
 ### Qué NO funciona / no existe todavía
 
-- No hay `search_code` (grep). Es la carencia más notoria en repos grandes.
 - No hay `write_file`, `run_command`, `run_tests`, `git_diff`.
 - No hay retrieval ni selección por relevancia (resto de la Fase 2).
 - No hay state machine, planner, verifier ni repair loop (Fase 3).
@@ -300,6 +299,26 @@ cualquier repo mediano. Ver `.env` (no commiteado): 35 turnos y 900s.
 | Permisos | Solo lectura. Contenido en el workspace por `safe_path`. |
 | Implementación | `tools/fs.py::ListFilesTool`. `rglob` + ignore set. |
 | Limitaciones | **No respeta `.gitignore`** (usa una lista fija: `.git`, `node_modules`, `.venv`, binarios). Mejora futura: `git ls-files` cuando haya repo git. |
+
+### `search_code`
+
+| | |
+|---|---|
+| Propósito | Encontrar **dónde** está algo. Es el paso que faltaba entre orientarse y leer. |
+| Args | `pattern: str` (requerido), `path`, `regex=False`, `case_sensitive=False`, `glob`, `context_lines=0` (0-5), `max_results=60` (1-500) |
+| Permisos | Solo lectura. `safe_path` bloquea traversal. |
+| Implementación | `tools/search.py::SearchCodeTool`. Literal por defecto, regex opcional. Mismo ignore set que `list_files`; salta binarios y archivos > 2 MB. |
+| Limitaciones | Grep léxico, no semántico: encuentra el texto, no el concepto. No respeta `.gitignore`. Líneas recortadas a 400 chars. |
+
+**Por qué existe, y es el mejor ejemplo del proyecto de "la tool que falta no se arregla con prompt":**
+en el M1, ante *"¿dónde se valida que una ruta no escape del workspace?"*, el agente listó el árbol,
+abrió `cli.py` (mal), lo leyó dos veces, nunca encontró `safe_path` en `tools/fs.py` y contestó con
+*"el más probable lugar"* — la palabra que el prompt prohíbe. El prompt no era el problema: no
+existía la herramienta para responder esa pregunta. Hoy `search_code(pattern="safe_path")` devuelve
+`src/localforge/tools/fs.py:31  def safe_path(...)` en una llamada.
+
+El orden del registry es deliberado: `list_files` → `search_code` → `read_file`, que son las tres
+operaciones de una investigación de código en el orden en que se usan.
 
 ### `read_file`
 
@@ -516,10 +535,11 @@ sin mirar `success`. Aceptado. Los fallos **no** recuperables (credenciales, pre
    `gemma4:e4b`, ante *"¿en qué archivo se valida que una ruta no se escape del workspace?"* el
    agente listó el árbol, **adivinó** `cli.py`, lo leyó dos veces, nunca encontró `safe_path`
    (está en `tools/fs.py`) y contestó *"el más probable lugar"* — justo la palabra que el system
-   prompt prohíbe. Es el mismo fallo de grounding de la sección de arriba, reapareciendo cuando el
-   modelo es más débil. Confirma dos cosas ya sabidas: **`search_code` es la carencia que más
-   duele** (sin buscar, localizar una definición es adivinar qué archivo abrir), y la garantía
-   dura es el verifier de trayectoria, no el prompt.
+   prompt prohíbe.
+   **Atacado en dos frentes (2026-09-26):** existe `search_code`, y el system prompt ahora tiene un
+   PASO 2 que manda a buscar antes de abrir archivos. Pero sigue siendo probabilístico: el modelo
+   *puede* ignorar la tool. **La garantía dura sigue siendo el verifier de trayectoria** (Fase 3),
+   que es lo único que puede rechazar una respuesta no fundamentada. Este bug se cierra ahí.
 
 ---
 
@@ -581,19 +601,16 @@ calibración funciona.
 
 Ordenados por lo que más duele hoy, no por el orden de las fases:
 
-1. **`search_code` (grep léxico).** Es la carencia más grande. Hoy el agente sólo puede listar y
-   leer: para encontrar dónde se define algo tiene que adivinar qué archivo abrir. En un repo
-   mediano eso se cae enseguida. Es también la tool que más sube la tasa de éxito por línea escrita.
-2. **Correr la Fase 2 contra el LLM local.** El código está y los tests pasan, pero la validación
+1. **Correr lo nuevo contra el LLM local.** El código está y los tests pasan, pero la validación
    con inferencia real falta (ver "Trabajo actual"). Es el paso más chico y el más urgente: hasta
    que no corra, el estimador nunca se calibró contra un tokenizer de verdad.
-3. **Tapar el agujero de `CONTEXT_OVERFLOW`.** Si no entra ni compactando todo, hoy se manda igual
+2. **Tapar el agujero de `CONTEXT_OVERFLOW`.** Si no entra ni compactando todo, hoy se manda igual
    y Ollama trunca en silencio. Un `FailureReason` nuevo y un corte limpio.
-4. **Decidir la próxima capacidad**, y la decisión tiene una restricción dura:
+3. **Decidir la próxima capacidad**, y la decisión tiene una restricción dura:
    `write_file` y `run_command` **no se agregan sin permisos ALLOW/ASK/DENY** (Fase 5). Hoy el
    agente es de solo lectura y por eso el riesgo de prompt injection es acotado. Ese equilibrio se
    rompe exactamente el día que exista una tool con efectos.
-5. Verifier de trayectoria (Fase 3): rechazar la respuesta final si el agente no leyó ningún
+4. Verifier de trayectoria (Fase 3): rechazar la respuesta final si el agente no leyó ningún
    archivo. Es la garantía dura que el prompt no puede dar.
 
 ---
@@ -632,19 +649,16 @@ uv run pytest -q
 **Último cambio exitoso:** system prompt reescrito para forzar grounding; el agente pasó de leer
 0 archivos a leer 3 en paralelo.
 
-**Problema actual:** ninguno bloqueante. La limitación más molesta es que **no existe
-`search_code`**: el agente no puede buscar, sólo listar y leer, así que para encontrar dónde se
-define algo tiene que adivinar qué archivo abrir.
+**Problema actual:** ninguno bloqueante. Lo que falta es validación con inferencia real: la Fase 2
+y `search_code` están escritos y testeados, pero no corridos contra el LLM local.
 
 **Próxima acción recomendada:**
 
 **Primero:** arrancar Ollama y correr `uv run localforge ask . "explicame la arquitectura" -v` para
 validar la Fase 2 contra inferencia real. Es lo único que le falta a lo que ya está escrito.
 
-**Después:** implementar `search_code` en `src/localforge/tools/` siguiendo exactamente el patrón de
-`fs.py::ReadFileTool` (modelo Pydantic de args + clase con `name`/`description`/`args_model`/`run`),
-registrarla en `tools/__init__.py::default_registry()` y agregar tests en `tests/test_tools.py`.
-Debe usar `safe_path` y truncar resultados con instrucciones, igual que las otras dos.
+**Después:** el verifier de trayectoria de la Fase 3. Es lo que convierte el grounding de
+probabilístico en garantizado, y se escribe sobre `outcome.trajectory`, que ya existe.
 
 **Restricción dura que NO hay que violar:** no agregar `write_file` ni `run_command` antes de que
 exista el sistema de permisos ALLOW/ASK/DENY. Hoy la seguridad del proyecto descansa en que el
