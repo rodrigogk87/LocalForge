@@ -2,7 +2,7 @@
 
 > **Fuente de verdad del proyecto.** Si sos un agente retomando este trabajo sin haber visto
 > la conversación previa, leé este archivo entero antes de tocar código.
-> Última actualización: **2026-09-20**
+> Última actualización: **2026-09-26**
 
 ---
 
@@ -37,6 +37,11 @@ verifica resultados y devuelve evidencia.
 
 **Fase 1 (Agent Foundations) — COMPLETA Y VERIFICADA END-TO-END contra el LLM local real.**
 
+**Fase 2 (Context Engineering) — primera porción implementada y testeada.** ContextBuilder,
+presupuesto por capa, estimador calibrado y compactación. Falta retrieval, que está bloqueado por
+`search_code`. Verificada con tests y con `ScriptedProvider`; **todavía no corrida contra el LLM
+local** (ver "Trabajo actual").
+
 El recorrido `usuario → harness → LLM local → tool call → harness ejecuta → ToolResult → LLM →
 respuesta final` funciona. Evidencia reproducible más abajo.
 
@@ -56,7 +61,10 @@ respuesta final` funciona. Evidencia reproducible más abajo.
 | Truncado de tool results | ✅ |
 | Path traversal bloqueado | ✅ con tests |
 | CLI (`health`, `ask`) | ✅ |
-| Suite de tests | ✅ 24 passed |
+| **ContextBuilder con presupuesto por capa** | ✅ Fase 2, con tests |
+| **Compactación de observaciones, nunca en silencio** | ✅ con tests |
+| **Estimador de tokens calibrado contra `prompt_eval_count`** | ✅ con tests |
+| Suite de tests | ✅ 40 passed |
 
 ### Evidencia de la verificación (2026-09-19)
 
@@ -108,7 +116,7 @@ un **verifier de trayectoria**: rechazar la respuesta final si el agente no ley�
 
 - No hay `search_code` (grep). Es la carencia más notoria en repos grandes.
 - No hay `write_file`, `run_command`, `run_tests`, `git_diff`.
-- No hay ContextBuilder, budgets de contexto ni compactación (Fase 2).
+- No hay retrieval ni selección por relevancia (resto de la Fase 2).
 - No hay state machine, planner, verifier ni repair loop (Fase 3).
 - No hay skills ni MCP (Fase 4).
 - No hay permisos, sandbox ni aprobación humana (Fase 5).
@@ -126,7 +134,9 @@ usuario
 CLI (localforge ask <repo> "<objetivo>")
   ↓
 AgentHarness.run(task)            ← el while con presupuesto
-  ├─ build_system_prompt()        ← contexto (trivial por ahora)
+  ├─ build_system_prompt()        ← una capa del contexto: `instructions`
+  ├─ ContextBuilder.build()       ← asigna el presupuesto y compacta si no entra
+  │     ↓                            state (messages) → context (built.messages)
   ├─ ModelProvider.complete()     ← Protocol; hoy OllamaProvider
   │     ↓
   │  LLM local (Ollama @ 11434)
@@ -135,7 +145,8 @@ AgentHarness.run(task)            ← el while con presupuesto
   │     ↓
   │  tools (list_files, read_file)
   │     ↓ ToolResult
-  └─ correlación por call_id → vuelve al contexto → siguiente turno
+  ├─ correlación por call_id → vuelve al state → siguiente turno
+  └─ observe_actual()             ← calibra el estimador con prompt_eval_count
   ↓
 AgentOutcome (status, reason, turnos, tokens, trayectoria, turn_records)
 ```
@@ -317,19 +328,65 @@ El estado del loop ya está identificado y es serializable (ver "Agent Loop" pas
 
 ## Context Management
 
-**Hoy es trivial y hay que medirlo antes de optimizarlo** (decisión explícita del usuario:
-observar el problema real antes de implementar la solución).
+**Fase 2 — primera porción implementada (2026-09-26).** `src/localforge/harness/context.py`.
 
-- El system prompt se regenera por task y se reenvía entero en cada turno.
-- Los mensajes se acumulan sin límite.
-- Los tool results se truncan a 8000 caracteres **en el executor** (única defensa actual).
-- `num_ctx=32768`.
+El contexto dejó de ser una lista que crece y pasó a ser una **asignación que se recalcula por
+turno**. El loop sigue siendo dueño del state completo (`messages`); lo que viaja al provider es
+`built.messages`, una proyección de ese state que entra en el presupuesto. Esa distinción
+(**state ≠ context**) es la que permite que la Fase 6 serialice el state entero sin que el
+contexto crezca con él.
 
-**No existe:** ContextBuilder, presupuesto por capa, estimación de tokens, selección por
-relevancia, retrieval, compactación, aislamiento de contexto.
+### Las cuatro piezas
 
-**Señal a vigilar para disparar la Fase 2:** `input_tokens` por turno acercándose a `num_ctx`,
-o degradación de calidad en tareas de muchos turnos.
+| Pieza | Qué hace |
+|---|---|
+| `TokenEstimator` | Estima por longitud (3.6 chars/token) y **se calibra** con `prompt_eval_count`, el conteo real del tokenizer que Ollama devuelve. Arranca heurística, termina medición. EMA con α=0.25: converge despacio a propósito. |
+| `ContextBreakdown` | Tokens por capa, con los nombres de W2·C8. Las cuatro que no existen (`environment`, `skills`, `memory`, `retrieved`) se reportan con `present=False`: la tabla también es el backlog. |
+| `ContextBudget` | `available = num_ctx - reserve_output`. Reservar lugar para la salida no es opcional: la ventana se comparte entre leer y escribir. |
+| `ContextBuilder` | Arma el contexto del turno y compacta si no entra. |
+
+### Compactación
+
+Se compactan **observaciones** (rol `tool`), de la más vieja a la más nueva, **nunca en silencio**:
+cada una deja un marcador que dice qué tool era, cuántos caracteres había y cómo recuperarlos. Es
+la misma regla que `ToolExecutor._truncate` de la Fase 1.
+
+Nunca se toca la task, ni el razonamiento del assistant, ni los últimos `keep_recent_messages`.
+El criterio es **valor por token**: un `read_file` de 4000 chars ya cumplió su función porque el
+modelo extrajo la conclusión, que son 40 tokens. Lo caro es lo redundante. El razonamiento es lo
+contrario: chico, y único registro de *por qué* el agente hizo lo que hizo — borrarlo lo empuja al
+`LOOP_DETECTED`.
+
+### Medición (lo que la Fase 2 exigía antes de optimizar)
+
+Mismo agente, 9 turnos leyendo archivos, con `ScriptedProvider`:
+
+| `num_ctx` | Turno 9 | Compactación |
+|---|---|---|
+| 32768 | 19446 / 28768 tok (67.6%) | no se activa |
+| 9000 | 5684 / 6000 tok (94.7%) | 6 observaciones, −12972 tok |
+
+Sin compactar, con `num_ctx=9000` el turno 9 habría pedido 19446 de 6000 disponibles: **3,2× por
+encima**. Con la ventana grande el compactador está en el código y **nunca se ejecuta**, que es lo
+correcto.
+
+Reparto típico: **observations 83%**, instructions 2%, tools 1.5%, conversation 1%, task 0.1%.
+Acortar el system prompt para ahorrar contexto es trabajar en el lugar equivocado.
+
+### Qué de la Fase 2 NO está
+
+- **Retrieval just-in-time** (W2·C11). Bloqueado por `search_code`: sin búsqueda, traer "el
+  fragmento exacto" es imposible porque no se sabe dónde está.
+- **Selección por relevancia** (W2·C10). Hoy la única política es "todo menos lo viejo".
+- **Aislamiento de contexto** (W2·C13). Necesita subagentes → Fase 8.
+- **Compactación por resumen del modelo**. La versión actual es determinista y gratis; la del
+  resumen cuesta una llamada extra y conserva más señal.
+
+### Agujero conocido, sin tapar
+
+Si el contexto **no entra ni compactando todo lo compactable**, el builder manda lo que queda
+igual. No falla, no avisa al loop, y Ollama trunca por la izquierda. Falta un
+`FailureReason.CONTEXT_OVERFLOW` que corte limpio en vez de degradar en silencio.
 
 ---
 
@@ -372,7 +429,7 @@ Un crash pierde la ejecución completa. Es la Fase 6.
 
 ## Evals
 
-**No existen.** Hay 24 tests unitarios, que no son lo mismo: testean el harness, no la
+**No existen.** Hay 40 tests unitarios, que no son lo mismo: testean el harness, no la
 **calidad del agente**. Fase 7.
 
 ---
@@ -499,8 +556,22 @@ eso destapó dos agujeros en la config:
 
 ## Trabajo actual
 
-**Nada a medio implementar.** Fase 1 cerrada y verificada. Código completo, 24 tests en verde,
-end-to-end demostrado.
+**Fase 2, primera porción: código completo y 40 tests en verde. Falta UNA cosa:** correrla contra
+el LLM local. Se validó con `ScriptedProvider` (determinista, mide el presupuesto y la
+compactación) pero no con inferencia real, porque Ollama no estaba corriendo al momento de
+escribirla.
+
+**Lo que falta hacer, concretamente:**
+
+```bash
+ollama serve                     # o abrir la app
+uv run localforge ask . "explicame la arquitectura" -v
+```
+
+Y mirar dos cosas: que la línea `ctx:` reporte números coherentes con `input_tokens`, y que el
+estimador converja (`chars_per_token` debería moverse desde 3.60 hacia el ratio real de
+`gemma4:e4b`). Si el error del estimador queda por debajo del 10% a los pocos turnos, la
+calibración funciona.
 
 Último cambio: `harness/prompt.py` reescrito para forzar grounding (ver "Hallazgo importante").
 
@@ -513,15 +584,16 @@ Ordenados por lo que más duele hoy, no por el orden de las fases:
 1. **`search_code` (grep léxico).** Es la carencia más grande. Hoy el agente sólo puede listar y
    leer: para encontrar dónde se define algo tiene que adivinar qué archivo abrir. En un repo
    mediano eso se cae enseguida. Es también la tool que más sube la tasa de éxito por línea escrita.
-2. **Medir antes de optimizar contexto.** Correr 4-5 tareas variadas sobre repos de distinto tamaño
-   y registrar `input_tokens` por turno. La Fase 2 (ContextBuilder, compactación) arranca cuando
-   los números muestren el problema, no antes. Con el repo actual: 850 → 1134 → 4975 tokens de
-   input en 3 turnos; `num_ctx` es 32768, o sea que todavía sobra muchísimo.
-3. **Decidir la próxima capacidad**, y la decisión tiene una restricción dura:
+2. **Correr la Fase 2 contra el LLM local.** El código está y los tests pasan, pero la validación
+   con inferencia real falta (ver "Trabajo actual"). Es el paso más chico y el más urgente: hasta
+   que no corra, el estimador nunca se calibró contra un tokenizer de verdad.
+3. **Tapar el agujero de `CONTEXT_OVERFLOW`.** Si no entra ni compactando todo, hoy se manda igual
+   y Ollama trunca en silencio. Un `FailureReason` nuevo y un corte limpio.
+4. **Decidir la próxima capacidad**, y la decisión tiene una restricción dura:
    `write_file` y `run_command` **no se agregan sin permisos ALLOW/ASK/DENY** (Fase 5). Hoy el
    agente es de solo lectura y por eso el riesgo de prompt injection es acotado. Ese equilibrio se
    rompe exactamente el día que exista una tool con efectos.
-4. Verifier de trayectoria (Fase 3): rechazar la respuesta final si el agente no leyó ningún
+5. Verifier de trayectoria (Fase 3): rechazar la respuesta final si el agente no leyó ningún
    archivo. Es la garantía dura que el prompt no puede dar.
 
 ---
@@ -566,7 +638,10 @@ define algo tiene que adivinar qué archivo abrir.
 
 **Próxima acción recomendada:**
 
-Implementar `search_code` en `src/localforge/tools/` siguiendo exactamente el patrón de
+**Primero:** arrancar Ollama y correr `uv run localforge ask . "explicame la arquitectura" -v` para
+validar la Fase 2 contra inferencia real. Es lo único que le falta a lo que ya está escrito.
+
+**Después:** implementar `search_code` en `src/localforge/tools/` siguiendo exactamente el patrón de
 `fs.py::ReadFileTool` (modelo Pydantic de args + clase con `name`/`description`/`args_model`/`run`),
 registrarla en `tools/__init__.py::default_registry()` y agregar tests en `tests/test_tools.py`.
 Debe usar `safe_path` y truncar resultados con instrucciones, igual que las otras dos.

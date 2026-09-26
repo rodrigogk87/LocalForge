@@ -3,7 +3,8 @@
 Esto no es documentación de referencia. Es un **recorrido guiado** para que entiendas cómo
 funciona un agent harness leyendo el código de a poco, en el orden correcto.
 
-Son 5 sesiones de 30-40 minutos. No hace falta hacerlas seguidas.
+Son 6 sesiones de 30-40 minutos. No hace falta hacerlas seguidas.
+Las 5 primeras son del Mundo 1; la 6 es la primera del Mundo 2.
 
 **Cómo usar esta guía:** cada sección te dice qué archivo abrir y en qué línea mirar, te hace una
 pregunta, y recién después te da la respuesta. **Intentá contestar antes de seguir leyendo.** Si
@@ -39,7 +40,7 @@ Las dos direcciones sirven:
 | Mundo de la Academy | Qué cubre | Estado en LocalForge |
 |---|---|---|
 | **W1** Python Agent Foundations | Pydantic, async, Protocol, API, tool calling, agent loop | ✅ **implementado entero** |
-| **W2** Context Engineering | Budgets, selección, retrieval, compactación | ⬜ medido, todavía no hace falta |
+| **W2** Context Engineering | Budgets, selección, retrieval, compactación | 🟡 **medido, presupuestado y compactado** — falta retrieval (Sesión 6) |
 | **W3** Harness Engineering | Estados, planner, verifier, retry, hooks | ⬜ próxima fase |
 | **W4** Skills & Protocols | Skills, progressive disclosure, MCP, A2A | ⬜ |
 | **W5** Sandbox Engineering | Threat model, Docker, permisos, aprobación | 🟡 sólo `safe_path` |
@@ -47,8 +48,8 @@ Las dos direcciones sirven:
 | **W7** Agent Evals | Datasets, trayectoria, costo, taxonomía de fallos | ⬜ |
 | **W8** Coding Agents | Edición, worktrees, subagentes | ⬜ |
 
-**Estás parado en el final del World 1.** Todo lo que leas en esta guía es W1 hecho código; el
-resto del roadmap es lo que le falta al proyecto.
+**Estás entrando al World 2.** Las sesiones 0 a 5 son W1 hecho código; la sesión 6 es la primera
+pieza de W2. El resto del roadmap es lo que le falta al proyecto.
 
 ---
 
@@ -835,6 +836,138 @@ uv run localforge ask . "Analiza todo el proyecto en detalle" --max-turns 1
 ```
 
 **Qué vas a ver:** `failed (max_turns)` — un final **explícito y con motivo**, no un cuelgue.
+
+---
+
+## Sesión 6 — `harness/context.py`: el contexto es un presupuesto (30 min)
+
+> 🎓 **W2·C8**, **W2·C9** y **W2·C12**. Primera sesión de Mundo 2.
+
+Hasta acá leíste W1: un agente que corre y termina. Este archivo agrega la propiedad siguiente —
+que sea **barato y preciso**.
+
+### 6.1 — El problema, con números
+
+En la Fase 1 `messages` crecía sin techo y la única defensa era truncar cada tool result a 8000
+caracteres. El mismo agente, 9 turnos, dos ventanas distintas:
+
+```
+=== num_ctx=32768 ===
+  turno 9:  19446/28768 tok ( 67.6%)     ← entra, no hace falta compactar
+
+=== num_ctx=9000 ===
+  turno 9:   5684/6000 tok ( 94.7%)  compactado=6 (-12972 tok)
+                                        ← sin compactar: 19446 de 6000, 3,2× de más
+```
+
+**Pregunta.** El roadmap decía *"W2 todavía no hace falta: 4975 de 32768"*. ¿Para qué construir
+esto ahora?
+
+**Respuesta.** Dos razones. La primera: ese número era de una 4090 con `qwen3:14b`, que pedía tres
+`read_file` por turno. En un M1 con `gemma4:e4b`, que pide uno, la misma tarea pasó a 11 turnos y
+67k tokens, con un pico de **12.333 de 32.768**. El mismo código, otra máquina, 2,5× más cerca del
+techo. La segunda, la importante: **no podés presupuestar lo que no medís.** `ContextBreakdown`
+*es* la medición que `PROJECT_STATE.md` pone como prerequisito de esta fase.
+
+Fijate el orden: instrumentación → presupuesto → compactación. Con `num_ctx=32768` el compactador
+está en el código y **nunca se ejecuta**. Eso es lo correcto.
+
+### 6.2 — Estimar tokens sin tokenizer (líneas 56-120)
+
+`estimate()` divide por 3.6 caracteres. Eso solo sería adivinar; la segunda mitad es la que
+importa:
+
+```python
+def observe(self, estimated: int, actual: int) -> None:
+    implied = self.chars_per_token * (estimated / actual)
+    ...
+    self.chars_per_token += _EMA_ALPHA * (implied - self.chars_per_token)
+```
+
+**Pregunta.** ¿De dónde sale `actual`?
+
+**Respuesta.** De `prompt_eval_count`, el conteo **real** del tokenizer, que Ollama devuelve en
+cada respuesta; `loop.py` se lo pasa de vuelta al estimador. O sea que arranca como heurística y a
+los pocos turnos es una medición calibrada contra el tokenizer de *ese* modelo — sin `tiktoken` y
+sin saber cuál usa.
+
+En la corrida de arriba fue de 3.60 a 3.15 con un real de 2.90 en 9 muestras: **no convergió del
+todo, a propósito.** `_EMA_ALPHA = 0.25` prefiere converger despacio a saltar por un turno atípico.
+
+### 6.3 — Las nueve capas, y las cuatro que no existen (líneas 136-146)
+
+```
+  contexto: 19446 / 28768 tok (67.6%)
+   ~observations     16204 tok   83.3%    ← el ~ marca "compactable"
+    instructions       412 tok    2.1%
+    tools              298 tok    1.5%
+    conversation       189 tok    1.0%
+    task                12 tok    0.1%
+   (sin usar: environment, skills, memory, retrieved)
+```
+
+**Pregunta.** ¿Para qué listar capas que valen 0?
+
+**Respuesta.** Porque un 0 explícito al lado de `retrieved` dice que la capa existe en el diseño y
+todavía no está: la tabla **también es el backlog**. Y el reparto real es la lección — las
+observaciones son el **83%**, el system prompt el 2%. Acortar el prompt para ahorrar contexto es
+trabajar en el lugar equivocado.
+
+### 6.4 — Reservar lugar para la salida (líneas 205-230)
+
+**Pregunta.** `num_ctx` es 32768. ¿Por qué `available` es 28768?
+
+**Respuesta.** Porque la ventana se comparte entre lo que el modelo lee y lo que escribe. El fallo
+es traicionero: los turnos con tool calls gastan 20-40 tokens de salida, así que todo anda… hasta
+el último, el del entregable, que necesita 800 y se corta. Es el mismo `StopReason.MAX_TOKENS` de
+la Sesión 2: el loop **reacciona** a la respuesta truncada, el presupuesto **evita** que pase.
+
+### 6.5 — Compactar sin silencio (líneas 288-330)
+
+```
+[observacion compactada: read_file habia devuelto 4210 caracteres
+ que ya no estan en el contexto. Si los necesitas, volve a pedir la tool.]
+```
+
+**Pregunta.** Se compactan los tool results y nunca el razonamiento del assistant. ¿Por qué?
+
+**Respuesta.** Por valor por token. Un `read_file` de 4000 caracteres ya cumplió su función: el
+modelo extrajo la conclusión, que son 40 tokens contra 1100. **Lo caro es lo redundante.** El
+razonamiento es lo contrario: chico, y es el único registro de *por qué* el agente hizo lo que
+hizo; borrarlo lo obliga a redescubrir su plan, que es la receta del `LOOP_DETECTED`.
+
+El marcador es la misma regla que `_truncate` de la Sesión 3: si el modelo cree que vio el archivo
+entero cuando no lo vio, razona sobre información faltante sin ninguna señal.
+
+### 6.6 — Qué de W2 todavía NO está
+
+**Retrieval just-in-time** (W2·C11) necesita poder buscar, y `search_code` no existe: sin
+búsqueda, traer "el fragmento exacto" es imposible porque no sabés dónde está. **Aislamiento de
+contexto** (W2·C13) necesita subagentes, que son W8.
+
+O sea que la próxima pieza de W2 no es de W2: es la tool de búsqueda. **Las fases no se completan
+en orden, se completan cuando se destraba lo que las bloquea.**
+
+### Experimento 6 — Rompé el presupuesto
+
+```bash
+LOCALFORGE_NUM_CTX=6000 uv run localforge ask . "explicame la arquitectura" -v
+```
+
+Mirá la línea `ctx:` por turno y el `compactado N obs` en amarillo. Seguí bajando: en algún punto
+el piso de `keep_recent_messages` no alcanza y el contexto no entra ni compactando.
+
+**Lo interesante es qué pasa ahí:** hoy el builder compacta todo lo que puede y manda lo que queda
+*aunque no entre*. No falla, no avisa al loop, y Ollama trunca por la izquierda. Es el próximo
+agujero: un `FailureReason.CONTEXT_OVERFLOW` que corte limpio en vez de degradar en silencio.
+Encontrarlo leyendo el código es el ejercicio.
+
+### ✅ Checkpoint Sesión 6
+
+- ¿Por qué `available` no es `num_ctx`?
+- ¿Qué capa se come el 83% del contexto, y qué implica para dónde optimizar?
+- ¿Por qué el marcador de compactación dice cuántos caracteres había?
+- ¿Por qué la próxima pieza de W2 es una tool de búsqueda?
 
 ---
 

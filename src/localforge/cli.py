@@ -16,6 +16,7 @@ from pathlib import Path
 
 from localforge.config import DOTENV_APPLIED, find_dotenv, settings
 from localforge.harness import AgentHarness
+from localforge.harness.context import ContextBreakdown, ContextBudget
 from localforge.models import AgentTask, ModelResponse, ToolCall, ToolResult
 from localforge.providers import build_provider
 from localforge.providers.base import ProviderError
@@ -83,6 +84,19 @@ class ConsoleSink:
         if event == "turn_start":
             print(f"{stamp} {_c(RULE + ' turno ' + str(payload['turn']), BOLD)}")
 
+        elif event == "context_built":
+            bd = payload["breakdown"]
+            assert isinstance(bd, ContextBreakdown)
+            # Sin verbose, una linea: lo que se gasto y si hubo que compactar.
+            warn = bd.pct >= 75
+            line = f"{bd.total}/{bd.available} tok ({bd.pct:.0f}%)"
+            if bd.compacted_messages:
+                line += f" · compactado {bd.compacted_messages} obs (-{bd.recovered_tokens} tok)"
+            print(f"{stamp}   ctx: {_c(line, YELLOW if warn else DIM)}")
+            if self.verbose:
+                for row in bd.table().splitlines()[1:]:
+                    print(f"{stamp} {_c(row, DIM)}")
+
         elif event == "model_response":
             response = payload["response"]
             assert isinstance(response, ModelResponse)
@@ -135,6 +149,8 @@ async def cmd_health() -> int:
     for key, value in info.items():
         print(f"  {key:18} {value}")
     print(f"  {'num_ctx':18} {settings.num_ctx}")
+    budget = ContextBudget.from_settings(settings)
+    print(f"  {'ctx disponible':18} {budget.available} (reserva {budget.reserve_output} para la salida)")
     print(f"  {'max_turns':18} {settings.max_turns}")
     print(f"  {'wall_clock_s':18} {settings.wall_clock_s:g}s")
 

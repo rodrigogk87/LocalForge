@@ -22,6 +22,7 @@ from collections import Counter
 from pathlib import Path
 
 from localforge.config import Settings, settings as default_settings
+from localforge.harness.context import ContextBudget, ContextBuilder
 from localforge.harness.prompt import build_system_prompt
 from localforge.models import (
     AgentMessage,
@@ -45,7 +46,7 @@ REPEAT_LIMIT = 3
 class AgentHarness:
     """El runtime que rodea al modelo.
 
-    Hoy hace: contexto (trivial), tools, estado y terminacion.
+    Hoy hace: contexto (con presupuesto), tools, estado y terminacion.
     Todavia NO hace: verificacion, permisos, checkpoints. Esas son las fases
     siguientes y se enganchan en los bordes de este loop.
     """
@@ -57,11 +58,15 @@ class AgentHarness:
         *,
         cfg: Settings | None = None,
         on_event: "EventSink | None" = None,
+        context: ContextBuilder | None = None,
     ) -> None:
         self.provider = provider
         self.registry = registry
         self.cfg = cfg or default_settings
         self.on_event = on_event or (lambda *_args, **_kw: None)
+        # El builder es inyectable para poder testear presupuestos chicos sin
+        # tocar la config global.
+        self.context = context or ContextBuilder(ContextBudget.from_settings(self.cfg))
 
     async def run(self, task: AgentTask) -> AgentOutcome:
         workspace = Path(task.repo_path).resolve()
@@ -127,11 +132,22 @@ class AgentHarness:
 
             self.on_event("turn_start", turn=turn + 1, remaining_s=round(remaining, 1))
 
+            # El contexto NO es la lista de mensajes: es una proyeccion de esa
+            # lista que entra en el presupuesto. El loop sigue siendo dueño del
+            # state completo (`messages`); lo que viaja es `built.messages`.
+            built = self.context.build(
+                system=system,
+                task=task.objective,
+                messages=messages,
+                definitions=definitions,
+            )
+            self.on_event("context_built", turn=turn + 1, breakdown=built.breakdown)
+
             try:
                 # El timeout del turno nunca puede exceder lo que queda del
                 # presupuesto total: es la composicion de budgets.
                 response = await asyncio.wait_for(
-                    self.provider.complete(messages, definitions, system=system),
+                    self.provider.complete(built.messages, definitions, system=built.system),
                     timeout=min(self.cfg.request_timeout_s, remaining),
                 )
             except asyncio.TimeoutError:
@@ -146,6 +162,9 @@ class AgentHarness:
 
             tokens_in += response.input_tokens
             tokens_out += response.output_tokens
+            # `prompt_eval_count` es el conteo REAL del tokenizer del modelo.
+            # Se lo devolvemos al estimador para que deje de ser una heuristica.
+            self.context.observe_actual(built.estimated_input, response.input_tokens)
             self.on_event("model_response", turn=turn + 1, response=response)
 
             record = TurnRecord(

@@ -1,9 +1,12 @@
 """Construccion del system prompt.
 
-Hoy es estatico salvo la orientacion del repo. En la Fase 2 esto se convierte
-en un ContextBuilder de verdad, con presupuesto por capa y compactacion.
-Por ahora vale registrar que el prompt YA es una capa del contexto con costo:
-se reenvia entero en cada turno.
+Es estatico salvo la orientacion del repo, y eso esta bien: el prompt es la
+capa `instructions` del contexto, la mas estable y la mas barata de todas
+(~2% del total medido). Quien decide cuanto contexto se gasta y en que es
+`harness/context.py`; este modulo solo produce una de sus capas.
+
+Que sea estable es una propiedad, no una limitacion: es el prefijo que un dia
+va a permitir prompt caching. Se reenvia entero en cada turno.
 """
 
 from __future__ import annotations

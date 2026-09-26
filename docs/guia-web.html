@@ -328,6 +328,7 @@
         <li><a href="#s3"><span class="n">03</span><span>tools/base.py <span class="mins">30 min</span></span></a></li>
         <li><a href="#s4"><span class="n">04</span><span>ollama.py <span class="mins">30 min</span></span></a></li>
         <li><a href="#s5"><span class="n">05</span><span>Rompelo <span class="mins">45 min</span></span></a></li>
+        <li><a href="#s6"><span class="n">06</span><span>context.py <span class="mins">30 min</span></span></a></li>
         <li><a href="#falta"><span class="n">→</span><span>Qué le falta</span></a></li>
       </ol>
     </nav>
@@ -341,8 +342,8 @@
           Cada decisión del código está cruzada con <strong>la clase de la Academy que la explica</strong>.
         </p>
         <div class="facts">
-          <div class="fact"><div class="v">5</div><div class="k">sesiones</div></div>
-          <div class="fact"><div class="v">1534</div><div class="k">líneas de código</div></div>
+          <div class="fact"><div class="v">6</div><div class="k">sesiones</div></div>
+          <div class="fact"><div class="v">2137</div><div class="k">líneas de código</div></div>
           <div class="fact"><div class="v">59</div><div class="k">links a clases</div></div>
           <div class="fact"><div class="v">5</div><div class="k">experimentos</div></div>
         </div>
@@ -895,6 +896,154 @@ uv run localforge ask . "Explicame la arquitectura"</pre>
       </div>
 
       <!-- ============ que falta ============ -->
+      <!-- ============ SESIÓN 06 ============ -->
+      <div class="sec-head prose" id="s6">
+        <div class="kicker"><span class="num">SESIÓN 06</span><span class="mins">30 min</span></div>
+        <h2>El contexto es un presupuesto</h2>
+        <div class="file">📂 <b>src/localforge/harness/context.py</b> · 390 líneas</div>
+      </div>
+
+      <p class="prose">
+        Ésta es la primera sesión que cubre <strong>Mundo 2</strong>. Hasta acá leíste código de W1:
+        un agente que corre y termina. Este archivo agrega la propiedad que sigue —
+        que sea <strong>barato y preciso</strong> — y es el primero que no existía cuando
+        escribimos las cinco sesiones anteriores.
+      </p>
+
+      <div class="academy">
+        <div class="hd"><span class="cap">🎓</span><span class="who">las clases de este archivo</span></div>
+        <p>Las cuatro piezas del archivo salen de cuatro clases distintas. Si sólo vas a hacer una, hacé la primera: es la que cambia cómo pensás el contexto.</p>
+        <p style="margin-top:10px; display:flex; gap:7px; flex-wrap:wrap">
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w2-l8" target="_blank" rel="noopener">W2·C8 — Anatomía del contexto</a>
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w2-l9" target="_blank" rel="noopener">W2·C9 — Context budgets</a>
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w2-l12" target="_blank" rel="noopener">W2·C12 — Compactación</a>
+        </p>
+      </div>
+
+      <h3>6.1 El problema, con números</h3>
+      <p class="prose">
+        En la Fase 1 el contexto era una lista que crecía sin techo. La única defensa era truncar
+        cada tool result a 8000 caracteres. Ese diseño no falla nunca… hasta que falla de golpe,
+        y cuando falla Ollama <strong>trunca en silencio por la izquierda</strong> y se come el system prompt.
+      </p>
+      <p class="prose">Corriendo el mismo agente con dos ventanas distintas, 9 turnos leyendo archivos:</p>
+      <pre><span class="c">=== num_ctx=32768 ===</span>
+  turno 1:    823/28768 tok (  2.9%)
+  turno 9:  19446/28768 tok ( 67.6%)     <span class="c">← entra, no hace falta compactar</span>
+
+<span class="c">=== num_ctx=9000 ===</span>
+  turno 3:   4525/6000 tok ( 75.4%)
+<span class="hl">  turno 9:   5684/6000 tok ( 94.7%)  compactado=6 (-12972 tok)</span>
+                                          <span class="c">← sin compactar habría pedido 19446 de 6000: 3,2× de más</span></pre>
+
+      <div class="q"><span class="label">Pregunta</span><p>El roadmap decía <em>“W2 todavía no hace falta: 4975 de 32768”</em>. Si con la ventana grande entra cómodo, ¿para qué construir esto ahora?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>Por dos razones, y ninguna es “por si acaso”.</p>
+        <p><strong>La primera:</strong> el número del roadmap era de una RTX 4090 con <code>qwen3:14b</code>, que pedía tres <code>read_file</code> en un turno. En un MacBook M1 con <code>gemma4:e4b</code>, que pide <strong>uno por turno</strong>, la misma tarea pasó de 3 turnos y 7.9k tokens a 11 turnos y 67k. El turno más pesado tocó <strong>12.333 de 32.768</strong>. El mismo código, en otra máquina, 2,5× más cerca del techo.</p>
+        <p><strong>La segunda, la importante:</strong> no podés presupuestar lo que no medís. <code>ContextBreakdown</code> <em>es</em> la medición que el propio <code>PROJECT_STATE.md</code> pone como prerequisito de esta fase. Construir el medidor no es adelantarse a la optimización: es la condición para saber si hace falta.</p>
+        <p>Fijate el orden: primero la instrumentación, después el presupuesto, y la compactación sólo se activa cuando el presupuesto se rompe. Con <code>num_ctx=32768</code> el compactador está en el código y <strong>nunca se ejecuta</strong>. Eso es lo correcto.</p>
+      </div></details>
+
+      <h3>6.2 Estimar tokens sin tokenizer <span class="ln">líneas 56-120</span></h3>
+      <pre><span class="c">def</span> estimate(self, text: str | None) -&gt; int:
+    <span class="c">if not</span> text:
+        <span class="c">return</span> 0
+    <span class="c">return</span> int(len(text) / self.chars_per_token) + 1</pre>
+      <p class="prose">Dividir por 3.6 y listo. Pero eso solo sería adivinar, así que hay una segunda mitad:</p>
+      <pre><span class="c">def</span> observe(self, estimated: int, actual: int) -&gt; <span class="c">None</span>:
+<span class="hl">    implied = self.chars_per_token * (estimated / actual)</span>
+    <span class="c">if not</span> (_MIN_RATIO &lt;= implied &lt;= _MAX_RATIO):
+        <span class="c">return</span>   <span class="c"># fuera de rango: no le creemos a esta muestra</span>
+    self.chars_per_token += _EMA_ALPHA * (implied - self.chars_per_token)</pre>
+
+      <div class="q"><span class="label">Pregunta</span><p>¿De dónde sale <code>actual</code>, y por qué esto no es una heurística?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>Sale de <code>prompt_eval_count</code>, que Ollama devuelve en cada respuesta: es el conteo <strong>real</strong> del tokenizer del modelo. El loop se lo pasa de vuelta al estimador en <code>loop.py</code>, justo después de acumular los tokens del turno.</p>
+        <p>O sea que el estimador arranca siendo una heurística y a los pocos turnos se convierte en una <strong>medición calibrada contra el tokenizer de ese modelo en particular</strong>. Sin <code>tiktoken</code>, sin saber cuál tokenizer usa, sin una dependencia por modelo.</p>
+        <p>En la corrida de arriba arrancó en 3.60 con un ratio real de 2.90 y llegó a 3.15 en 9 muestras. <strong>No convergió del todo</strong>, y es a propósito: <code>_EMA_ALPHA = 0.25</code> prefiere converger despacio a saltar por un turno atípico. Un agente que reestima su presupuesto de golpe por un archivo raro es peor que uno que se equivoca un 8% de forma estable.</p>
+        <p><strong>El patrón general:</strong> estimá antes de gastar, medí después de gastar, y usá la medición para mejorar la estimación. Es lo mismo que hace un planificador de queries con sus estadísticas.</p>
+      </div></details>
+
+      <h3>6.3 Las nueve capas, y las cuatro que no existen <span class="ln">líneas 136-146</span></h3>
+      <p class="prose">
+        Los nombres son exactamente los de W2·C8. Las cinco que LocalForge sí tiene se miden;
+        las cuatro que no, se reportan igual con <code>present=False</code>:
+      </p>
+      <pre>  contexto: 19446 / 28768 tok (67.6%)
+   ~observations     16204 tok   83.3%    <span class="c">← el ~ marca "compactable"</span>
+    instructions       412 tok    2.1%
+    tools              298 tok    1.5%
+    conversation       189 tok    1.0%
+    task                12 tok    0.1%
+<span class="hl">   (sin usar: environment, skills, memory, retrieved)</span></pre>
+
+      <div class="q"><span class="label">Pregunta</span><p>¿Para qué listar capas que valen 0 y que el proyecto no implementa?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>Porque un 0 explícito al lado de <code>retrieved</code> dice algo que la ausencia de la fila no dice: <strong>que la capa existe en el diseño y todavía no está</strong>.</p>
+        <p>Si listaras sólo lo que hay, la tabla se leería como si el contexto estuviera completo. Listando las nueve, la tabla <em>también</em> es el backlog: cada capa ausente es trabajo pendiente con un nombre y una clase que lo explica.</p>
+        <p>Y el reparto real es la lección: <strong>las observaciones son el 83% del contexto.</strong> El system prompt, que es lo que uno tiende a querer acortar, es el 2%. Optimizar el prompt para ahorrar contexto es trabajar en el lugar equivocado.</p>
+      </div></details>
+
+      <h3>6.4 Reservar lugar para la salida <span class="ln">líneas 205-230</span></h3>
+      <pre><span class="c">@dataclass(frozen=True)</span>
+<span class="c">class</span> ContextBudget:
+    limit: int
+<span class="hl">    reserve_output: int = 4_000</span>
+    keep_recent_messages: int = 4
+
+    <span class="c">@property</span>
+    <span class="c">def</span> available(self) -&gt; int:
+        <span class="c">return</span> max(0, self.limit - self.reserve_output)</pre>
+
+      <div class="q"><span class="label">Pregunta</span><p><code>num_ctx</code> es 32768. ¿Por qué <code>available</code> devuelve 28768 y no 32768?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>Porque la ventana se comparte entre lo que el modelo <strong>lee</strong> y lo que el modelo <strong>escribe</strong>. No son dos presupuestos: es uno.</p>
+        <p>Si llenás 32.768 tokens de input, el modelo no tiene lugar para responder. Y el fallo es traicionero: los turnos con tool calls son cortos (20-40 tokens de salida), así que todo funciona… hasta el último turno, el del entregable, que necesita 800 y se corta a la mitad.</p>
+        <p>Ese es exactamente el <code>StopReason.MAX_TOKENS</code> que el loop de la Sesión 02 trata como “no es un final válido”. Las dos mitades del mismo problema: el loop <em>reacciona</em> a la respuesta truncada, el presupuesto <em>evita</em> que pase.</p>
+        <p><strong>Regla:</strong> un presupuesto que no reserva lugar para el resultado no es un presupuesto.</p>
+      </div></details>
+
+      <h3>6.5 Compactar sin silencio <span class="ln">líneas 288-330</span></h3>
+      <p class="prose">Cuando la conversación no entra, se compactan observaciones viejas. Lo que queda en su lugar:</p>
+      <pre>[observacion compactada: read_file habia devuelto 4210 caracteres
+ que ya no estan en el contexto. Si los necesitas, volve a pedir la tool.]</pre>
+
+      <div class="q"><span class="label">Pregunta</span><p>Se compactan los tool results y nunca el razonamiento del assistant. ¿Por qué en ese orden y no al revés?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>Por <strong>valor por token</strong>, que es la única métrica que importa acá.</p>
+        <p>Un <code>read_file</code> de 4000 caracteres ya cumplió su función: el modelo lo leyó y en el turno siguiente escribió qué concluyó. La conclusión son 40 tokens y el archivo 1100. <strong>Lo caro es lo redundante.</strong></p>
+        <p>El razonamiento del assistant es lo contrario: chiquito, y es el único registro de <em>por qué</em> el agente hizo lo que hizo. Borrarlo lo obliga a redescubrir su propio plan, que es la receta para que entre en loop — el <code>LOOP_DETECTED</code> de la Sesión 02.</p>
+        <p>Y la task no se toca nunca, por una razón que no admite discusión: sin ella el agente no sabe qué está haciendo.</p>
+        <p><strong>Lo del marcador es la misma regla que <code>_truncate</code> de la Sesión 03:</strong> si el modelo cree que vio un archivo entero cuando no lo vio, razona sobre información faltante sin ninguna señal. El marcador convierte un agujero invisible en una instrucción accionable.</p>
+      </div></details>
+
+      <div class="academy">
+        <div class="hd"><span class="cap">🎓</span><span class="who">la clase de la compactación</span></div>
+        <p>Compactar con un resumen generado por el propio modelo es más potente y cuesta una llamada extra. Acá se eligió la versión determinista y gratis: reemplazar por un marcador. La clase compara las dos estrategias.</p>
+        <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w2-l12" target="_blank" rel="noopener">W2·C12 — Compactación</a>
+      </div>
+
+      <h3>6.6 Qué de W2 todavía NO está</h3>
+      <p class="prose">
+        El archivo lo dice en su propio docstring, y vale leerlo como parte de la sesión:
+        <strong>retrieval just-in-time</strong> (W2·C11) necesita poder buscar, y <code>search_code</code>
+        no existe todavía — sin búsqueda, traer “el fragmento exacto” es imposible porque no
+        sabés dónde está. Y <strong>aislamiento de contexto</strong> (W2·C13) necesita subagentes,
+        que son W8.
+      </p>
+      <p class="prose">
+        O sea que la próxima pieza de W2 no es de W2: es la tool de búsqueda. Las fases del roadmap
+        no se completan en orden, se completan cuando se destraba lo que las bloquea.
+      </p>
+
+      <div class="q"><span class="label">Pregunta</span><p>Experimento. Bajá el presupuesto hasta que el agente se rompa y mirá cómo se rompe.</p></div>
+      <details class="a"><summary>Ver qué esperar</summary><div class="a-body">
+        <pre>LOCALFORGE_NUM_CTX=6000 uv run localforge ask . "explicame la arquitectura" -v</pre>
+        <p>Vas a ver la línea <code>ctx:</code> por turno y, cuando el presupuesto se rompa, el <code>compactado N obs</code> en amarillo. Seguí bajando: en algún punto el piso de <code>keep_recent_messages</code> deja de alcanzar y el contexto ya no entra ni compactando.</p>
+        <p><strong>Lo interesante es qué pasa ahí:</strong> hoy el builder compacta todo lo que puede y manda lo que queda, aunque no entre. No falla, no avisa al loop, y Ollama trunca por la izquierda. Es el próximo agujero a tapar — un <code>FailureReason.CONTEXT_OVERFLOW</code> que corte limpio en vez de degradar en silencio.</p>
+        <p>Encontrar ese agujero leyendo el código es, literalmente, el ejercicio.</p>
+      </div></details>
+
       <div class="sec-head prose" id="falta">
         <div class="kicker"><span class="num">DESPUÉS</span></div>
         <h2>Qué le falta a LocalForge</h2>
@@ -902,7 +1051,7 @@ uv run localforge ask . "Explicame la arquitectura"</pre>
 
       <p class="prose">
         Ésta es la otra mitad de la conexión: <strong>el roadmap de la Academy es el backlog del proyecto.</strong>
-        Hoy estás parado al final del Mundo 1.
+        Hoy estás en el Mundo 2: el contexto ya se presupuesta, pero le falta la búsqueda.
       </p>
 
       <div class="scroller">
@@ -917,9 +1066,9 @@ uv run localforge ask . "Explicame la arquitectura"</pre>
             </tr>
             <tr>
               <td><a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w2-l8" target="_blank" rel="noopener">W2</a></td>
-              <td class="st todo">pendiente</td>
-              <td>ContextBuilder, budgets, compactación</td>
-              <td><code>input_tokens</code> cerca de <code>num_ctx</code>. Hoy: <strong>4975 de 32768</strong> → todavía no</td>
+              <td class="st done">parcial</td>
+              <td>ContextBuilder, budgets, compactación · <em>falta retrieval</em></td>
+              <td><code>input_tokens</code> cerca de <code>num_ctx</code>. Medido: <strong>19446 de 28768</strong> en 9 turnos → ya se mide y se compacta</td>
             </tr>
             <tr>
               <td><a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w3-l15" target="_blank" rel="noopener">W3</a></td>
