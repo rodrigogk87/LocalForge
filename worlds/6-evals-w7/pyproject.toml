@@ -1,0 +1,50 @@
+# PASO 6 — MUNDO 7: Agent Evals
+#
+# Y sabes si es bueno.
+#
+# Un proyecto aparte, completo y ejecutable, con el codigo TAL CUAL estaba al
+# cerrar este mundo. **No hay nada de los mundos siguientes**, y eso es el punto:
+# si abris models.py en el paso 1 vas a ver cinco estados, no ocho.
+#
+# Se apoya en el paso 5 (`5-durable-w6`): este proyecto es ese,
+# mas golden tasks, checks deterministas, taxonomia de fallos, comparador.
+#
+# Generado por scripts/build_worlds.py desde el commit 1808094. Su propio venv,
+# su propio lockfile, su propio entrypoint:
+#
+#   cd worlds/6-evals-w7
+#   uv sync --extra dev
+#   uv run pytest -q
+#   uv run lfw7 ask . "explicame este proyecto"
+[project]
+name = "lfw7-evals"
+version = "6.0.0"
+description = "Paso 6 · Mundo 7 (Agent Evals): y sabes si es bueno."
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.9",
+    "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3", "pytest-asyncio>=0.24"]
+
+[project.scripts]
+lfw7 = "localforge.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.12.10,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "localforge"
+
+# Raiz de su PROPIO workspace, sin miembros. Sin esto uv camina hacia arriba,
+# encuentra el workspace del repo y se queja de que esta carpeta esta adentro
+# pero no es miembro. Cada mundo tiene que ser independiente de verdad.
+[tool.uv.workspace]
+members = []
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

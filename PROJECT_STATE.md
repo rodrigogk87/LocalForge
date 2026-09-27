@@ -93,7 +93,8 @@ respuesta final` funciona. Evidencia reproducible más abajo.
 | **Subagentes con contexto aislado** | ✅ Fase 8, con tests |
 | **Referencias de las guías verificadas contra el código** | ✅ con tests |
 | **Workspace: un subproyecto por mundo, deps verificadas** | ✅ con tests |
-| Suite de tests | ✅ 253 passed |
+| **8 mundos como proyectos independientes** | ✅ con tests |
+| Suite de tests | ✅ 296 en la raíz · 979 sumando los 8 mundos |
 
 ### Evidencia de la verificación (2026-09-19)
 
@@ -185,6 +186,49 @@ AgentOutcome (status, reason, turnos, tokens, trayectoria, turn_records)
 
 **Invariante de tools:** el modelo **propone**, el harness **dispone**. El LLM nunca ejecuta.
 Esa asimetría es el punto donde en la Fase 5 se enchufan permisos y sandbox sin reescribir nada.
+
+---
+
+### `worlds/`: los ocho mundos como proyectos aparte
+
+**2026-09-27.** Leer el código final para entender el Mundo 1 no funciona: abrís `models.py` y
+encontrás ocho estados cuando en el Mundo 1 había cinco, y tres de ellos hablan de un verifier que
+todavía no te explicaron. **Los detalles de los mundos posteriores tienen que ser invisibles mientras
+leés uno.**
+
+Eso no se resuelve partiendo el código final — es imposible: Python no deja extender un enum y el
+loop importa de seis mundos. Se resuelve con **ocho proyectos independientes**, cada uno con el
+código tal cual estaba al cerrar ese mundo.
+
+Y no hubo que escribirlos: cada mundo se cerró con un commit, así que los snapshots ya existían.
+[`scripts/build_worlds.py`](scripts/build_worlds.py) los materializa con `git archive`.
+
+| paso | mundo | archivos | tests | commit |
+|---|---|---|---|---|
+| 1 | W1 Foundations | 15 | 24 | `7a3295d` |
+| 2 | W2 Context | 19 | 59 | `49a0aaa` |
+| 3 | W3 Harness | 22 | 85 | `1c8c985` |
+| 4 | W5 Sandbox | 24 | 118 | `e2b48f9` |
+| 5 | W6 Durable | 26 | 133 | `24b24a5` |
+| 6 | W7 Evals | 28 | 159 | `1808094` |
+| 7 | W4 Skills | 31 | 177 | `5f62eb4` |
+| 8 | W8 Multi-agent | 33 | 184 | `5f62eb4` |
+
+**El orden es el de construcción, no el del roadmap**, y es a propósito: el Mundo 5 (permisos) se
+hizo antes del 4 (skills), porque los permisos eran prerequisito duro de cualquier tool con efectos.
+Ordenarlos por número rompería lo que los hace útiles — el paso 4 tendría skills y el 5 las perdería.
+Así, cada paso es el anterior **más una cosa**, y los tests lo confirman: crecen monótonamente
+(24 → 59 → 85 → 118 → 133 → 159 → 177 → 184) sin que ninguno se rompa.
+
+`tests/test_worlds.py` verifica la propiedad central con una diagonal: cada módulo aparece en su paso
+y **no antes**. `VERIFYING` no está declarado antes del paso 3; el paso 1 tiene exactamente cinco
+estados. Más que cada carpeta sea un proyecto de verdad: raíz de su propio workspace, entrypoint
+único (`lfw1`…`lfw8`, para poder tener varios instalados), y README que dice de dónde sale.
+
+El único caso que no salió directo de la historia: los Mundos 4 y 8 entraron en el **mismo commit**,
+así que el paso 7 es ese commit menos `subagent.py`.
+
+**`worlds/` son fotos para leer; `packages/` es el código vivo.** Las fotos se regeneran, no se editan.
 
 ---
 
@@ -1056,6 +1100,11 @@ curl -s http://localhost:11434/api/version
 cd ~/Desktop/LocalForge
 uv sync --extra dev
 uv sync --package localforge-tools   # un env con solo ese subproyecto
+
+# --- leer un mundo suelto, sin nada de los siguientes ---
+cd worlds/3-harness-w3 && uv sync --extra dev && uv run pytest -q
+uv run lfw3 ask . "explicame este proyecto"
+cd ../.. && python scripts/build_worlds.py   # regenerar las ocho fotos
 uv run localforge health
 uv run localforge ask . "Explicame este proyecto"
 uv run localforge ask ../agent-harness-lab "¿Cómo está organizado el contenido?" -v

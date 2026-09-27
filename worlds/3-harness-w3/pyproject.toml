@@ -1,0 +1,50 @@
+# PASO 3 — MUNDO 3: Harness Engineering
+#
+# Y esta estructurado y verifica.
+#
+# Un proyecto aparte, completo y ejecutable, con el codigo TAL CUAL estaba al
+# cerrar este mundo. **No hay nada de los mundos siguientes**, y eso es el punto:
+# si abris models.py en el paso 1 vas a ver cinco estados, no ocho.
+#
+# Se apoya en el paso 2 (`2-context-w2`): este proyecto es ese,
+# mas state.py (transiciones prohibidas), verify.py y el repair loop.
+#
+# Generado por scripts/build_worlds.py desde el commit 1c8c985. Su propio venv,
+# su propio lockfile, su propio entrypoint:
+#
+#   cd worlds/3-harness-w3
+#   uv sync --extra dev
+#   uv run pytest -q
+#   uv run lfw3 ask . "explicame este proyecto"
+[project]
+name = "lfw3-harness"
+version = "3.0.0"
+description = "Paso 3 · Mundo 3 (Harness Engineering): y esta estructurado y verifica."
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.9",
+    "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3", "pytest-asyncio>=0.24"]
+
+[project.scripts]
+lfw3 = "localforge.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.12.10,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "localforge"
+
+# Raiz de su PROPIO workspace, sin miembros. Sin esto uv camina hacia arriba,
+# encuentra el workspace del repo y se queja de que esta carpeta esta adentro
+# pero no es miembro. Cada mundo tiene que ser independiente de verdad.
+[tool.uv.workspace]
+members = []
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

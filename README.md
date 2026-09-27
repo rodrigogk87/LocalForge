@@ -9,7 +9,8 @@ infraestructura (`httpx`, `pydantic`), no abstracciones de agentes.
 
 | Si sos… | Leé |
 |---|---|
-| 🧑‍🎓 **una persona aprendiendo** | **[`docs/GUIA.md`](docs/GUIA.md)** — recorrido guiado del código por los 8 mundos del roadmap, con preguntas, respuestas y experimentos para romperlo a propósito |
+| 🧑‍🎓 **una persona aprendiendo** | **[`worlds/`](worlds/)** — los 8 mundos, cada uno un proyecto Python aparte con el código tal cual estaba al cerrarlo. Empezá por [el paso 1](worlds/1-foundations-w1/): `models.py` tiene cinco estados, no ocho. |
+| 📖 **…y querés la explicación** | **[`docs/GUIA.md`](docs/GUIA.md)** — recorrido guiado por los 8 mundos, con preguntas, respuestas y experimentos para romperlo a propósito |
 | 🤖 **un agente retomando el trabajo** | **[`PROJECT_STATE.md`](PROJECT_STATE.md)** — estado real, decisiones de arquitectura y handoff |
 
 ### Proyecto hermano: AgentForge Academy

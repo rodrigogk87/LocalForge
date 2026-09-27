@@ -10,3 +10,8 @@ workspaces/
 
 .vercel
 .env*
+
+# Los venvs y lockfiles de cada mundo: se regeneran con `uv sync` dentro de cada
+# carpeta. El codigo de worlds/ SI se commitea, porque es la guia.
+worlds/*/.venv/
+worlds/*/uv.lock

@@ -174,6 +174,9 @@
   .toca .k.ext  { color: var(--accent); }
   .toca code { font-size: 13px; }
   .toca .por { color: var(--text-3); font-size: 13px; }
+  .toca > .ft { padding: 10px 14px; border-top: 1px solid var(--line); background: var(--surface-2); font-size: 13px; }
+  .toca > .ft a { color: var(--accent); text-decoration: none; border-bottom: 1px solid color-mix(in oklab, var(--accent) 35%, transparent); }
+  .toca > .ft a:hover { border-bottom-color: var(--accent); }
 
   /* Tabla de evolucion: una fila por archivo, una columna por mundo. */
   .evo { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -496,6 +499,7 @@ uv run localforge ask . <span class="c">"Que hace la clase AgentHarness?"</span>
           <li><span class="k crea">crea</span><span><code>tools/base.py</code> · <code>fs.py</code> <span class="por">— registry, executor, list_files y read_file</span></span></li>
           <li><span class="k crea">crea</span><span><code>harness/loop.py</code> · <code>prompt.py</code> <span class="por">— el agent loop y el system prompt</span></span></li>
         </ul>
+        <div class="ft">📦 Este mundo como <strong>proyecto aparte</strong>, con el código tal cual estaba y sin nada de los siguientes: <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/1-foundations-w1" target="_blank" rel="noopener">worlds/1-foundations-w1</a> — paso 1 de 8, 24 tests.</div>
       </div>
 
       <p class="prose">
@@ -919,6 +923,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
           <li><span class="k ext">extiende</span><span><code>models.py</code> <span class="por">— +<code>FailureReason.CONTEXT_OVERFLOW</code></span></span></li>
           <li><span class="k ext">extiende</span><span><code>harness/loop.py</code> <span class="por">— el contexto pasa por el builder, y se calibra el estimador</span></span></li>
         </ul>
+        <div class="ft">📦 Este mundo como <strong>proyecto aparte</strong>, con el código tal cual estaba y sin nada de los siguientes: <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/2-context-w2" target="_blank" rel="noopener">worlds/2-context-w2</a> — paso 2 de 8, 59 tests.</div>
       </div>
 
       <p class="prose">
@@ -1075,6 +1080,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
           <li><span class="k ext">extiende</span><span><code>models.py</code> <span class="por">— +3 estados (<code>WAITING_TOOL</code>, <code>VERIFYING</code>, <code>REPAIRING</code>), +<code>VERIFICATION_FAILED</code>, +3 campos en <code>AgentOutcome</code></span></span></li>
           <li><span class="k ext">extiende</span><span><code>harness/loop.py</code> <span class="por">— +la máquina de estados y el repair loop</span></span></li>
         </ul>
+        <div class="ft">📦 Este mundo como <strong>proyecto aparte</strong>, con el código tal cual estaba y sin nada de los siguientes: <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/3-harness-w3" target="_blank" rel="noopener">worlds/3-harness-w3</a> — paso 3 de 8, 85 tests.</div>
       </div>
 
       <p class="prose">
@@ -1182,6 +1188,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
           <li><span class="k ext">extiende</span><span><code>harness/prompt.py</code> <span class="por">— +el bloque de skills: una línea por skill</span></span></li>
           <li><span class="k ext">extiende</span><span><code>context/layers.py</code> <span class="por">— la capa <code>skills</code> deja de reportarse ausente</span></span></li>
         </ul>
+        <div class="ft">📦 Este mundo como <strong>proyecto aparte</strong>, con el código tal cual estaba y sin nada de los siguientes: <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/7-skills-w4" target="_blank" rel="noopener">worlds/7-skills-w4</a> — paso 7 de 8, 177 tests.</div>
       </div>
 
       <p class="prose">
@@ -1241,6 +1248,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
           <li><span class="k ext">extiende</span><span><code>tools/base.py</code> <span class="por">— +la autorización, entre validar y ejecutar</span></span></li>
           <li><span class="k ext">extiende</span><span><code>cli/</code> <span class="por">— +<code>ConsoleApprover</code> y <code>--read-only</code></span></span></li>
         </ul>
+        <div class="ft">📦 Este mundo como <strong>proyecto aparte</strong>, con el código tal cual estaba y sin nada de los siguientes: <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/4-sandbox-w5" target="_blank" rel="noopener">worlds/4-sandbox-w5</a> — paso 4 de 8, 118 tests.</div>
       </div>
 
       <p class="prose">
@@ -1335,6 +1343,7 @@ default=Decision.ASK</pre>
           <li><span class="k ext">extiende</span><span><code>harness/loop.py</code> <span class="por">— +graba al cerrar cada turno, +<code>resume()</code></span></span></li>
           <li><span class="k ext">extiende</span><span><code>cli/</code> <span class="por">— +<code>--save</code>, <code>runs</code> y <code>resume</code></span></span></li>
         </ul>
+        <div class="ft">📦 Este mundo como <strong>proyecto aparte</strong>, con el código tal cual estaba y sin nada de los siguientes: <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/5-durable-w6" target="_blank" rel="noopener">worlds/5-durable-w6</a> — paso 5 de 8, 133 tests.</div>
       </div>
 
       <p class="prose">
@@ -1432,6 +1441,7 @@ uv run localforge resume &lt;id&gt;</pre>
           <li><span class="k ext">extiende</span><span><code>cli/</code> <span class="por">— +el comando <code>eval</code></span></span></li>
           <li><span class="k por">—</span><span>nada más <span class="por">— los evals <em>leen</em> el <code>AgentOutcome</code>; no necesitaron cambiarlo</span></span></li>
         </ul>
+        <div class="ft">📦 Este mundo como <strong>proyecto aparte</strong>, con el código tal cual estaba y sin nada de los siguientes: <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/6-evals-w7" target="_blank" rel="noopener">worlds/6-evals-w7</a> — paso 6 de 8, 159 tests.</div>
       </div>
 
       <p class="prose">
@@ -1526,6 +1536,7 @@ uv run localforge resume &lt;id&gt;</pre>
           <li><span class="k crea">crea</span><span><code>agents/subagent.py</code> <span class="por">— delegate y el registry con profundidad</span></span></li>
           <li><span class="k por">—</span><span>nada más <span class="por">— <code>delegate</code> cayó en ASK <strong>sin tocar</strong> la política del Mundo 5</span></span></li>
         </ul>
+        <div class="ft">📦 Este mundo como <strong>proyecto aparte</strong>, con el código tal cual estaba y sin nada de los siguientes: <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/8-multiagent-w8" target="_blank" rel="noopener">worlds/8-multiagent-w8</a> — paso 8 de 8, 184 tests.</div>
       </div>
 
       <p class="prose">
@@ -1663,6 +1674,21 @@ uv run localforge ask . "Explicame la arquitectura"</pre>
         reconocés, la fila te dice de qué mundo salió.
       </p>
 
+      <p class="prose">
+        <strong>Y si preferís no cruzarte nunca con esas cosas:</strong> cada mundo existe también
+        como <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds" target="_blank" rel="noopener">proyecto Python aparte</a>, con
+        el código tal cual estaba al cerrarlo. Abrís <code>models.py</code> del paso 1 y hay cinco
+        estados, no ocho. Ocho carpetas, ocho venvs, ocho entrypoints, y los tests crecen
+        24 → 59 → 85 → 118 → 133 → 159 → 177 → 184 sin que ninguno se rompa.
+      </p>
+
+      <p class="prose">
+        Ojo con el orden: los pasos van en el orden en que el proyecto <strong>se construyó</strong>,
+        que no es el de los números. El Mundo 5 (permisos) se hizo antes del Mundo 4 (skills), porque
+        los permisos eran prerequisito duro de cualquier herramienta con efectos. Ordenarlos por
+        número rompería lo que los hace útiles: el paso 4 tendría skills y el 5 las perdería.
+      </p>
+
       <div class="scroller">
         <table class="evo">
           <thead>
@@ -1672,8 +1698,8 @@ uv run localforge ask . "Explicame la arquitectura"</pre>
             <tr>
               <td>models.py</td>
               <td class="c">crea</td>
-              <td class="e">+1 motivo</td>
-              <td class="e">+3 estados<br>+3 campos</td>
+              <td class="na">·</td>
+              <td class="e">+3 estados<br>+2 motivos<br>+3 campos</td>
               <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
             </tr>
             <tr>

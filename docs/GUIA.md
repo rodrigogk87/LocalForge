@@ -134,6 +134,11 @@ Vas a ver algo así:
 
 ## Los archivos crecen
 
+> **Atajo:** si preferís no cruzarte con los mundos posteriores, cada mundo existe como
+> [proyecto Python aparte](../worlds/) — el código tal cual estaba al cerrarlo, con su propio venv y
+> sus propios tests. Abrís `models.py` del paso 1 y hay cinco estados, no ocho.
+
+
 Esto es lo que más cuesta entender de un proyecto construido por fases, y conviene saberlo antes de
 abrir el primer archivo: **casi ningún archivo pertenece a un solo mundo.** El Mundo 1 crea
 `models.py` con cinco estados y el Mundo 3 le agrega tres. El Mundo 1 escribe el loop, y después lo
@@ -141,7 +146,7 @@ tocan cuatro mundos.
 
 | archivo | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
 |---|---|---|---|---|---|---|---|---|
-| `models.py` | **crea** | +1 motivo | +3 estados, +3 campos | · | · | · | · | · |
+| `models.py` | **crea** | · | +3 estados, +2 motivos, +3 campos | · | · | · | · | · |
 | `harness/loop.py` | **crea** | +presupuesto | +estados, +verify, +repair | +skills | +permisos | +checkpoints | · | · |
 | `tools/base.py` | **crea** | · | · | · | +autorización | · | · | · |
 | `harness/prompt.py` | **crea** | · | · | +disclosure | · | · | · | · |
