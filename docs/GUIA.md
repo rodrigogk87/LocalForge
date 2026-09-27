@@ -190,9 +190,7 @@ máquina de estados, y esa sí es del Mundo 3.
 ## Mundo 1 · 1 de 4 — `models.py`: el vocabulario (30 min)
 
 
-**Qué toca el Mundo 1.** Crea `models.py` (el vocabulario), `providers/` (el Protocol y Ollama),
-`tools/base.py` + `fs.py` (registry, executor, `list_files`, `read_file`) y `harness/loop.py` +
-`prompt.py` (el agent loop y el system prompt). No extiende nada: es el primero.
+📦 **El código de este mundo:** [`worlds/1-foundations-w1`](https://github.com/rodrigogk87/LocalForge/tree/main/worlds/1-foundations-w1) — proyecto aparte, paso 1 de 8, 24 tests. `make test WORLD=1`
 
 📂 `localforge/models.py` (265 líneas)
 
@@ -205,8 +203,8 @@ archivos usan estos nombres.
 
 ### 1.1 — Los tres enums (líneas 27-65)
 
-Abrí el archivo y vas a ver más valores de los que están acá: los agregaron mundos posteriores, y
-cada uno está marcado en el código con el mundo que lo trajo. **Lo que el Mundo 1 escribió es esto:**
+Esto es **todo** lo que hay en el archivo. Si lo abrís vas a contar cinco estados y seis motivos, ni
+uno más — el proyecto de este mundo no tiene nada de los que vienen después.
 
 ```python
 class AgentStatus(StrEnum):      # en qué estado está la tarea
@@ -217,11 +215,11 @@ class StopReason(StrEnum):       # por qué el modelo dejó de escribir
 
 class FailureReason(StrEnum):    # por qué cortamos la ejecución
     MAX_TURNS · WALL_CLOCK · TOKEN_BUDGET
-    LOOP_DETECTED · PROVIDER_ERROR · CANCELLED     # ← seis, por ahora
+    LOOP_DETECTED · PROVIDER_ERROR · CANCELLED     # ← seis. El Mundo 3 suma dos.
 ```
 
-**Mirá `FailureReason`: seis valores fijos**, ni uno más. Guardate ese número — el Mundo 2 le va a
-agregar uno y el Mundo 3 otro, y ese crecimiento es el argumento de la pregunta que sigue.
+**Mirá `FailureReason`: seis valores.** Guardate ese número — el Mundo 3 le va a agregar dos, y de
+paso tres estados a `AgentStatus`. Ese crecimiento es el argumento de la pregunta que sigue.
 
 > **Pregunta:** ¿por qué es un enum y no un string libre donde escribir el motivo que se te ocurra?
 
@@ -235,9 +233,9 @@ exactamente qué arreglar.
 Si cada rama del código escribe un mensaje libre distinto ("se acabaron los turnos", "límite de
 turnos alcanzado"), no podés agrupar nada y solo sabés que "falló".
 
-**Y el crecimiento lo confirma.** Este enum arrancó con seis valores y hoy tiene ocho: el Mundo 2
-agregó `CONTEXT_OVERFLOW` y el Mundo 3 `VERIFICATION_FAILED`. Cada uno fue *una línea*, y la
-taxonomía del Mundo 7 los agrupa sin tocar nada, porque cuenta sobre un campo que ya existía.
+**Y el crecimiento lo confirma.** Este enum arranca con seis valores y termina con ocho: el Mundo 3
+agrega `CONTEXT_OVERFLOW` y `VERIFICATION_FAILED`. Cada uno fue *una línea*, y la taxonomía del
+Mundo 7 los agrupa sin tocar nada, porque cuenta sobre un campo que ya existía.
 
 </details>
 
@@ -837,9 +835,7 @@ es que hay trabajo pendiente, así que la señal se deriva de la *presencia* de 
 ## Mundo 2 — `context/builder.py`: el contexto es un presupuesto (30 min)
 
 
-**Qué toca el Mundo 2.** Crea `harness/context.py` (tokens, layers, builder) y `tools/search.py`.
-Extiende `models.py` con `FailureReason.CONTEXT_OVERFLOW`, y `harness/loop.py` para que el contexto
-pase por el builder y el estimador se calibre con el conteo real del modelo.
+📦 **El código de este mundo:** [`worlds/2-context-w2`](https://github.com/rodrigogk87/LocalForge/tree/main/worlds/2-context-w2) — proyecto aparte, paso 2 de 8, 59 tests. `make test WORLD=2`
 
 > 🎓 **W2·C8**, **W2·C9** y **W2·C12**. Primera sesión de Mundo 2.
 
@@ -980,12 +976,12 @@ Los seis mundos restantes están desarrollados, con el mismo formato de pregunta
 
 | Mundo | Archivo | Qué agrega |
 |---|---|---|
-| **3** Harness Engineering | crea `harness/state.py`, `harness/verify.py` · extiende `models.py` y `loop.py` | Máquina de estados con transiciones prohibidas, verifier de trayectoria, repair loop |
-| **4** Skills & Protocols | crea `skills.py`, `tools/skill.py` · extiende `prompt.py` y `context/layers.py` | Skills con progressive disclosure (una línea por skill en el prompt, el cuerpo a demanda) |
-| **5** Sandbox Engineering | crea `permissions.py` · extiende `tools/base.py` y `cli/` | ALLOW/ASK/DENY con fail-closed, secretos denegados, aprobación humana. **Falta el sandbox** |
-| **6** Durable Agents | crea `harness/checkpoint.py` · extiende `loop.py` y `cli/` | Checkpoints atómicos por turno y `resume` idempotente |
-| **7** Agent Evals | crea `evals.py` · extiende `cli/` | Golden tasks, checks deterministas, taxonomía de fallos, comparador de harnesses |
-| **8** Multi-Agent | crea `harness/subagent.py` · no extiende nada | Subagentes con contexto aislado — lo que el Mundo 2 dejó pendiente |
+| **3** Harness Engineering | [`worlds/3-harness-w3`](https://github.com/rodrigogk87/LocalForge/tree/main/worlds/3-harness-w3) | Máquina de estados con transiciones prohibidas, verifier de trayectoria, repair loop |
+| **4** Skills & Protocols | [`worlds/7-skills-w4`](https://github.com/rodrigogk87/LocalForge/tree/main/worlds/7-skills-w4) | Skills con progressive disclosure (una línea por skill en el prompt, el cuerpo a demanda) |
+| **5** Sandbox Engineering | [`worlds/4-sandbox-w5`](https://github.com/rodrigogk87/LocalForge/tree/main/worlds/4-sandbox-w5) | ALLOW/ASK/DENY con fail-closed, secretos denegados, aprobación humana. **Falta el sandbox** |
+| **6** Durable Agents | [`worlds/5-durable-w6`](https://github.com/rodrigogk87/LocalForge/tree/main/worlds/5-durable-w6) | Checkpoints atómicos por turno y `resume` idempotente |
+| **7** Agent Evals | [`worlds/6-evals-w7`](https://github.com/rodrigogk87/LocalForge/tree/main/worlds/6-evals-w7) | Golden tasks, checks deterministas, taxonomía de fallos, comparador de harnesses |
+| **8** Multi-Agent | [`worlds/8-multiagent-w8`](https://github.com/rodrigogk87/LocalForge/tree/main/worlds/8-multiagent-w8) | Subagentes con contexto aislado — lo que el Mundo 2 dejó pendiente |
 
 El detalle de qué falta en cada uno está en [`PROJECT_STATE.md`](../PROJECT_STATE.md).
 

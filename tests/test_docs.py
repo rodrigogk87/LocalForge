@@ -202,3 +202,58 @@ def test_las_rutas_de_ejemplo_apuntan_a_worlds() -> None:
         texto = (DOCS / doc).read_text(encoding="utf-8")
         assert "~/Desktop/LocalForge" not in texto, f"{doc} tiene una ruta absoluta vieja"
 
+
+# --- las cuentas que la guia afirma sobre el codigo de un mundo ---------------
+#
+# El 1.1 decia "abri el archivo y vas a ver MAS valores de los que estan aca, los
+# agregaron mundos posteriores". Era cierto cuando habia un solo codebase, y
+# quedo FALSO cuando cada mundo paso a ser su propio proyecto: el models.py del
+# paso 1 tiene exactamente cinco estados y seis motivos. Tambien decia que el
+# Mundo 2 agregaba un motivo, y en realidad los dos entran en el Mundo 3.
+#
+# Estos tests atan esas afirmaciones al codigo.
+
+WORLDS = ROOT / "worlds"
+
+
+def _valores(paso: int, enum: str, hasta: str) -> int:
+    ruta = next((WORLDS / f"{paso}-*").parent.glob(f"{paso}-*/src/localforge/models.py"))
+    texto = ruta.read_text(encoding="utf-8")
+    bloque = texto[texto.index(f"class {enum}") :]
+    bloque = bloque[: bloque.index(hasta)] if hasta in bloque else bloque
+    return len(re.findall(r'^    [A-Z_]+ = "', bloque, re.M))
+
+
+def test_el_paso_1_tiene_los_valores_que_la_guia_dice() -> None:
+    """La guía afirma cinco estados y seis motivos. Si el código dice otra cosa,
+    el lector cuenta y no coincide."""
+    assert _valores(1, "AgentStatus", "class StopReason") == 5
+    assert _valores(1, "FailureReason", "# ---") == 6
+
+
+def test_el_crecimiento_de_los_enums_pasa_en_el_paso_3() -> None:
+    """Y no en el 2, que es lo que la guía decía mal: los dos motivos nuevos y los
+    tres estados entran juntos con el verifier."""
+    assert _valores(2, "AgentStatus", "class StopReason") == 5, "el paso 2 no toca AgentStatus"
+    assert _valores(2, "FailureReason", "# ---") == 6, "el paso 2 no toca FailureReason"
+    assert _valores(3, "AgentStatus", "class StopReason") == 8, "el paso 3 suma tres estados"
+    assert _valores(3, "FailureReason", "# ---") == 8, "el paso 3 suma dos motivos"
+
+
+@pytest.mark.parametrize("doc", ["guia-web.html", "GUIA.md"])
+def test_la_guia_no_manda_a_buscar_valores_que_no_estan(doc: str) -> None:
+    """Regresion literal del texto que reportaste."""
+    texto = (DOCS / doc).read_text(encoding="utf-8")
+    assert "más valores de los que están acá" not in texto, (
+        f"{doc} le dice al lector que va a ver valores que en ese mundo no existen"
+    )
+
+
+@pytest.mark.parametrize("doc", ["guia-web.html", "GUIA.md"])
+def test_cada_mundo_linkea_su_codigo_en_github(doc: str) -> None:
+    """Lo que el estudiante si necesita del andamiaje: donde esta el codigo."""
+    texto = (DOCS / doc).read_text(encoding="utf-8")
+    carpetas = sorted(d.name for d in WORLDS.iterdir() if (d / "pyproject.toml").is_file())
+    faltan = [c for c in carpetas if f"worlds/{c}" not in texto]
+    assert not faltan, f"{doc} no linkea el codigo de: {faltan}"
+

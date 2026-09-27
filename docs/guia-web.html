@@ -178,6 +178,17 @@
   .toca > .ft a { color: var(--accent); text-decoration: none; border-bottom: 1px solid color-mix(in oklab, var(--accent) 35%, transparent); }
   .toca > .ft a:hover { border-bottom-color: var(--accent); }
 
+  /* Link al codigo de este mundo. Lo unico que el lector necesita del andamiaje. */
+  .repo { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px;
+          margin: 22px 0; padding: 12px 15px; border: 1px solid var(--line);
+          border-left: 3px solid var(--accent); border-radius: var(--radius);
+          background: var(--surface); font-size: 13.5px; }
+  .repo a { color: var(--accent); text-decoration: none; font-weight: 600;
+            border-bottom: 1px solid color-mix(in oklab, var(--accent) 35%, transparent); }
+  .repo a:hover { border-bottom-color: var(--accent); }
+  .repo .meta { color: var(--text-3); }
+  .repo code { font-size: 12.5px; }
+
   /* Tabla de evolucion: una fila por archivo, una columna por mundo. */
   .evo { width: 100%; border-collapse: collapse; font-size: 13px; }
   .evo th, .evo td { padding: 7px 9px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
@@ -502,15 +513,9 @@
         <div class="file">📂 <b>localforge/models.py</b> · 265 líneas</div>
       </div>
 
-      <div class="toca">
-        <div class="hd">qué archivos toca el MUNDO 1</div>
-        <ul>
-          <li><span class="k crea">crea</span><span><code>models.py</code> <span class="por">— el vocabulario: enums, ToolCall/Result, AgentTask, AgentOutcome</span></span></li>
-          <li><span class="k crea">crea</span><span><code>providers/</code> <span class="por">— el Protocol y el adapter de Ollama</span></span></li>
-          <li><span class="k crea">crea</span><span><code>tools/base.py</code> · <code>fs.py</code> <span class="por">— registry, executor, list_files y read_file</span></span></li>
-          <li><span class="k crea">crea</span><span><code>harness/loop.py</code> · <code>prompt.py</code> <span class="por">— el agent loop y el system prompt</span></span></li>
-        </ul>
-        <div class="ft">📦 Este mundo como <strong>proyecto aparte</strong>, con el código tal cual estaba y sin nada de los siguientes: <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/1-foundations-w1" target="_blank" rel="noopener">worlds/1-foundations-w1</a> — paso 1 de 8, 24 tests.</div>
+      <div class="repo">
+        <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/1-foundations-w1" target="_blank" rel="noopener">📦 El código de este mundo en GitHub</a>
+        <span class="meta">proyecto aparte · paso 1 de 8 · 24 tests · <code>make test WORLD=1</code></span>
       </div>
 
       <p class="prose">
@@ -526,9 +531,9 @@
 
       <h3>1.1 Los tres enums <span class="ln">líneas 27-65</span></h3>
       <p class="prose">
-        Abrí el archivo y vas a ver más valores de los que están acá: los agregaron mundos
-        posteriores, y cada uno está marcado en el código con el mundo que lo trajo.
-        <strong>Lo que el Mundo 1 escribió es esto:</strong>
+        Esto es <strong>todo</strong> lo que hay en el archivo. Si lo abrís vas a contar cinco
+        estados y seis motivos, ni uno más — el proyecto de este mundo no tiene nada de los que vienen
+        después.
       </p>
       <pre><span class="c">class</span> AgentStatus(StrEnum):      <span class="c"># en que estado esta la tarea</span>
     CREATED · RUNNING · COMPLETED · FAILED · CANCELLED
@@ -538,18 +543,18 @@
 
 <span class="c">class</span> FailureReason(StrEnum):    <span class="c"># por que cortamos la ejecucion</span>
 <span class="hl">    MAX_TURNS · WALL_CLOCK · TOKEN_BUDGET</span>
-<span class="hl">    LOOP_DETECTED · PROVIDER_ERROR · CANCELLED</span>       <span class="c"># ← seis, por ahora</span></pre>
+<span class="hl">    LOOP_DETECTED · PROVIDER_ERROR · CANCELLED</span>       <span class="c"># ← seis. El Mundo 3 suma dos.</span></pre>
       <p class="prose">
-        Mirá <code>FailureReason</code>: <strong>seis valores fijos</strong>, ni uno más.
-        Guardate ese número — el Mundo 2 le va a agregar uno y el Mundo 3 otro, y ese crecimiento
-        es justamente el argumento de la pregunta que sigue.
+        Mirá <code>FailureReason</code>: <strong>seis valores</strong>. Guardate ese número — el
+        Mundo 3 le va a agregar dos, y de paso tres estados a <code>AgentStatus</code>. Ese
+        crecimiento es el argumento de la pregunta que sigue.
       </p>
 
       <div class="q"><span class="label">Pregunta</span><p>¿Por qué es un enum y no un string libre donde escribir el motivo que se te ocurra?</p></div>
       <details class="a"><summary>Ver respuesta</summary><div class="a-body">
         <p>Porque estos valores se van a <strong>agrupar</strong>. Cuando tengas 200 ejecuciones y quieras saber por qué falla tu agente, necesitás poder contar: <em>“el 60% de los fallos son loop_detected”</em>. Eso te dice exactamente qué arreglar.</p>
         <p>Si cada rama escribe un mensaje libre distinto (“se acabaron los turnos”, “límite alcanzado”), no podés agrupar nada y sólo sabés que “falló”.</p>
-        <p><strong>Y el crecimiento lo confirma.</strong> Este enum arrancó con seis valores y hoy tiene ocho: el Mundo 2 agregó <code>CONTEXT_OVERFLOW</code> y el Mundo 3 <code>VERIFICATION_FAILED</code>. Cada uno fue <em>una línea</em>, y la taxonomía del Mundo 7 los agrupa sin tocar nada, porque cuenta sobre un campo que ya existía. Con strings libres, cada motivo nuevo habría sido un string más que nadie sabe agrupar.</p>
+        <p><strong>Y el crecimiento lo confirma.</strong> Este enum arranca con seis valores y termina con ocho: el Mundo 3 agrega <code>CONTEXT_OVERFLOW</code> y <code>VERIFICATION_FAILED</code>. Cada uno fue <em>una línea</em>, y la taxonomía del Mundo 7 los agrupa sin tocar nada, porque cuenta sobre un campo que ya existía. Con strings libres, cada motivo nuevo habría sido un string más que nadie sabe agrupar.</p>
       </div></details>
 
       <div class="academy">
@@ -926,15 +931,9 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
         <div class="file">📂 <b>localforge/harness/context.py</b> · 437 líneas</div>
       </div>
 
-      <div class="toca">
-        <div class="hd">qué archivos toca el MUNDO 2</div>
-        <ul>
-          <li><span class="k crea">crea</span><span><code>harness/context.py</code> <span class="por">— tokens.py, layers.py, builder.py</span></span></li>
-          <li><span class="k crea">crea</span><span><code>tools/search.py</code> <span class="por">— search_code, que desbloquea el retrieval</span></span></li>
-          <li><span class="k ext">extiende</span><span><code>models.py</code> <span class="por">— +<code>FailureReason.CONTEXT_OVERFLOW</code></span></span></li>
-          <li><span class="k ext">extiende</span><span><code>harness/loop.py</code> <span class="por">— el contexto pasa por el builder, y se calibra el estimador</span></span></li>
-        </ul>
-        <div class="ft">📦 Este mundo como <strong>proyecto aparte</strong>, con el código tal cual estaba y sin nada de los siguientes: <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/2-context-w2" target="_blank" rel="noopener">worlds/2-context-w2</a> — paso 2 de 8, 59 tests.</div>
+      <div class="repo">
+        <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/2-context-w2" target="_blank" rel="noopener">📦 El código de este mundo en GitHub</a>
+        <span class="meta">proyecto aparte · paso 2 de 8 · 59 tests · <code>make test WORLD=2</code></span>
       </div>
 
       <p class="prose">
@@ -1083,15 +1082,9 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
         <div class="file">📂 <b>harness/state.py</b> · <b>harness/verify.py</b></div>
       </div>
 
-      <div class="toca">
-        <div class="hd">qué archivos toca el MUNDO 3</div>
-        <ul>
-          <li><span class="k crea">crea</span><span><code>harness/state.py</code> <span class="por">— el grafo de transiciones permitidas</span></span></li>
-          <li><span class="k crea">crea</span><span><code>harness/verify.py</code> <span class="por">— verifiers y el Verdict</span></span></li>
-          <li><span class="k ext">extiende</span><span><code>models.py</code> <span class="por">— +3 estados (<code>WAITING_TOOL</code>, <code>VERIFYING</code>, <code>REPAIRING</code>), +<code>VERIFICATION_FAILED</code>, +3 campos en <code>AgentOutcome</code></span></span></li>
-          <li><span class="k ext">extiende</span><span><code>harness/loop.py</code> <span class="por">— +la máquina de estados y el repair loop</span></span></li>
-        </ul>
-        <div class="ft">📦 Este mundo como <strong>proyecto aparte</strong>, con el código tal cual estaba y sin nada de los siguientes: <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/3-harness-w3" target="_blank" rel="noopener">worlds/3-harness-w3</a> — paso 3 de 8, 85 tests.</div>
+      <div class="repo">
+        <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/3-harness-w3" target="_blank" rel="noopener">📦 El código de este mundo en GitHub</a>
+        <span class="meta">proyecto aparte · paso 3 de 8 · 85 tests · <code>make test WORLD=3</code></span>
       </div>
 
       <p class="prose">
@@ -1191,15 +1184,9 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
         <div class="file">📂 <b>skills/discovery.py</b> · <b>tools/skill.py</b></div>
       </div>
 
-      <div class="toca">
-        <div class="hd">qué archivos toca el MUNDO 4</div>
-        <ul>
-          <li><span class="k crea">crea</span><span><code>skills/discovery.py</code> <span class="por">— descubrimiento y parseo del SKILL.md</span></span></li>
-          <li><span class="k crea">crea</span><span><code>tools/skill.py</code> <span class="por">— load_skill, la otra mitad del disclosure</span></span></li>
-          <li><span class="k ext">extiende</span><span><code>harness/prompt.py</code> <span class="por">— +el bloque de skills: una línea por skill</span></span></li>
-          <li><span class="k ext">extiende</span><span><code>context/layers.py</code> <span class="por">— la capa <code>skills</code> deja de reportarse ausente</span></span></li>
-        </ul>
-        <div class="ft">📦 Este mundo como <strong>proyecto aparte</strong>, con el código tal cual estaba y sin nada de los siguientes: <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/7-skills-w4" target="_blank" rel="noopener">worlds/7-skills-w4</a> — paso 7 de 8, 177 tests.</div>
+      <div class="repo">
+        <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/7-skills-w4" target="_blank" rel="noopener">📦 El código de este mundo en GitHub</a>
+        <span class="meta">proyecto aparte · paso 7 de 8 · 177 tests · <code>make test WORLD=7</code></span>
       </div>
 
       <p class="prose">
@@ -1251,15 +1238,9 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
         <div class="file">📂 <b>sandbox/permissions.py</b> · enchufado en <b>tools/base.py</b></div>
       </div>
 
-      <div class="toca">
-        <div class="hd">qué archivos toca el MUNDO 5</div>
-        <ul>
-          <li><span class="k crea">crea</span><span><code>sandbox/permissions.py</code> <span class="por">— Decision, Rule, PermissionPolicy</span></span></li>
-          <li><span class="k crea">crea</span><span><code>sandbox/approvers.py</code> <span class="por">— quién resuelve un ASK</span></span></li>
-          <li><span class="k ext">extiende</span><span><code>tools/base.py</code> <span class="por">— +la autorización, entre validar y ejecutar</span></span></li>
-          <li><span class="k ext">extiende</span><span><code>cli/</code> <span class="por">— +<code>ConsoleApprover</code> y <code>--read-only</code></span></span></li>
-        </ul>
-        <div class="ft">📦 Este mundo como <strong>proyecto aparte</strong>, con el código tal cual estaba y sin nada de los siguientes: <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/4-sandbox-w5" target="_blank" rel="noopener">worlds/4-sandbox-w5</a> — paso 4 de 8, 118 tests.</div>
+      <div class="repo">
+        <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/4-sandbox-w5" target="_blank" rel="noopener">📦 El código de este mundo en GitHub</a>
+        <span class="meta">proyecto aparte · paso 4 de 8 · 118 tests · <code>make test WORLD=4</code></span>
       </div>
 
       <p class="prose">
@@ -1347,14 +1328,9 @@ default=Decision.ASK</pre>
         <div class="file">📂 <b>durable/checkpoint.py</b></div>
       </div>
 
-      <div class="toca">
-        <div class="hd">qué archivos toca el MUNDO 6</div>
-        <ul>
-          <li><span class="k crea">crea</span><span><code>durable/checkpoint.py</code> <span class="por">— el Checkpoint y los dos stores</span></span></li>
-          <li><span class="k ext">extiende</span><span><code>harness/loop.py</code> <span class="por">— +graba al cerrar cada turno, +<code>resume()</code></span></span></li>
-          <li><span class="k ext">extiende</span><span><code>cli/</code> <span class="por">— +<code>--save</code>, <code>runs</code> y <code>resume</code></span></span></li>
-        </ul>
-        <div class="ft">📦 Este mundo como <strong>proyecto aparte</strong>, con el código tal cual estaba y sin nada de los siguientes: <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/5-durable-w6" target="_blank" rel="noopener">worlds/5-durable-w6</a> — paso 5 de 8, 133 tests.</div>
+      <div class="repo">
+        <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/5-durable-w6" target="_blank" rel="noopener">📦 El código de este mundo en GitHub</a>
+        <span class="meta">proyecto aparte · paso 5 de 8 · 133 tests · <code>make test WORLD=5</code></span>
       </div>
 
       <p class="prose">
@@ -1445,14 +1421,9 @@ make resume WORLD=5 ID=&lt;id&gt;</pre>
         <div class="file">📂 <b>evals.py</b></div>
       </div>
 
-      <div class="toca">
-        <div class="hd">qué archivos toca el MUNDO 7</div>
-        <ul>
-          <li><span class="k crea">crea</span><span><code>evals.py</code> <span class="por">— checks.py, dataset.py, runner.py, report.py</span></span></li>
-          <li><span class="k ext">extiende</span><span><code>cli/</code> <span class="por">— +el comando <code>eval</code></span></span></li>
-          <li><span class="k por">—</span><span>nada más <span class="por">— los evals <em>leen</em> el <code>AgentOutcome</code>; no necesitaron cambiarlo</span></span></li>
-        </ul>
-        <div class="ft">📦 Este mundo como <strong>proyecto aparte</strong>, con el código tal cual estaba y sin nada de los siguientes: <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/6-evals-w7" target="_blank" rel="noopener">worlds/6-evals-w7</a> — paso 6 de 8, 159 tests.</div>
+      <div class="repo">
+        <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/6-evals-w7" target="_blank" rel="noopener">📦 El código de este mundo en GitHub</a>
+        <span class="meta">proyecto aparte · paso 6 de 8 · 159 tests · <code>make test WORLD=6</code></span>
       </div>
 
       <p class="prose">
@@ -1541,13 +1512,9 @@ make resume WORLD=5 ID=&lt;id&gt;</pre>
         <div class="file">📂 <b>agents/subagent.py</b></div>
       </div>
 
-      <div class="toca">
-        <div class="hd">qué archivos toca el MUNDO 8</div>
-        <ul>
-          <li><span class="k crea">crea</span><span><code>agents/subagent.py</code> <span class="por">— delegate y el registry con profundidad</span></span></li>
-          <li><span class="k por">—</span><span>nada más <span class="por">— <code>delegate</code> cayó en ASK <strong>sin tocar</strong> la política del Mundo 5</span></span></li>
-        </ul>
-        <div class="ft">📦 Este mundo como <strong>proyecto aparte</strong>, con el código tal cual estaba y sin nada de los siguientes: <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/8-multiagent-w8" target="_blank" rel="noopener">worlds/8-multiagent-w8</a> — paso 8 de 8, 184 tests.</div>
+      <div class="repo">
+        <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/8-multiagent-w8" target="_blank" rel="noopener">📦 El código de este mundo en GitHub</a>
+        <span class="meta">proyecto aparte · paso 8 de 8 · 184 tests · <code>make test WORLD=8</code></span>
       </div>
 
       <p class="prose">
