@@ -124,6 +124,45 @@ def sync_badges(text: str, archivos: dict[str, str]) -> tuple[str, list[str]]:
     return text, problemas
 
 
+# ---------------------------------------------------------------------------
+# Numeros del hero: computados, no escritos a mano
+# ---------------------------------------------------------------------------
+
+def stats() -> dict[str, int]:
+    """Los numeros que las guias afirman sobre si mismas y sobre el codigo.
+
+    Estan aca por la misma razon que las lineas: escritos a mano se podren. El
+    hero decia "4595 lineas de codigo" y "59 links a clases" cuando eran 4645 y
+    56, porque el codigo crecio y los links cambiaron.
+    """
+    worlds = ROOT / "worlds"
+    html = (ROOT / "docs" / "guia-web.html").read_text(encoding="utf-8")
+    vivo = worlds / "8-multiagent-w8" / "src"
+    return {
+        "mundos": len([d for d in worlds.iterdir() if d.is_dir() and (d / "pyproject.toml").is_file()]),
+        "líneas de código": sum(
+            len(f.read_text(encoding="utf-8").splitlines()) for f in vivo.rglob("*.py")
+        ),
+        "links a clases": len(re.findall(r"academy-chi\.vercel\.app/#/lesson/", html)),
+        "experimentos": len(set(re.findall(r"Experimento (\d+)", html))),
+    }
+
+
+def sync_stats(text: str, valores: dict[str, int]) -> tuple[str, list[str]]:
+    """Reescribe los <div class="fact"> del hero."""
+    problemas: list[str] = []
+    for clave, real in valores.items():
+        pat = re.compile(
+            r'(<div class="fact"><div class="v">)(\d+)(</div><div class="k">'
+            + re.escape(clave) + r"</div></div>)"
+        )
+        for m in pat.finditer(text):
+            if int(m.group(2)) != real:
+                problemas.append(f'hero "{clave}": dice {m.group(2)}, son {real}')
+        text = pat.sub(lambda m: f"{m.group(1)}{real}{m.group(3)}", text)
+    return text, problemas
+
+
 def main() -> int:
     check = "--check" in sys.argv
     data = load()
@@ -142,6 +181,7 @@ def main() -> int:
             print(f"  - {p}")
         return 1
 
+    valores = stats()
     for doc, syncer in (("guia-web.html", sync_html), ("GUIA.md", sync_md)):
         path = ROOT / "docs" / doc
         original = path.read_text(encoding="utf-8")
@@ -149,6 +189,9 @@ def main() -> int:
         problemas += probs
         text, probs = sync_badges(text, data["file_badges"])
         problemas += probs
+        if doc == "guia-web.html":
+            text, probs = sync_stats(text, valores)
+            problemas += probs
         if not check and text != original:
             path.write_text(text, encoding="utf-8")
 

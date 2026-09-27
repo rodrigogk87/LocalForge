@@ -23,7 +23,7 @@ que se publica una versión nueva.)*
 LocalForge **es** el proyecto que la Academy usa como ejemplo, construido de verdad. Cada decisión
 de este código corresponde a una clase concreta del roadmap.
 
-En esta guía hay **29 referencias cruzadas** a **59 clases** de la Academy.
+En esta guía hay **30 marcas 🎓** que linkean a **56 clases** de la Academy.
 
 Vas a ver marcas así a lo largo de la guía:
 
@@ -48,8 +48,9 @@ Las dos direcciones sirven:
 | **W7** Agent Evals | Datasets, trayectoria, costo, taxonomía de fallos | 🟡 todo salvo model-as-judge |
 | **W8** Coding Agents | Edición, worktrees, subagentes | 🟡 subagentes aislados — falta worktrees |
 
-**Estás entrando al World 2.** Las sesiones 0 a 5 son W1 hecho código; la sesión 6 es la primera
-pieza de W2. El resto del roadmap es lo que le falta al proyecto.
+**Las ocho fases tienen trabajo real.** Lo que falta de cada una está en
+[`PROJECT_STATE.md`](../PROJECT_STATE.md); los dos huecos grandes son el **sandbox** (W5: hay
+permisos, no hay aislamiento) y **MCP** (W4).
 
 ---
 
@@ -97,8 +98,9 @@ Y tres trucos que sirven siempre:
 No leas código todavía. Mirá qué hace.
 
 ```bash
-cd ~/Desktop/LocalForge
-uv run localforge ask . "Que hace la clase AgentHarness?"
+cd worlds/1-foundations-w1
+uv sync --extra dev
+uv run lfw1 ask . "Que hace la clase AgentHarness?"
 ```
 
 Vas a ver algo así:
@@ -951,7 +953,8 @@ en orden, se completan cuando se destraba lo que las bloquea.**
 ### Experimento 6 — Rompé el presupuesto
 
 ```bash
-LOCALFORGE_NUM_CTX=6000 uv run localforge ask . "explicame la arquitectura" -v
+cd worlds/2-context-w2
+LOCALFORGE_NUM_CTX=6000 uv run lfw2 ask . "explicame la arquitectura" -v
 ```
 
 Mirá la línea `ctx:` por turno y el `compactado N obs` en amarillo. Seguí bajando: en algún punto
@@ -1020,7 +1023,7 @@ por:
 by_id = {c.id: r for c, r in zip(response.tool_calls, sorted(results, key=lambda r: r.duration_ms))}
 ```
 
-Corré: `uv run localforge ask . "Compara cli.py con models.py"`
+Corré, desde `worlds/8-multiagent-w8`: `uv run lfw8 ask . "Compara cli.py con models.py"`
 
 **Qué vas a ver:** el modelo describe un archivo con el contenido de otro. Sin errores. Sin logs.
 Una respuesta perfectamente coherente y completamente falsa.
@@ -1035,7 +1038,7 @@ prompt, probás otro modelo, subís el contexto — y nunca lo encontrás.
 ### Experimento 2 — Ahogar el contexto
 
 ```bash
-LOCALFORGE_NUM_CTX=2048 uv run localforge ask . "Explicame el proyecto"
+LOCALFORGE_NUM_CTX=2048 uv run lfw8 ask . "Explicame el proyecto"
 ```
 
 **Qué vas a ver:** el agente se comporta raro, ignora las herramientas o responde cualquier cosa.
@@ -1051,7 +1054,7 @@ Corré el agente sobre un repo con archivos grandes y mirá cómo crece `input_t
 
 ```bash
 git show a3d4a02:localforge/harness/prompt.py > localforge/harness/prompt.py
-uv run localforge ask . "Explicame la arquitectura"
+uv run lfw8 ask . "Explicame la arquitectura"
 ```
 
 **Qué vas a ver:** el agente responde leyendo **cero archivos**, inventando a partir de los
@@ -1062,7 +1065,7 @@ Después: `git checkout localforge/harness/prompt.py`
 ### Experimento 5 — Terminación
 
 ```bash
-uv run localforge ask . "Analiza todo el proyecto en detalle" --max-turns 1
+uv run lfw8 ask . "Analiza todo el proyecto en detalle" --max-turns 1
 ```
 
 **Qué vas a ver:** `failed (max_turns)` — un final **explícito y con motivo**, no un cuelgue.

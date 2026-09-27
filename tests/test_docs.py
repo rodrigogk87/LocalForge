@@ -151,3 +151,54 @@ def test_no_hay_anclas_internas_rotas() -> None:
     hrefs = {h for h in re.findall(r'href="#([^"]+)"', texto) if h}
     rotas = sorted(hrefs - ids)
     assert not rotas, f"links internos que no llevan a ningun lado: {rotas}"
+
+
+# --- los comandos que la doc dice que corras tienen que existir --------------
+#
+# Esto existe porque la doc quedo diciendo `uv run localforge ask ...` despues de
+# que el repo pasara a ser ocho proyectos y ese entrypoint dejara de existir.
+# Un lector copiaba el comando de la primera pagina y no funcionaba nada.
+
+import tomllib  # noqa: E402
+
+# Lo que no es un entrypoint de un mundo pero es legitimo en un `uv run`.
+HERRAMIENTAS = {"pytest", "python", "ruff", "uv"}
+
+
+def entrypoints() -> set[str]:
+    """Los comandos que los proyectos de worlds/ declaran de verdad."""
+    nombres: set[str] = set()
+    for pp in (ROOT / "worlds").glob("*/pyproject.toml"):
+        cfg = tomllib.loads(pp.read_text(encoding="utf-8"))
+        nombres |= set(cfg["project"].get("scripts", {}))
+    return nombres
+
+
+@pytest.mark.parametrize("doc", ["guia-web.html", "GUIA.md"])
+def test_los_comandos_de_las_guias_existen(doc: str) -> None:
+    texto = (DOCS / doc).read_text(encoding="utf-8")
+    # `uv run <algo>`, salteando los flags (`uv run --no-sync pytest`).
+    usados = set()
+    for m in re.finditer(r"uv run ((?:--[\w-]+\s+)*)([\w.-]+)", texto):
+        usados.add(m.group(2))
+    validos = entrypoints() | HERRAMIENTAS
+    desconocidos = sorted(usados - validos)
+    assert not desconocidos, (
+        f"{doc} dice correr comandos que no existen: {desconocidos}. "
+        f"Los entrypoints reales son: {sorted(entrypoints())}"
+    )
+
+
+def test_las_guias_no_mencionan_el_entrypoint_viejo() -> None:
+    """`localforge` desaparecio cuando el repo paso a ser ocho proyectos."""
+    for doc in ("guia-web.html", "GUIA.md"):
+        texto = (DOCS / doc).read_text(encoding="utf-8")
+        assert "uv run localforge" not in texto, f"{doc} todavia usa el comando `localforge`"
+
+
+def test_las_rutas_de_ejemplo_apuntan_a_worlds() -> None:
+    """Otra que quedo vieja: `cd ~/Desktop/LocalForge`, que ya no es donde vive."""
+    for doc in ("guia-web.html", "GUIA.md"):
+        texto = (DOCS / doc).read_text(encoding="utf-8")
+        assert "~/Desktop/LocalForge" not in texto, f"{doc} tiene una ruta absoluta vieja"
+

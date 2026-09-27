@@ -92,9 +92,8 @@ respuesta final` funciona. Evidencia reproducible más abajo.
 | **Skills con progressive disclosure** | ✅ Fase 4, con tests |
 | **Subagentes con contexto aislado** | ✅ Fase 8, con tests |
 | **Referencias de las guías verificadas contra el código** | ✅ con tests |
-| **Workspace: un subproyecto por mundo, deps verificadas** | ✅ con tests |
 | **8 mundos como proyectos independientes** | ✅ con tests |
-| Suite de tests | ✅ 53 en la raíz · 979 sumando los 8 mundos |
+| Suite de tests | ✅ 53 en la raíz · 939 sumando los 8 mundos |
 
 ### Evidencia de la verificación (2026-09-19)
 
@@ -161,7 +160,7 @@ un **verifier de trayectoria**: rechazar la respuesta final si el agente no ley�
 ```
 usuario
   ↓
-CLI (localforge ask <repo> "<objetivo>")
+CLI (lfw8 ask <repo> "<objetivo>")   ← un comando por mundo: lfw1..lfw8
   ↓
 AgentHarness.run(task)            ← el while con presupuesto
   ├─ build_system_prompt()        ← una capa del contexto: `instructions`
@@ -173,7 +172,7 @@ AgentHarness.run(task)            ← el while con presupuesto
   │     ↓ tool_calls
   ├─ ToolExecutor.run_all()       ← resuelve, valida, ejecuta, trunca
   │     ↓
-  │  tools (list_files, read_file)
+  │  tools (list_files, search_code, read_file, load_skill, delegate)
   │     ↓ ToolResult
   ├─ correlación por call_id → vuelve al state → siguiente turno
   └─ observe_actual()             ← calibra el estimador con prompt_eval_count
@@ -949,90 +948,95 @@ sin mirar `success`. Aceptado. Los fallos **no** recuperables (credenciales, pre
 
 ## Bugs / problemas conocidos
 
-1. **El binario de Ollama no está en el PATH del shell.** Está en
-   `%LOCALAPPDATA%\Programs\Ollama\ollama.exe`. El servidor corre igual (se autoarranca), y
-   LocalForge habla por HTTP, así que no afecta a la app — solo a comandos manuales `ollama ...`.
-2. `list_files` no respeta `.gitignore`.
-3. `EventSink` está declarado como clase-protocolo pero se usa como callable suelto; funciona,
-   pero es ruido de tipos que conviene limpiar.
-4. **El grounding depende del modelo, y con uno chico el prompt no alcanza.** En el M1 con
-   `gemma4:e4b`, ante *"¿en qué archivo se valida que una ruta no se escape del workspace?"* el
-   agente listó el árbol, **adivinó** `cli.py`, lo leyó dos veces, nunca encontró `safe_path`
-   (está en `tools/fs.py`) y contestó *"el más probable lugar"* — justo la palabra que el system
-   prompt prohíbe.
-   **Atacado en dos frentes (2026-09-26):** existe `search_code`, y el system prompt ahora tiene un
-   PASO 2 que manda a buscar antes de abrir archivos. Pero sigue siendo probabilístico: el modelo
-   *puede* ignorar la tool. **La garantía dura sigue siendo el verifier de trayectoria** (Fase 3),
-   que es lo único que puede rechazar una respuesta no fundamentada. Este bug se cierra ahí.
+1. `list_files` no respeta `.gitignore` (usa una lista fija: `.git`, `node_modules`, `.venv`,
+   binarios). Mejora futura: `git ls-files` cuando haya repo git.
+2. `EventSink` está declarado como clase-protocolo pero se usa como callable suelto. Funciona, pero
+   es ruido de tipos que conviene limpiar.
+3. **El grounding tiene un techo que lo pone el modelo, no el harness.** Ante *"¿en qué archivo se
+   valida que una ruta no se escape del workspace?"*, el agente con `gemma4:e4b`:
+   - **antes** (2026-09-19): listó el árbol, adivinó `cli.py`, nunca encontró `safe_path`, y contestó
+     con *"el más probable lugar"*;
+   - **después** de `search_code` + el PASO 2 del prompt + el verifier de trayectoria (2026-09-26):
+     **sigue fallando.** El eval del 27/09 lo midió: 12 turnos, 33.671 tokens, y no menciona
+     `safe_path`.
+
+   Las tres capas son correctas y ninguna alcanza. **El veredicto es que el techo lo pone el modelo**
+   (~4B activos), y confirmarlo requiere correr el mismo dataset con uno más grande — la comparación
+   que `compare()` existe para hacer. Este bug queda abierto y no se cierra con más harness.
+4. **El verifier es más permisivo que el eval.** `NoHedgingVerifier` tolera especulación cuando el
+   agente leyó ≥3 archivos, así que dejó pasar un *"podría ser"* tras 12 turnos. El umbral de 3 está
+   mal calibrado para un modelo que lee mucho y concluye poco.
+5. **`delegate` existió sin estar conectado.** La tool tenía 11 tests y no había forma de llamarla
+   desde la CLI: el `ruff --fix` había sacado el import como "sin usar" al partir `cli.py`, y ningún
+   test pasaba por ahí. Lo encontró el límite de paquete de la etapa `packages/`. **Arreglado**
+   (`--delegate`), pero la lección queda: un test por la CLI habría bastado.
 
 ---
 
 ## Trabajo completado recientemente
 
-- Entorno: Ollama 0.34.2 instalado vía winget; verificado que la API responde.
-- Estructura del proyecto con `uv` (Python 3.14.7).
-- `models.py`: AgentTask, AgentMessage, ToolCall/Definition/Result, ModelResponse,
-  AgentOutcome, TurnRecord, AgentStatus, StopReason, FailureReason.
-- `providers/`: Protocol + OllamaProvider real (incluye síntesis de call_id y fallback de `think`).
-- `tools/`: registry, executor con timeout/paralelismo/truncado, `list_files`, `read_file`,
-  `safe_path`.
-- `harness/loop.py`: agent loop con 5 condiciones de terminación.
-- `cli.py`: `health` y `ask` con observabilidad en vivo del loop.
-- 24 tests, todos en verde.
+**2026-09-19 — Fase 1.** Modelo de datos, `ModelProvider` como Protocol, `OllamaProvider` real,
+`list_files` y `read_file`, el agent loop con 5 condiciones de terminación, CLI con observabilidad en
+vivo. 24 tests. Verificado end-to-end contra el LLM local.
 
-**2026-09-20 — configuración por máquina.** El proyecto se corrió en un segundo equipo (M1 Pro) y
-eso destapó dos agujeros en la config:
+**2026-09-20 — configuración por máquina.** Correr el proyecto en un segundo equipo (M1 Pro) destapó
+que el `.env` **nunca se leía** — había `.env.example` y `.gitignore` lo excluía, lo que sugiere
+"copiá el ejemplo y anda", pero nada en el código abría el archivo — y que el entorno se leía **al
+importar y no al construir**, así que `Settings()` después de tocar `os.environ` devolvía en silencio
+los valores de la importación. Se arreglaron los dos; `health` ahora dice de qué archivo salió la
+config.
 
-- **El `.env` no se leía.** Había `.env.example` y `.gitignore` excluía `.env`, lo que sugiere
-  "copiá el ejemplo y anda" — pero nada en `src/` leía el archivo. `config.py::load_dotenv()` lo
-  implementa en ~20 líneas de stdlib (sin `python-dotenv`: sería la primera dependencia que no es
-  infraestructura). **Sólo adopta claves con prefijo `LOCALFORGE_`**, porque el agente corre sobre
-  otros repos y esos repos tienen su propio `.env` con credenciales. El shell le gana al archivo.
-- **El entorno se leía al importar, no al construir.** Los valores vivían en los defaults del
-  dataclass, que Python evalúa una sola vez al definir la clase: `Settings()` después de tocar
-  `os.environ` devolvía silenciosamente lo de la importación. Ahora hay `Settings.from_env()` y
-  los defaults del dataclass son **neutrales** (ninguna máquina en particular). Efecto lateral
-  bueno: `Settings()` a secas es hermético, que es justo lo que quiere un test.
-- `health` ahora imprime la config efectiva y **de qué archivo salió**: un `.env` que no se está
-  leyendo era indistinguible de uno que se lee y dice lo mismo.
+**2026-09-26 — las fases 2 a 8, en un día.** En orden de dependencias, no de roadmap:
+
+| | qué | tests |
+|---|---|---|
+| `search_code` | la carencia #1 del handoff: sin buscar, localizar algo es adivinar | 59 |
+| Fase 2 | `ContextBuilder`, presupuesto por capa, estimador calibrado, compactación | 59 |
+| Fase 3 | máquina de estados con transiciones prohibidas, verifier, repair loop | 85 |
+| Fase 5 | permisos ALLOW/ASK/DENY con fail-closed y aprobación humana | 118 |
+| Fase 6 | checkpoints atómicos y `resume` idempotente | 133 |
+| Fase 7 | golden tasks, checks deterministas, taxonomía, comparador | 159 |
+| Fases 4 y 8 | skills con progressive disclosure · subagentes con contexto aislado | 184 |
+
+**2026-09-27 — el repositorio pasa a ser ocho proyectos.** Leer el código final para entender el
+Mundo 1 no funcionaba: `models.py` tenía ocho estados cuando en el Mundo 1 había cinco. Hubo una etapa
+intermedia con `packages/` (once subproyectos por capacidad) que se **eliminó** por duplicar; quedó
+`worlds/`, ocho proyectos independientes generados desde la historia de git.
+
+En el camino: `scripts/sync_code_refs.py`, porque las guías citaban 40 líneas que ya no
+correspondían, y los números del hero también estaban viejos. Ahora se generan.
 
 ---
 
 ## Trabajo actual
 
-**Fase 2, primera porción: código completo y 40 tests en verde. Falta UNA cosa:** correrla contra
-el LLM local. Se validó con `ScriptedProvider` (determinista, mide el presupuesto y la
-compactación) pero no con inferencia real, porque Ollama no estaba corriendo al momento de
-escribirla.
+**Nada a medio implementar.** Las ocho fases tienen trabajo real y verificado, y el `.env` de esta
+máquina apunta a `gemma4:e4b`.
 
-**Lo que falta hacer, concretamente:**
+**La primera medición real existe** (`uv run lfw7 eval .`, 2026-09-27): **1 de 4**. Está detallada en
+la sección de Evals, pero el resumen importa:
 
-```bash
-ollama serve                     # o abrir la app
-uv run localforge ask . "explicame la arquitectura" -v
-```
-
-Y mirar dos cosas: que la línea `ctx:` reporte números coherentes con `input_tokens`, y que el
-estimador converja (`chars_per_token` debería moverse desde 3.60 hacia el ratio real de
-`gemma4:e4b`). Si el error del estimador queda por debajo del 10% a los pocos turnos, la
-calibración funciona.
-
-Último cambio: `harness/prompt.py` reescrito para forzar grounding (ver "Hallazgo importante").
+- **pasó** la tarea de seguridad: el permiso del `.env` deniega contra un modelo real;
+- los tres fallos son de **calidad**, ninguno de ejecución: el harness terminó bien las cuatro veces;
+- **el caso de regresión sigue fallando**, y ahí está el trabajo que queda.
 
 ---
 
 ## Próximos pasos
 
-Ordenados por lo que más duele hoy, no por el orden de las fases:
+Ordenados por lo que más duele, no por el orden de las fases:
 
-1. **Correr lo nuevo contra el LLM local.** El código está y los tests pasan, pero la validación
-   con inferencia real falta (ver "Trabajo actual"). Es el paso más chico y el más urgente: hasta
-   que no corra, el estimador nunca se calibró contra un tokenizer de verdad.
-2. **Decidir la próxima capacidad**, y la decisión tiene una restricción dura:
-   `write_file` y `run_command` **no se agregan sin permisos ALLOW/ASK/DENY** (Fase 5). Hoy el
-   agente es de solo lectura y por eso el riesgo de prompt injection es acotado. Ese equilibrio se
-   rompe exactamente el día que exista una tool con efectos.
-3. MCP (Fase 4) y worktrees/paralelismo (Fase 8): lo único de cada fase que sigue sin empezar.
+1. **Correr el eval con un modelo más grande.** Es lo único que puede separar el techo del modelo del
+   techo del harness, y es la pregunta abierta más importante del proyecto. `compare()` existe
+   exactamente para eso: diffea dos reportes **por tarea**, no por promedio.
+2. **Recalibrar `NoHedgingVerifier`.** Su umbral de 3 lecturas deja pasar especulación tras 12 turnos
+   (bug conocido #4). Y `TrajectoryVerifier` acepta `search_code` sola como evidencia, que es un piso
+   bajo: el eval marcó una respuesta con 0 `read_file` que el verifier aprobó.
+3. **Subir los presupuestos de las golden tasks.** 12 turnos contra un límite de 10 y 17 contra 12:
+   están calibrados para un modelo más fuerte. Subirlos es honesto; bajar la exigencia de contenido, no.
+4. **Los dos huecos grandes de las fases:** el **sandbox** (Fase 5 — hay permisos, no hay aislamiento)
+   y **MCP** (Fase 4). `run_command` no se agrega sin el primero.
+5. Un test que pase por la CLI, para que no vuelva a pasar lo de `delegate` (bug conocido #5).
 
 ---
 
@@ -1040,70 +1044,74 @@ Ordenados por lo que más duele hoy, no por el orden de las fases:
 
 ```bash
 # --- Ollama ---
-# el binario no esta en PATH:
-"$LOCALAPPDATA/Programs/Ollama/ollama.exe" list
-"$LOCALAPPDATA/Programs/Ollama/ollama.exe" pull qwen3:14b
+ollama serve                                  # o abrir la app
+ollama list
+ollama show gemma4:e4b                        # tiene que listar `tools` en Capabilities
 curl -s http://localhost:11434/api/version
 
-# --- LocalForge ---
-cd ~/Desktop/LocalForge
-# --- leer o trabajar un mundo ---
-cd worlds/8-multiagent-w8 && uv sync --extra dev && uv run pytest -q
-uv run lfw8 ask . "explicame este proyecto"
+# --- trabajar en el codigo vivo (el paso 8) ---
+cd worlds/8-multiagent-w8
+uv sync --extra dev
+uv run pytest -q                              # 184 tests
+uv run lfw8 health                            # ¿responde el LLM local?
+uv run lfw8 ask . "Explicame este proyecto"
+uv run lfw8 ask . "¿Donde se valida la entrada?" -v
+uv run lfw8 ask . "..." --delegate             # habilita subagentes
+uv run lfw8 ask . "..." --read-only            # deniega todo lo que no sea lectura
 
-# --- desde la raiz ---
-uv sync --extra dev && uv run pytest -q      # coherencia de los ocho
-python scripts/build_worlds.py               # regenerar las fotos 1-7
-uv run localforge health
-uv run localforge ask . "Explicame este proyecto"
-uv run localforge ask ../agent-harness-lab "¿Cómo está organizado el contenido?" -v
-uv run pytest -q
+# --- leer cualquier otro mundo ---
+cd worlds/1-foundations-w1 && uv sync --extra dev && uv run pytest -q
+uv run lfw1 ask . "Que hace la clase AgentHarness?"
 
-# --- documentacion en sincronia con el codigo ---
-uv run python scripts/sync_code_refs.py           # reescribe los numeros
-uv run python scripts/sync_code_refs.py --check   # falla si estan viejos
+# --- checkpoints (desde worlds/5-durable-w6) ---
+uv run lfw6 ask . "explicame el repo" --save   # imprime el run id
+uv run lfw6 runs                               # lista las corridas guardadas
+uv run lfw6 resume <id>                        # retoma
 
-# --- evals ---
-uv run localforge eval .
+# --- evals (desde worlds/6-evals-w7) ---
+uv run lfw7 eval .                             # el dataset contra el LLM local
 
-# --- corridas guardadas ---
-uv run localforge ask . "explicame el repo" --save
-uv run localforge runs
-uv run localforge resume <id>
+# --- desde la raiz del repo ---
+uv sync --extra dev && uv run pytest -q        # 53 tests: coherencia de los ocho
+python scripts/build_worlds.py                 # regenerar las fotos 1-7
+python scripts/build_worlds.py --check         # verificar que esten
+uv run python scripts/sync_code_refs.py        # reescribir las lineas que citan las guias
+uv run python scripts/sync_code_refs.py --check
 ```
 
 ---
 
 ## Handoff para el siguiente agente
 
-**Si estás retomando este proyecto, empezá por:**
+**El repositorio son ocho proyectos, no uno.** No existe un paquete `localforge` en la raíz ni el
+comando `localforge`: cada mundo es un proyecto con su propio venv y su propio comando
+(`lfw1`…`lfw8`). Los pasos 1 a 7 son fotos generadas desde la historia de git; **el paso 8
+(`worlds/8-multiagent-w8`) es el código vivo** y el único que se edita a mano.
 
-1. Leer `localforge/models.py` y `localforge/harness/loop.py`. Son ~450 líneas y contienen
-   todo el diseño. Los comentarios explican el *por qué* de cada decisión.
-2. Correr `uv run pytest -q` — deben pasar 24 tests.
-3. Correr `uv run localforge health` — debe reportar el modelo instalado.
+**Si estás retomando, empezá por:**
 
-**Último objetivo:** demostrar el recorrido end-to-end con LLM local real. **CUMPLIDO.**
+1. `cd worlds/8-multiagent-w8 && uv sync --extra dev && uv run pytest -q` — deben pasar 184 tests.
+2. Leer `src/localforge/models.py` y `src/localforge/harness/loop.py`. Son ~750 líneas y contienen
+   todo el diseño; los comentarios explican el *por qué* de cada decisión.
+3. `uv run lfw8 health` — debe reportar el modelo instalado.
+4. Desde la raíz, `uv run pytest -q` — 53 tests que verifican que los ocho mundos sean coherentes y
+   que las guías no citen líneas que ya no existen.
 
-**Último cambio exitoso:** system prompt reescrito para forzar grounding; el agente pasó de leer
-0 archivos a leer 3 en paralelo.
+**Las ocho fases tienen trabajo real.** Lo que falta de cada una está en su sección de este archivo;
+los dos huecos grandes son el **sandbox** (Fase 5: hay permisos, no hay aislamiento) y **MCP**
+(Fase 4).
 
-**Problema actual:** ninguno bloqueante. Lo que falta es validación con inferencia real: la Fase 2
-y `search_code` están escritos y testeados, pero no corridos contra el LLM local.
+**Restricción dura:** `run_command` no se agrega sin sandbox. No por falta de permisos — esos ya
+existen — sino porque una vez que el comando corre, el permiso ya hizo todo lo que podía hacer.
 
-**Próxima acción recomendada:**
+**Próxima acción recomendada:** correr `uv run lfw7 eval .` con Ollama prendido. La última medición
+dio **1 de 4**, y el caso de regresión (*"¿dónde se valida que una ruta no escape del workspace?"*)
+**sigue fallando** con `gemma4:e4b` a pesar de `search_code`, el prompt y el verifier. Vale repetirlo
+con un modelo más grande para separar el techo del modelo del techo del harness: es la comparación
+que `compare()` existe para hacer.
 
-**Primero:** arrancar Ollama y correr `uv run localforge ask . "explicame la arquitectura" -v` para
-validar la Fase 2 contra inferencia real. Es lo único que le falta a lo que ya está escrito.
+**Regla del proyecto:** trabajar incrementalmente — diseñar una parte chica, implementarla, ejecutarla
+de verdad contra el LLM local, medir, actualizar este archivo, y recién ahí seguir.
 
-**Después:** `uv run localforge eval .` con Ollama prendido, para tener la primera medición real.
-Todo lo construido desde el 20/09 está testeado pero no corrido contra inferencia real.
-
-**Restricción dura, actualizada:** los permisos ya existen, así que `write_file` está desbloqueado
-(cae en ASK con aprobación humana y `safe_path`). **`run_command` sigue bloqueado**, y no por falta
-de permisos sino por falta de **sandbox**: una vez que el comando corre, el permiso ya hizo todo lo
-que podía hacer. Ejecutar comandos arbitrarios sin contención es un agujero que ningún
-ALLOW/ASK/DENY tapa.
-
-**Regla del proyecto:** trabajar incrementalmente — diseñar una parte chica, implementarla,
-ejecutarla de verdad contra el LLM local, medir, actualizar este archivo, y recién ahí seguir.
+**Y si tocás código, corré `python scripts/build_worlds.py`** sólo si cambiaste una foto por error:
+regenera los pasos 1-7 desde git. El paso 8 nunca se regenera.

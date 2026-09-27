@@ -380,8 +380,8 @@
         </p>
         <div class="facts">
           <div class="fact"><div class="v">8</div><div class="k">mundos</div></div>
-          <div class="fact"><div class="v">4595</div><div class="k">líneas de código</div></div>
-          <div class="fact"><div class="v">59</div><div class="k">links a clases</div></div>
+          <div class="fact"><div class="v">4645</div><div class="k">líneas de código</div></div>
+          <div class="fact"><div class="v">56</div><div class="k">links a clases</div></div>
           <div class="fact"><div class="v">5</div><div class="k">experimentos</div></div>
         </div>
       </div>
@@ -454,8 +454,14 @@
       </div>
 
       <p class="prose">No leas código todavía. Mirá qué hace.</p>
-      <pre><span class="c">cd ~/Desktop/LocalForge</span>
-uv run localforge ask . <span class="c">"Que hace la clase AgentHarness?"</span></pre>
+      <p class="prose">
+        El repositorio son <strong>ocho proyectos</strong>, uno por mundo. Arrancás por el primero, y
+        cada uno tiene su propio comando (<code>lfw1</code>…<code>lfw8</code>) para poder tenerlos
+        instalados a la vez.
+      </p>
+      <pre><span class="c">cd worlds/1-foundations-w1</span>
+uv sync --extra dev
+uv run lfw1 ask . <span class="c">"Que hace la clase AgentHarness?"</span></pre>
 
       <pre class="term"><span class="c">[   0.0s]</span> ── turno 1
 <span class="c">[   0.7s]</span>   modelo: tool_use · 850→35 tok | 0.7s
@@ -1059,7 +1065,8 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
 
       <div class="q"><span class="label">Pregunta</span><p>Experimento. Bajá el presupuesto hasta que el agente se rompa y mirá cómo se rompe.</p></div>
       <details class="a"><summary>Ver qué esperar</summary><div class="a-body">
-        <pre>LOCALFORGE_NUM_CTX=6000 uv run localforge ask . "explicame la arquitectura" -v</pre>
+        <pre><span class="c">cd worlds/2-context-w2</span>
+LOCALFORGE_NUM_CTX=6000 uv run lfw2 ask . "explicame la arquitectura" -v</pre>
         <p>Vas a ver la línea <code>ctx:</code> por turno y, cuando el presupuesto se rompa, el <code>compactado N obs</code> en amarillo. Seguí bajando: en algún punto el piso de <code>keep_recent_messages</code> deja de alcanzar y el contexto ya no entra ni compactando.</p>
         <p><strong>Lo interesante es qué pasa ahí:</strong> hoy el builder compacta todo lo que puede y manda lo que queda, aunque no entre. No falla, no avisa al loop, y Ollama trunca por la izquierda. Es el próximo agujero a tapar — un <code>FailureReason.CONTEXT_OVERFLOW</code> que corte limpio en vez de degradar en silencio.</p>
         <p>Encontrar ese agujero leyendo el código es, literalmente, el ejercicio.</p>
@@ -1408,10 +1415,11 @@ os.replace(tmp, target)                          <span class="c"># atomico</span
       </div></details>
 
       <h3>6.5 Probalo</h3>
-      <pre>uv run localforge ask . "explicame el repo" --save   <span class="c"># imprime el run id</span>
+      <pre><span class="c">cd worlds/5-durable-w6</span>
+uv run lfw6 ask . "explicame el repo" --save   <span class="c"># imprime el run id</span>
 <span class="c"># Ctrl-C en medio de un turno</span>
-uv run localforge runs
-uv run localforge resume &lt;id&gt;</pre>
+uv run lfw6 runs
+uv run lfw6 resume &lt;id&gt;</pre>
       <p class="prose">
         La persistencia es <strong>opt-in</strong>: escribir en el disco del usuario no debería ser un
         efecto silencioso de correr el agente. Sin <code>--save</code>, el comportamiento es idéntico
@@ -1521,7 +1529,8 @@ uv run localforge resume &lt;id&gt;</pre>
         <strong>una primera corrida real</strong> — el medidor está testeado, pero nunca corrió contra
         el LLM local.
       </p>
-      <pre>uv run localforge eval .</pre>
+      <pre><span class="c">cd worlds/6-evals-w7</span>
+uv run lfw7 eval .</pre>
 
       <!-- ============ MUNDO 8 ============ -->
       <div class="sec-head prose" id="w8">
@@ -1616,14 +1625,15 @@ subagente: 10 archivos                    -&gt;  28000 tokens, <span class="hl">
         <p>En <code>harness/loop.py</code> línea ~201, reemplazá <code>by_id</code> por una versión que correlacione por orden de finalización:</p>
         <pre>by_id = {c.id: r <span class="c">for</span> c, r <span class="c">in</span> zip(response.tool_calls,
                      sorted(results, key=<span class="c">lambda</span> r: r.duration_ms))}</pre>
-        <pre>uv run localforge ask . <span class="c">"Compara cli.py con models.py"</span></pre>
+        <pre><span class="c">cd worlds/8-multiagent-w8</span>
+uv run lfw8 ask . <span class="c">"Compara cli.py con models.py"</span></pre>
         <p><strong>Qué vas a ver:</strong> el modelo describe un archivo con el contenido de otro. Sin errores. Sin logs. Una respuesta perfectamente coherente y completamente falsa.</p>
         <p><strong>Por qué importa:</strong> esto se ve igual que “el modelo alucina”. Si no conocés el bug, cambiás el prompt, probás otro modelo, subís el contexto — y nunca lo encontrás.</p>
       </div>
 
       <div class="exp">
         <h4>Experimento 2 — Ahogar el contexto</h4>
-        <pre>LOCALFORGE_NUM_CTX=2048 uv run localforge ask . "Explicame el proyecto"</pre>
+        <pre>LOCALFORGE_NUM_CTX=2048 uv run lfw8 ask . "Explicame el proyecto"</pre>
         <p><strong>Qué vas a ver:</strong> el agente se comporta raro, ignora las herramientas o responde cualquier cosa. Ollama se comió el system prompt por la izquierda y no avisó.</p>
       </div>
 
@@ -1635,13 +1645,13 @@ subagente: 10 archivos                    -&gt;  28000 tokens, <span class="hl">
       <div class="exp">
         <h4>Experimento 4 — Volver al prompt sin grounding</h4>
         <pre>git show a3d4a02:localforge/harness/prompt.py &gt; localforge/harness/prompt.py
-uv run localforge ask . "Explicame la arquitectura"</pre>
+uv run lfw8 ask . "Explicame la arquitectura"</pre>
         <p><strong>Qué vas a ver:</strong> el agente responde leyendo <strong>cero archivos</strong>, inventando a partir de los nombres. Compará con <code>git diff</code> qué cambió en el prompt.</p>
       </div>
 
       <div class="exp">
         <h4>Experimento 5 — Terminación</h4>
-        <pre>uv run localforge ask . "Analiza todo el proyecto" --max-turns 1</pre>
+        <pre>uv run lfw8 ask . "Analiza todo el proyecto" --max-turns 1</pre>
         <p><strong>Qué vas a ver:</strong> <code>failed (max_turns)</code> — un final <strong>explícito y con motivo</strong>, no un cuelgue.</p>
       </div>
 

@@ -6,7 +6,7 @@ encontras ocho estados cuando en el Mundo 1 habia cinco -- y tres de ellos habla
 de un verifier que todavia no te explicaron.
 
 Estos tests no corren los tests de cada mundo (eso es `pytest` dentro de cada
-carpeta, y son 979 en total). Verifican las propiedades que hacen que la coleccion
+carpeta, y son 939 en total). Verifican las propiedades que hacen que la coleccion
 sirva: que cada paso sea el anterior MAS UNA COSA, y que nada se adelante.
 
 Los pasos 1 a 7 son fotos generadas desde la historia de git; el paso 8 es el
