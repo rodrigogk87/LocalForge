@@ -14,7 +14,7 @@ import pytest
 from localforge.harness.prompt import build_system_prompt
 from localforge.skills import MAX_BODY_CHARS, discover_skills, disclosure_block, parse_skill
 from localforge.tools import ToolError, default_registry
-from localforge.tools.skills import LoadSkillArgs, LoadSkillTool
+from localforge.tools.skill import LoadSkillArgs, LoadSkillTool
 
 # Marcador deliberadamente improbable. La primera version de este test buscaba
 # "pytest" y daba un falso positivo: el tmp_path de pytest vive en
@@ -144,7 +144,7 @@ async def test_load_skill_sin_skills_es_claro(tmp_path: Path) -> None:
 
 def test_esta_registrada_y_permitida() -> None:
     from localforge.models import ToolCall
-    from localforge.permissions import Decision, default_policy
+    from localforge.sandbox import Decision, default_policy
 
     assert "load_skill" in default_registry().names()
     verdict = default_policy().decide(ToolCall(id="c", name="load_skill", arguments={"name": "x"}))
@@ -155,7 +155,7 @@ def test_esta_registrada_y_permitida() -> None:
 
 
 def test_la_capa_skills_deja_de_estar_ausente(repo: Path) -> None:
-    from localforge.harness.context import ContextBudget, ContextBuilder
+    from localforge.context import ContextBudget, ContextBuilder
 
     builder = ContextBuilder(ContextBudget(limit=32_768))
     con = builder.build(
@@ -169,7 +169,7 @@ def test_la_capa_skills_deja_de_estar_ausente(repo: Path) -> None:
 
 
 def test_sin_skills_la_capa_se_reporta_ausente(tmp_path: Path) -> None:
-    from localforge.harness.context import ContextBudget, ContextBuilder
+    from localforge.context import ContextBudget, ContextBuilder
 
     builder = ContextBuilder(ContextBudget(limit=32_768))
     con = builder.build(

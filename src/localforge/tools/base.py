@@ -14,11 +14,11 @@ from __future__ import annotations
 import asyncio
 import time
 from pathlib import Path
-from typing import Any, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 from pydantic import BaseModel, ValidationError
 
-from localforge.permissions import (
+from localforge.sandbox import (
     Approver,
     Decision,
     DenyingApprover,

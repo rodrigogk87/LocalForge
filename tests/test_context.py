@@ -8,7 +8,7 @@ se degrade.
 
 from __future__ import annotations
 
-from localforge.harness.context import (
+from localforge.context import (
     ContextBudget,
     ContextBuilder,
     TokenEstimator,

@@ -12,14 +12,14 @@ import pytest
 
 from localforge.config import Settings
 from localforge.harness import AgentHarness
-from localforge.harness.subagent import (
+from localforge.agents import (
     MAX_DEPTH,
     SubagentArgs,
     SubagentTool,
     registry_with_subagents,
 )
 from localforge.models import AgentStatus, AgentTask, ModelResponse, StopReason, ToolCall
-from localforge.permissions import AutoApprover
+from localforge.sandbox import AutoApprover
 from localforge.tools import ToolError
 
 
@@ -186,7 +186,7 @@ def test_el_registry_raiz_tiene_lectura_y_delegacion() -> None:
 def test_delegate_necesita_aprobacion_por_defecto() -> None:
     """No esta en la lista de lectura, asi que cae en ASK como cualquier tool nueva."""
     from localforge.models import ToolCall as TC
-    from localforge.permissions import Decision, default_policy
+    from localforge.sandbox import Decision, default_policy
 
     verdict = default_policy().decide(TC(id="c", name="delegate", arguments={"objective": "x"}))
     assert verdict.decision is Decision.ASK

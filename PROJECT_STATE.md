@@ -188,35 +188,58 @@ Esa asimetría es el punto donde en la Fase 5 se enchufan permisos y sandbox sin
 
 ## Estructura relevante del repositorio
 
+**Reorganizada el 2026-09-27: un paquete por mundo del roadmap.** Antes `harness/` era un cajón de
+sastre con siete archivos de cuatro mundos distintos, y `evals.py` y `cli.py` pasaban las 450 líneas.
+
 ```
 LocalForge/
 ├── PROJECT_STATE.md              ← este archivo (fuente de verdad)
-├── README.md                     ← uso e instalación
-├── pyproject.toml                ← deps, gestionado con uv
-├── .env.example                  ← todas las variables de configuración
+├── README.md · .env.example · pyproject.toml
 ├── src/localforge/
-│   ├── config.py                 Settings desde env vars. Sin magia.
 │   ├── models.py                 TODO el modelo de datos. Leer PRIMERO.
-│   ├── cli.py                    CLI + ConsoleSink (observabilidad del loop)
-│   ├── providers/
-│   │   ├── base.py               Protocol ModelProvider + ProviderError
-│   │   ├── ollama.py             ÚNICO módulo que conoce la API de Ollama
-│   │   └── __init__.py           build_provider(): nombre → implementación
-│   ├── tools/
-│   │   ├── base.py               Tool Protocol, ToolRegistry, ToolExecutor
-│   │   ├── fs.py                 list_files, read_file, safe_path
-│   │   └── __init__.py           default_registry()
-│   └── harness/
-│       ├── loop.py               EL AGENT LOOP. El corazón del proyecto.
-│       └── prompt.py             system prompt (futuro ContextBuilder)
-├── tests/
-│   ├── test_tools.py             13 tests: traversal, paginación, errores
-│   └── test_loop.py              11 tests: ciclo, terminación, feedback
-└── docs/dev-log/                 detalle histórico (PROJECT_STATE queda compacto)
+│   ├── config.py                 Settings desde .env + env vars
+│   │
+│   ├── providers/                inferencia          base.py · ollama.py
+│   ├── sandbox/            W5    permissions.py · approvers.py
+│   ├── tools/              W1    base.py · fs.py · search.py · skill.py
+│   ├── context/            W2    tokens.py · layers.py · builder.py
+│   ├── skills/             W4    discovery.py
+│   ├── harness/           W1+W3  loop.py · prompt.py · state.py · verify.py
+│   ├── durable/            W6    checkpoint.py
+│   ├── agents/             W8    subagent.py
+│   ├── evals/              W7    checks.py · dataset.py · runner.py · report.py
+│   └── cli/                      app.py · commands.py · console.py
+├── tests/                        8 archivos, 184 tests
+└── docs/
+    ├── GUIA.md                   recorrido por mundos
+    ├── guia-web.html             la misma guía, deployada
+    └── dev-log/
 ```
 
+### La regla que ordena el layout
+
+**Las dependencias van en una sola dirección**, y eso es lo que decide dónde va cada cosa:
+
+```
+models · config  →  sandbox  →  tools  →  harness  →  agents
+                    context  ↗   skills ↗    evals  ↗
+```
+
+`models.py` y `config.py` quedan en la raíz, sin paquete, porque son el vocabulario que **todo**
+importa: meterlos en un `core/` agregaría un nivel sin agregar información.
+
+Dos casos concretos donde la regla no es teórica:
+
+- **`sandbox/` no puede vivir dentro de `harness/`.** `tools/base.py` necesita los permisos para
+  autorizar antes de ejecutar, y `harness/` necesita a `tools/`. Cuando `permissions.py` estaba en
+  `harness/`, el import era circular — y los 85 tests de entonces pasaban igual, porque la suite
+  importaba en un orden que funcionaba.
+- **`agents/` está ARRIBA de `harness/`.** Un subagente *construye* un `AgentHarness`, y el harness
+  no sabe que existen los subagentes. Mientras `subagent.py` vivía dentro de `harness/` había que
+  importar el loop de forma diferida para no cerrar el ciclo; ahora es un import normal al tope.
+
 **Orden de lectura recomendado para un agente nuevo:**
-`models.py` → `harness/loop.py` → `tools/base.py` → `providers/ollama.py`
+`models.py` → `harness/loop.py` → `tools/base.py` → `providers/ollama.py` → `context/builder.py`
 
 ---
 

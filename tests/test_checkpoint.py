@@ -14,7 +14,7 @@ import pytest
 
 from localforge.config import Settings
 from localforge.harness import AgentHarness
-from localforge.harness.checkpoint import (
+from localforge.durable import (
     CHECKPOINT_VERSION,
     Checkpoint,
     FileCheckpointStore,

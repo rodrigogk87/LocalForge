@@ -1,213 +1,27 @@
-"""Context engineering: el contexto es un presupuesto, no un buffer.
+"""El presupuesto y quien lo aplica.
 
-En la Fase 1 el contexto era trivial: `messages` crecia sin techo y la unica
-defensa era truncar cada tool result a 8000 caracteres. Funciona hasta que no.
+Tercera y cuarta pieza del Mundo 2. La idea central, y la razon de que esto sea
+un modulo y no tres ifs dentro del loop: **el contexto no se acumula, se ASIGNA
+en cada turno**. El loop no decide que entra; le pide al builder que lo decida y
+le reporte que hizo.
 
-Este modulo introduce las cuatro piezas de la Fase 2:
-
-  1. TokenEstimator   -- cuantos tokens cuesta un texto, sin tokenizer
-  2. ContextBreakdown -- que capa se come el contexto, medido por turno
-  3. ContextBudget    -- cuanto le toca a cada capa
-  4. ContextBuilder   -- arma el contexto del turno y compacta si no entra
-
-La idea central, y la razon de que esto sea un modulo y no tres ifs dentro del
-loop: **el contexto no se acumula, se ASIGNA en cada turno**. El loop no decide
-que entra; le pide al builder que lo decida y le reporte que hizo.
-
-Dos cosas que este modulo NO hace todavia, a proposito:
+Dos cosas que este paquete NO hace todavia, a proposito:
 
 - **Retrieval just-in-time** (W2-C11): traer el fragmento exacto que hace falta
-  en vez de archivos enteros. Necesita poder buscar, y `search_code` no existe.
+  en vez de archivos enteros. Hoy `search_code` existe, asi que esto ya no esta
+  bloqueado -- solo no esta hecho.
 - **Aislamiento de contexto** (W2-C13): darle a cada subagente su propia
-  ventana. Necesita subagentes, que son W8.
+  ventana. Eso vive en `agents/subagent.py`.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Iterable, Sequence
+from typing import Sequence
 
+from localforge.context.layers import LAYER_ORDER, ContextBreakdown, Layer
+from localforge.context.tokens import TokenEstimator
 from localforge.models import AgentMessage, ToolDefinition
-
-# ---------------------------------------------------------------------------
-# 1. Estimacion de tokens
-# ---------------------------------------------------------------------------
-
-# Un tokenizer real (tiktoken, el de qwen) seria exacto pero agrega una
-# dependencia pesada y distinta por modelo. Y no hace falta: para decidir
-# "¿entra o no?" alcanza una estimacion con error conocido y sesgo controlado.
-#
-# 3.6 caracteres por token es el punto de partida para codigo y prosa tecnica
-# mezclados. El codigo tokeniza peor que la prosa (mas simbolos, mas
-# identificadores raros), asi que el numero es mas bajo que el 4.0 que se cita
-# para ingles corriente.
-DEFAULT_CHARS_PER_TOKEN = 3.6
-
-# Limites de cordura para la calibracion. Si el ratio se va afuera de esto, o
-# el texto era rarisimo o hay un bug; en cualquier caso no le creemos.
-_MIN_RATIO = 1.5
-_MAX_RATIO = 8.0
-
-# Peso de cada observacion nueva en la media movil. Bajo a proposito: preferimos
-# converger despacio a saltar por un turno atipico.
-_EMA_ALPHA = 0.25
-
-
-class TokenEstimator:
-    """Estima tokens por longitud, y se CALIBRA con los conteos reales.
-
-    El truco que hace esto honesto: despues de cada llamada, Ollama devuelve
-    `prompt_eval_count`, que es el conteo real de tokens de input. Comparamos
-    nuestra estimacion contra ese numero y ajustamos el ratio.
-
-    O sea que el estimador arranca siendo una heuristica y se convierte, a los
-    pocos turnos, en una medicion calibrada contra el tokenizer de ESTE modelo.
-    Sin dependencias y sin adivinar cual tokenizer usa.
-    """
-
-    def __init__(self, chars_per_token: float = DEFAULT_CHARS_PER_TOKEN) -> None:
-        self.chars_per_token = chars_per_token
-        self.samples = 0
-        self._last_error_pct: float | None = None
-
-    def estimate(self, text: str | None) -> int:
-        if not text:
-            return 0
-        # El +1 evita que un texto cortito estime 0 tokens: todo texto cuesta.
-        return int(len(text) / self.chars_per_token) + 1
-
-    def estimate_messages(self, messages: Iterable[AgentMessage]) -> int:
-        total = 0
-        for m in messages:
-            total += self.estimate(m.content)
-            for call in m.tool_calls:
-                # Los argumentos viajan serializados: cuestan tokens igual.
-                total += self.estimate(call.name) + self.estimate(str(call.arguments))
-            # Todo mensaje paga un overhead de estructura (rol, delimitadores).
-            total += _MESSAGE_OVERHEAD
-        return total
-
-    def estimate_tools(self, definitions: Sequence[ToolDefinition]) -> int:
-        total = 0
-        for d in definitions:
-            total += self.estimate(d.name) + self.estimate(d.description)
-            total += self.estimate(str(d.input_schema))
-        return total
-
-    def observe(self, estimated: int, actual: int) -> None:
-        """Recalibra el ratio con un conteo real.
-
-        `actual` es `prompt_eval_count` de Ollama: los tokens que el modelo
-        efectivamente leyo. Si estimamos de menos, el ratio real de caracteres
-        por token es mas chico que el nuestro, y al revez.
-        """
-        if estimated <= 0 or actual <= 0:
-            return
-        implied = self.chars_per_token * (estimated / actual)
-        if not (_MIN_RATIO <= implied <= _MAX_RATIO):
-            return  # fuera de rango: no le creemos a esta muestra
-        self._last_error_pct = (estimated - actual) / actual * 100
-        self.chars_per_token += _EMA_ALPHA * (implied - self.chars_per_token)
-        self.samples += 1
-
-    @property
-    def last_error_pct(self) -> float | None:
-        """Error de la ultima estimacion, en porcentaje. Positivo = estimamos de mas."""
-        return self._last_error_pct
-
-    @property
-    def calibrated(self) -> bool:
-        return self.samples > 0
-
-
-# Cada mensaje agrega delimitadores de rol al prompt. El numero exacto depende
-# del template del modelo; 4 es la aproximacion habitual y el error que mete es
-# irrelevante frente al del cuerpo del mensaje.
-_MESSAGE_OVERHEAD = 4
-
-
-# ---------------------------------------------------------------------------
-# 2. Anatomia: que capa se come el contexto
-# ---------------------------------------------------------------------------
-
-# Los nombres son los de W2-C8. Las que todavia no existen en LocalForge se
-# reportan igual, con present=False: ver un 0 explicito al lado de "retrieved"
-# dice mas sobre el estado del proyecto que no listar la capa.
-LAYER_ORDER = (
-    "instructions",
-    "tools",
-    "task",
-    "conversation",
-    "observations",
-    "environment",
-    "skills",
-    "memory",
-    "retrieved",
-)
-
-
-@dataclass(frozen=True)
-class Layer:
-    name: str
-    tokens: int
-    chars: int
-    # Si se puede tirar o resumir cuando falta lugar. instructions y task no:
-    # sin el system prompt el agente no sabe trabajar, y sin la task no sabe
-    # que tiene que hacer.
-    compactable: bool = False
-    present: bool = True
-
-
-@dataclass(frozen=True)
-class ContextBreakdown:
-    """Foto del contexto de UN turno, por capa."""
-
-    layers: tuple[Layer, ...]
-    limit: int
-    reserved_output: int
-    compacted_messages: int = 0
-    recovered_tokens: int = 0
-
-    @property
-    def total(self) -> int:
-        return sum(l.tokens for l in self.layers)
-
-    @property
-    def available(self) -> int:
-        """Lo que queda para input despues de reservar la salida."""
-        return max(0, self.limit - self.reserved_output)
-
-    @property
-    def pct(self) -> float:
-        return (self.total / self.available * 100) if self.available else 0.0
-
-    @property
-    def fits(self) -> bool:
-        return self.total <= self.available
-
-    def layer(self, name: str) -> Layer | None:
-        return next((l for l in self.layers if l.name == name), None)
-
-    def table(self) -> str:
-        """Render para la CLI. La capa mas grande primero: es la que hay que atacar."""
-        rows = []
-        present = [l for l in self.layers if l.present]
-        for l in sorted(present, key=lambda x: -x.tokens):
-            share = (l.tokens / self.total * 100) if self.total else 0
-            mark = "~" if l.compactable else " "
-            rows.append(f"  {mark}{l.name:14} {l.tokens:>7} tok  {share:>5.1f}%")
-        missing = [l.name for l in self.layers if not l.present]
-        if missing:
-            rows.append(f"   (sin usar: {', '.join(missing)})")
-        head = f"  contexto: {self.total} / {self.available} tok ({self.pct:.1f}%)"
-        if self.compacted_messages:
-            head += f" · compactado: {self.compacted_messages} obs, -{self.recovered_tokens} tok"
-        return head + "\n" + "\n".join(rows)
-
-
-# ---------------------------------------------------------------------------
-# 3. Presupuesto
-# ---------------------------------------------------------------------------
 
 
 @dataclass(frozen=True)
@@ -237,10 +51,6 @@ class ContextBudget:
     def from_settings(cls, cfg) -> ContextBudget:  # noqa: ANN001 - Settings, evita import ciclico
         return cls(limit=cfg.num_ctx)
 
-
-# ---------------------------------------------------------------------------
-# 4. El builder
-# ---------------------------------------------------------------------------
 
 _COMPACTED_TEMPLATE = (
     "[observacion compactada: {name} habia devuelto {chars} caracteres que ya no "
@@ -453,13 +263,4 @@ def _skills_block(system: str) -> str:
     return system[start : end if end > 0 else len(system)]
 
 
-__all__ = [
-    "ContextBudget",
-    "ContextBreakdown",
-    "ContextBuilder",
-    "BuiltContext",
-    "Layer",
-    "TokenEstimator",
-    "LAYER_ORDER",
-    "DEFAULT_CHARS_PER_TOKEN",
-]
+__all__ = ["ContextBudget", "ContextBuilder", "BuiltContext"]

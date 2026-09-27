@@ -1,7 +1,7 @@
 from localforge.tools.base import Tool, ToolError, ToolExecutor, ToolRegistry
 from localforge.tools.fs import ListFilesTool, ReadFileTool, safe_path
 from localforge.tools.search import SearchCodeTool
-from localforge.tools.skills import LoadSkillTool
+from localforge.tools.skill import LoadSkillTool
 
 __all__ = [
     "Tool", "ToolError", "ToolExecutor", "ToolRegistry",

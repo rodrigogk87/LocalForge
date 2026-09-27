@@ -32,6 +32,11 @@ Tres propiedades que hay que tener para que no sea un pie en la trampa:
 3. **Un fallo del hijo es un resultado, no una excepcion.** Si el subagente se
    queda sin turnos, el padre lee "no pude" y sigue. Es la misma regla que
    cualquier otro ToolResult.
+
+Este modulo vive fuera de `harness/` a proposito. Un subagente CONSTRUYE un
+AgentHarness, y el harness no sabe que existen los subagentes: la flecha va en
+una sola direccion. Mientras estuvo dentro de `harness/` habia que importar el
+loop de forma diferida para no cerrar el ciclo.
 """
 
 from __future__ import annotations
@@ -42,7 +47,8 @@ from pydantic import BaseModel, Field
 
 from localforge.config import Settings, settings as default_settings
 from localforge.models import AgentStatus, AgentTask
-from localforge.permissions import Approver, PermissionPolicy
+from localforge.sandbox import Approver, PermissionPolicy
+from localforge.harness.loop import AgentHarness
 from localforge.providers.base import ModelProvider
 from localforge.tools.base import ToolError, ToolRegistry
 
@@ -114,11 +120,6 @@ class SubagentTool:
                 f"limite de anidamiento alcanzado (profundidad {self.depth}). "
                 "Resolvé esto vos mismo con read_file y search_code."
             )
-
-        # Import local: el harness importa las tools, asi que importarlo arriba
-        # cerraria el ciclo. Es el unico import diferido del modulo y esta aca a
-        # proposito, no por descuido.
-        from localforge.harness.loop import AgentHarness
 
         child_registry: ToolRegistry = self.registry_factory(self.depth + 1)
 

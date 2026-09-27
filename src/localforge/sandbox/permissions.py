@@ -38,7 +38,7 @@ from __future__ import annotations
 import fnmatch
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Protocol, Sequence, runtime_checkable
+from typing import Sequence
 
 from localforge.models import ToolCall
 
@@ -141,39 +141,6 @@ class PermissionPolicy:
 
 
 # ---------------------------------------------------------------------------
-# Aprobacion humana
-# ---------------------------------------------------------------------------
-
-
-@runtime_checkable
-class Approver(Protocol):
-    """Quien resuelve un ASK. Async porque preguntarle a un humano bloquea."""
-
-    async def approve(self, call: ToolCall, reason: str) -> bool: ...
-
-
-class DenyingApprover:
-    """El approver de modo no interactivo: dice no y explica por que.
-
-    Es el default a proposito. Un ASK que nadie puede contestar no es un si.
-    """
-
-    async def approve(self, call: ToolCall, reason: str) -> bool:
-        return False
-
-
-class AutoApprover:
-    """Aprueba todo. Solo para tests y para corridas desatendidas conscientes.
-
-    Existe como clase con nombre explicito para que aparezca en el codigo que la
-    usa: `AutoApprover()` en un diff se ve, un flag booleano no.
-    """
-
-    async def approve(self, call: ToolCall, reason: str) -> bool:
-        return True
-
-
-# ---------------------------------------------------------------------------
 # Politica por defecto
 # ---------------------------------------------------------------------------
 
@@ -231,9 +198,6 @@ __all__ = [
     "Rule",
     "Verdict",
     "PermissionPolicy",
-    "Approver",
-    "DenyingApprover",
-    "AutoApprover",
     "default_policy",
     "read_only_policy",
     "SENSITIVE_GLOBS",

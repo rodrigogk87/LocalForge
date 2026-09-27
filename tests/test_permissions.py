@@ -19,7 +19,7 @@ from pathlib import Path
 import pytest
 
 from localforge.models import ToolCall
-from localforge.permissions import (
+from localforge.sandbox import (
     AutoApprover,
     Decision,
     DenyingApprover,
@@ -246,7 +246,7 @@ async def test_el_permiso_se_evalua_antes_de_ejecutar(repo: Path) -> None:
 
 @pytest.mark.parametrize(
     "primero",
-    ["localforge.tools", "localforge.harness", "localforge.permissions", "localforge.cli"],
+    ["localforge.tools", "localforge.harness", "localforge.sandbox", "localforge.cli"],
 )
 def test_el_paquete_importa_en_cualquier_orden(primero: str) -> None:
     """Regresion: permissions vivia en harness/ y el import era circular.

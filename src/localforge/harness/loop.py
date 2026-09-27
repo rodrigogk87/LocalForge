@@ -29,10 +29,10 @@ from collections import Counter
 from pathlib import Path
 
 from localforge.config import Settings, settings as default_settings
-from localforge.harness.checkpoint import Checkpoint, CheckpointStore
-from localforge.harness.context import ContextBudget, ContextBuilder
+from localforge.durable import Checkpoint, CheckpointStore
+from localforge.context import ContextBudget, ContextBuilder
 from localforge.harness.prompt import build_system_prompt
-from localforge.permissions import Approver, PermissionPolicy
+from localforge.sandbox import Approver, PermissionPolicy
 from localforge.skills import discover_skills
 from localforge.harness.state import StateMachine
 from localforge.harness.verify import Verifier, default_verifier
