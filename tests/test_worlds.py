@@ -8,6 +8,9 @@ de un verifier que todavia no te explicaron.
 Estos tests no corren los tests de cada mundo (eso es `pytest` dentro de cada
 carpeta, y son 979 en total). Verifican las propiedades que hacen que la coleccion
 sirva: que cada paso sea el anterior MAS UNA COSA, y que nada se adelante.
+
+Los pasos 1 a 7 son fotos generadas desde la historia de git; el paso 8 es el
+codigo vivo del proyecto, el unico que se edita a mano.
 """
 
 from __future__ import annotations
@@ -161,7 +164,8 @@ def test_hay_un_indice() -> None:
         assert d.name in texto, f"el indice no menciona {d.name}"
 
 
-def test_las_fotos_no_se_editan_a_mano() -> None:
-    """worlds/ se regenera; packages/ es el codigo vivo. Que quede dicho."""
+def test_el_indice_dice_cual_es_foto_y_cual_es_vivo() -> None:
+    """Los pasos 1-7 se regeneran; el 8 es donde se trabaja. Que quede dicho."""
     texto = (WORLDS / "README.md").read_text(encoding="utf-8")
-    assert "packages/" in texto and "regenera" in texto
+    assert "regenera" in texto
+    assert "vivo" in texto.lower()

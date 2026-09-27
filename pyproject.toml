@@ -1,40 +1,30 @@
-# Raiz del workspace. NO es un paquete: solo declara los miembros y las
-# dependencias de desarrollo. El codigo vive en packages/, un subproyecto por
-# mundo, cada uno con sus propias dependencias.
+# Este repositorio NO es un paquete Python.
 #
-#   uv sync                              todo el workspace en un env
-#   uv run --package localforge-tools    un env con SOLO tools y sus deps
-#   uv run pytest -q                     los tests, que testean el conjunto
+# El codigo vive en `worlds/`: un proyecto independiente por mundo, cada uno con
+# su propio pyproject, su venv, su lockfile y sus tests. Para trabajar, entrás a
+# uno:
+#
+#   cd worlds/8-multiagent-w8 && uv sync --extra dev && uv run pytest -q
+#
+# Lo que hay acá arriba es la infraestructura del repo: los tests que verifican
+# que los ocho mundos sean consistentes entre si, y que las guias no mientan
+# sobre el codigo.
+#
+#   uv sync --extra dev    # solo pytest, para correr esos tests
+#   uv run pytest -q
 [project]
-name = "localforge-workspace"
+name = "localforge-repo"
 version = "0.1.0"
-description = "Coding agent local sobre LLM propio. Harness explicito, sin frameworks de agentes."
+description = "LocalForge: un coding agent local, contado en ocho mundos."
 readme = "README.md"
 requires-python = ">=3.12"
-# Depender del cli alcanza: arrastra los otros diez por transitividad.
-dependencies = ["localforge-cli"]
+dependencies = []
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.3",
     "pytest-asyncio>=0.24",
 ]
-
-[tool.uv.workspace]
-members = ["packages/*"]
-
-[tool.uv.sources]
-localforge-agents = { workspace = true }
-localforge-cli = { workspace = true }
-localforge-context = { workspace = true }
-localforge-core = { workspace = true }
-localforge-durable = { workspace = true }
-localforge-evals = { workspace = true }
-localforge-harness = { workspace = true }
-localforge-providers = { workspace = true }
-localforge-sandbox = { workspace = true }
-localforge-skills = { workspace = true }
-localforge-tools = { workspace = true }
 
 [tool.uv]
 package = false

@@ -19,6 +19,10 @@ prerequisito duro de cualquier tool con efectos. Cada carpeta se apoya en la
 anterior de verdad; si las ordenara por numero de roadmap, el paso 4 tendria
 skills y el 5 las perderia.
 
+**El paso 8 no se regenera: es el codigo vivo.** Los pasos 1 a 7 son fotos de la
+historia y se rehacen con un comando; el 8 es donde se sigue trabajando, y tiene
+cambios hechos despues del commit que lo cerro.
+
     python scripts/build_worlds.py            # genera worlds/
     python scripts/build_worlds.py --check    # verifica que esten al dia
 """
@@ -48,6 +52,11 @@ class Mundo:
     # Mundos 4 y 8 entraron en el MISMO commit, asi que para ver skills sin
     # subagentes hay que quitar el subagente.
     quitar: tuple[str, ...] = field(default=())
+    # El ultimo paso NO es una foto: es el codigo vivo del proyecto, el lugar
+    # donde se sigue trabajando. Tiene cambios hechos a mano despues del commit
+    # (el flag --delegate, las anotaciones por mundo en models.py) y
+    # regenerarlo los borraria.
+    vivo: bool = False
 
     @property
     def dir(self) -> Path:
@@ -91,7 +100,8 @@ MUNDOS = [
     Mundo(8, "multiagent", 8, "5f62eb4",
           "Coding Agents & Multi-Agent",
           "y delega sin pagar el contexto",
-          "subagentes con contexto aislado"),
+          "subagentes con contexto aislado",
+          vivo=True),
 ]
 
 
@@ -195,15 +205,19 @@ de cualquier herramienta con efectos. Cada paso se apoya en el anterior de verda
 
 ---
 
-*Generado por `scripts/build_worlds.py` desde el commit `{m.commit}`. El código vivo del proyecto
-está en [`packages/`](../../packages/); esto es una foto para leer.*
+{"*Este paso es el **código vivo** del proyecto: acá se sigue trabajando. Los pasos 1 a 7 son fotos generadas desde la historia de git.*" if m.vivo else "*Generado por `scripts/build_worlds.py` desde el commit `" + m.commit + "`: es una **foto para leer**, no se edita a mano. El código vivo es el [paso 8](../8-multiagent-w8/).*"}
 '''
 
 
 def build(m: Mundo, anterior: Mundo | None, siguiente: Mundo | None) -> None:
+    # Se borra el contenido pero NO el .venv: regenerar una foto no deberia
+    # obligar a reinstalar sus dependencias.
     if m.dir.exists():
-        shutil.rmtree(m.dir)
-    m.dir.mkdir(parents=True)
+        for hijo in m.dir.iterdir():
+            if hijo.name in (".venv", "uv.lock"):
+                continue
+            shutil.rmtree(hijo) if hijo.is_dir() else hijo.unlink()
+    m.dir.mkdir(parents=True, exist_ok=True)
 
     # git archive saca el arbol de ese commit sin tocar el working tree.
     archive = subprocess.run(
@@ -219,6 +233,11 @@ def build(m: Mundo, anterior: Mundo | None, siguiente: Mundo | None) -> None:
     (m.dir / "README.md").write_text(readme(m, anterior, siguiente), encoding="utf-8")
 
 
+def archivos(m: Mundo) -> int:
+    """Cuenta los .py del proyecto, sin el venv."""
+    return len([f for f in m.dir.rglob("*.py") if ".venv" not in f.parts])
+
+
 def main() -> int:
     check = "--check" in sys.argv
     if check:
@@ -230,11 +249,15 @@ def main() -> int:
         return 0
 
     OUT.mkdir(exist_ok=True)
+    generados = 0
     for i, m in enumerate(MUNDOS):
+        if m.vivo:
+            print(f"  paso {m.paso}  w{m.mundo} {m.titulo:32} {archivos(m):2} archivos  VIVO, no se toca")
+            continue
         build(m, MUNDOS[i - 1] if i else None, MUNDOS[i + 1] if i + 1 < len(MUNDOS) else None)
-        n = len(list(m.dir.rglob("*.py")))
-        print(f"  paso {m.paso}  w{m.mundo} {m.titulo:32} {n:2} archivos  ({m.commit})")
-    print(f"\n{len(MUNDOS)} proyectos en worlds/")
+        generados += 1
+        print(f"  paso {m.paso}  w{m.mundo} {m.titulo:32} {archivos(m):2} archivos  ({m.commit})")
+    print(f"\n{generados} fotos regeneradas · el paso 8 es el codigo vivo")
     return 0
 
 

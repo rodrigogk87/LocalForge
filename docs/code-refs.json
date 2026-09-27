@@ -1,165 +1,165 @@
 {
   "_doc": [
     "Anclajes de las referencias al codigo que hacen las guias.",
-    "Cada entrada dice QUE simbolo se cita, no en que linea esta: el numero de",
-    "linea lo calcula scripts/sync_code_refs.py y lo escribe en los documentos.",
-    "`src` es la ruta REAL en disco (packages/<sub>/src/...); las guias muestran",
-    "la ruta de IMPORT (localforge/...), que es mas corta y no cambia si un",
-    "subproyecto se renombra.",
+    "Cada entrada dice QUE simbolo se cita, no en que linea esta: el numero lo",
+    "calcula scripts/sync_code_refs.py y lo escribe en los documentos.",
+    "`src` apunta al proyecto del MUNDO que la guia esta explicando, no a una",
+    "copia final fusionada: la seccion del Mundo 1 cita worlds/1-foundations-w1,",
+    "asi los numeros son los del archivo que el lector va a abrir de verdad.",
     "`from` solo -> 'linea N'. `from`+`to` -> 'lineas N-M'. `pair` -> 'lineas N y M'."
   ],
   "refs": {
     "enums": {
-      "src": "packages/core/src/localforge/models.py",
+      "src": "worlds/1-foundations-w1/src/localforge/models.py",
       "from": "class AgentStatus",
-      "to": "CONTEXT_OVERFLOW = \"context_overflow\""
+      "to": "PROVIDER_ERROR = \"provider_error\""
     },
     "toolcall": {
-      "src": "packages/core/src/localforge/models.py",
+      "src": "worlds/1-foundations-w1/src/localforge/models.py",
       "pair": [
         "class ToolCall",
         "class ToolResult"
       ]
     },
     "coherent": {
-      "src": "packages/core/src/localforge/models.py",
+      "src": "worlds/1-foundations-w1/src/localforge/models.py",
       "from": "def _coherent"
     },
     "as-content": {
-      "src": "packages/core/src/localforge/models.py",
+      "src": "worlds/1-foundations-w1/src/localforge/models.py",
       "from": "def as_content"
     },
     "agent-task": {
-      "src": "packages/core/src/localforge/models.py",
+      "src": "worlds/1-foundations-w1/src/localforge/models.py",
       "from": "class AgentTask"
     },
     "agent-outcome": {
-      "src": "packages/core/src/localforge/models.py",
+      "src": "worlds/1-foundations-w1/src/localforge/models.py",
       "from": "class AgentOutcome"
     },
     "task-outcome": {
-      "src": "packages/core/src/localforge/models.py",
+      "src": "worlds/1-foundations-w1/src/localforge/models.py",
       "pair": [
         "class AgentTask",
         "class AgentOutcome"
       ]
     },
     "loop-state": {
-      "src": "packages/harness/src/localforge/harness/loop.py",
+      "src": "worlds/1-foundations-w1/src/localforge/harness/loop.py",
       "from": "messages: list[AgentMessage] = [AgentMessage",
       "to": "records: list[TurnRecord] = []"
     },
     "budgets-pre": {
-      "src": "packages/harness/src/localforge/harness/loop.py",
+      "src": "worlds/1-foundations-w1/src/localforge/harness/loop.py",
       "from": "remaining = deadline - time.monotonic()",
       "to": "if tokens_in + tokens_out > task.token_budget"
     },
     "budget-compo": {
-      "src": "packages/harness/src/localforge/harness/loop.py",
+      "src": "worlds/1-foundations-w1/src/localforge/harness/loop.py",
       "from": "timeout=min(self.cfg.request_timeout_s, remaining)"
     },
     "budgets-all": {
-      "src": "packages/harness/src/localforge/harness/loop.py",
+      "src": "worlds/1-foundations-w1/src/localforge/harness/loop.py",
       "from": "remaining = deadline - time.monotonic()",
       "to": "timeout=min(self.cfg.request_timeout_s, remaining)"
     },
     "max-tokens": {
-      "src": "packages/harness/src/localforge/harness/loop.py",
+      "src": "worlds/1-foundations-w1/src/localforge/harness/loop.py",
       "from": "if response.stop_reason is StopReason.MAX_TOKENS",
       "to": "content=\"Tu respuesta quedo cortada. Continua.\""
     },
     "loop-detect": {
-      "src": "packages/harness/src/localforge/harness/loop.py",
+      "src": "worlds/1-foundations-w1/src/localforge/harness/loop.py",
       "from": "key = _signature(call)",
       "to": "seen[key] >= REPEAT_LIMIT"
     },
     "msg-order": {
-      "src": "packages/harness/src/localforge/harness/loop.py",
+      "src": "worlds/1-foundations-w1/src/localforge/harness/loop.py",
       "from": "role=\"assistant\", content=response.content, tool_calls=response.tool_calls"
     },
     "correlation": {
-      "src": "packages/harness/src/localforge/harness/loop.py",
+      "src": "worlds/1-foundations-w1/src/localforge/harness/loop.py",
       "from": "by_id = {r.call_id",
       "to": "raise RuntimeError(f\"faltan tool results para:"
     },
     "loop-end": {
-      "src": "packages/harness/src/localforge/harness/loop.py",
+      "src": "worlds/1-foundations-w1/src/localforge/harness/loop.py",
       "from": "reason=FailureReason.MAX_TURNS, turns=task.max_turns"
     },
     "definitions": {
-      "src": "packages/tools/src/localforge/tools/base.py",
+      "src": "worlds/1-foundations-w1/src/localforge/tools/base.py",
       "from": "def definitions"
     },
     "run-one": {
-      "src": "packages/tools/src/localforge/tools/base.py",
+      "src": "worlds/1-foundations-w1/src/localforge/tools/base.py",
       "from": "async def run_one",
       "to": "except Exception as exc:  # noqa: BLE001"
     },
     "except-exc": {
-      "src": "packages/tools/src/localforge/tools/base.py",
+      "src": "worlds/1-foundations-w1/src/localforge/tools/base.py",
       "from": "except Exception as exc:  # noqa: BLE001"
     },
     "truncate": {
-      "src": "packages/tools/src/localforge/tools/base.py",
+      "src": "worlds/1-foundations-w1/src/localforge/tools/base.py",
       "from": "def _truncate"
     },
     "call-id": {
-      "src": "packages/providers/src/localforge/providers/ollama.py",
+      "src": "worlds/1-foundations-w1/src/localforge/providers/ollama.py",
       "from": "def _next_call_id"
     },
     "num-ctx": {
-      "src": "packages/providers/src/localforge/providers/ollama.py",
+      "src": "worlds/1-foundations-w1/src/localforge/providers/ollama.py",
       "from": "options: dict[str, Any] = {\"num_ctx\""
     },
     "done-reason": {
-      "src": "packages/providers/src/localforge/providers/ollama.py",
+      "src": "worlds/1-foundations-w1/src/localforge/providers/ollama.py",
       "from": "done_reason = str(data.get(\"done_reason\")",
       "to": "stop = StopReason.TOOL_USE"
     },
     "estimator": {
-      "src": "packages/context/src/localforge/context/tokens.py",
+      "src": "worlds/2-context-w2/src/localforge/harness/context.py",
       "from": "class TokenEstimator",
       "to": "def calibrated"
     },
     "layers": {
-      "src": "packages/context/src/localforge/context/layers.py",
+      "src": "worlds/2-context-w2/src/localforge/harness/context.py",
       "from": "LAYER_ORDER = (",
       "to": "\"retrieved\","
     },
     "budget": {
-      "src": "packages/context/src/localforge/context/builder.py",
+      "src": "worlds/2-context-w2/src/localforge/harness/context.py",
       "from": "class ContextBudget",
       "to": "def from_settings"
     },
     "compact": {
-      "src": "packages/context/src/localforge/context/builder.py",
+      "src": "worlds/2-context-w2/src/localforge/harness/context.py",
       "from": "def _compact",
       "to": "return out, compacted, max(0, recovered)"
     },
     "state-graph": {
-      "src": "packages/harness/src/localforge/harness/state.py",
+      "src": "worlds/3-harness-w3/src/localforge/harness/state.py",
       "from": "_ALLOWED: dict[AgentStatus",
       "to": "_ABORTS = frozenset"
     },
     "evidence": {
-      "src": "packages/harness/src/localforge/harness/verify.py",
+      "src": "worlds/3-harness-w3/src/localforge/harness/verify.py",
       "from": "EVIDENCE_TOOLS = frozenset"
     },
     "sensitive": {
-      "src": "packages/sandbox/src/localforge/sandbox/permissions.py",
+      "src": "worlds/4-sandbox-w5/src/localforge/permissions.py",
       "from": "SENSITIVE_GLOBS: tuple[str, ...] = ("
     },
     "atomic-write": {
-      "src": "packages/durable/src/localforge/durable/checkpoint.py",
+      "src": "worlds/5-durable-w6/src/localforge/harness/checkpoint.py",
       "from": "fd, tmp = tempfile.mkstemp",
       "to": "os.replace(tmp, target)"
     },
     "taxonomy": {
-      "src": "packages/evals/src/localforge/evals/report.py",
+      "src": "worlds/6-evals-w7/src/localforge/evals.py",
       "from": "def failure_taxonomy"
     },
     "depth-limit": {
-      "src": "packages/agents/src/localforge/agents/subagent.py",
+      "src": "worlds/8-multiagent-w8/src/localforge/harness/subagent.py",
       "from": "def build(depth: int)",
       "to": "return registry"
     }
@@ -209,10 +209,10 @@
     "6.5": "compact"
   },
   "file_badges": {
-    "localforge/models.py": "packages/core/src/localforge/models.py",
-    "localforge/harness/loop.py": "packages/harness/src/localforge/harness/loop.py",
-    "localforge/tools/base.py": "packages/tools/src/localforge/tools/base.py",
-    "localforge/providers/ollama.py": "packages/providers/src/localforge/providers/ollama.py",
-    "localforge/context/builder.py": "packages/context/src/localforge/context/builder.py"
+    "localforge/models.py": "worlds/1-foundations-w1/src/localforge/models.py",
+    "localforge/harness/loop.py": "worlds/1-foundations-w1/src/localforge/harness/loop.py",
+    "localforge/tools/base.py": "worlds/1-foundations-w1/src/localforge/tools/base.py",
+    "localforge/providers/ollama.py": "worlds/1-foundations-w1/src/localforge/providers/ollama.py",
+    "localforge/harness/context.py": "worlds/2-context-w2/src/localforge/harness/context.py"
   }
 }

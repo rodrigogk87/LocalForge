@@ -2,10 +2,14 @@
 """Mantiene sincronizadas las referencias al codigo que hacen las guias.
 
 El problema que resuelve, y que se sufrio de verdad: las guias citaban "lineas
-27-67" de `models.py`. Despues el codigo crecio en las fases 2 a 8, los archivos
-se movieron de paquete, y **todas esas referencias quedaron apuntando a otro
-lado** sin que nada avisara. Alguien que seguia el proyecto desde main abria la
-linea 97 esperando `ToolCall` y encontraba cualquier cosa.
+27-67" de `models.py`. Despues el codigo crecio, los archivos se movieron, y
+**todas esas referencias quedaron apuntando a otro lado** sin que nada avisara.
+Alguien que seguia el proyecto abria la linea 97 esperando `ToolCall` y encontraba
+cualquier cosa.
+
+Cada ref apunta al proyecto del MUNDO que la guia esta explicando: la seccion del
+Mundo 1 cita `worlds/1-foundations-w1`, asi los numeros son los del archivo que el
+lector va a abrir de verdad -- no los de una copia final donde todo esta fusionado.
 
 La causa de fondo es que un numero de linea escrito a mano es un dato duplicado:
 vive en el documento y en el codigo, y nada los ata. Este script invierte eso.
@@ -104,10 +108,9 @@ def sync_md(text: str, mapping: dict, refs: dict) -> tuple[str, list[str]]:
 def sync_badges(text: str, archivos: dict[str, str]) -> tuple[str, list[str]]:
     """Actualiza los `· N líneas` que acompañan a cada archivo citado.
 
-    `archivos` mapea lo que el documento MUESTRA (la ruta de import,
-    `localforge/models.py`) a la ruta REAL en disco
-    (`packages/core/src/localforge/models.py`). Las guias muestran la de import
-    porque es mas corta y no cambia si un subproyecto se renombra.
+    `archivos` mapea lo que el documento MUESTRA (`localforge/models.py`) a la
+    ruta real dentro del mundo que corresponde
+    (`worlds/1-foundations-w1/src/localforge/models.py`).
     """
     problemas: list[str] = []
     for rel, ruta in archivos.items():

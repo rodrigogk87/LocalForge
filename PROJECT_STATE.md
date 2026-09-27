@@ -94,7 +94,7 @@ respuesta final` funciona. Evidencia reproducible más abajo.
 | **Referencias de las guías verificadas contra el código** | ✅ con tests |
 | **Workspace: un subproyecto por mundo, deps verificadas** | ✅ con tests |
 | **8 mundos como proyectos independientes** | ✅ con tests |
-| Suite de tests | ✅ 296 en la raíz · 979 sumando los 8 mundos |
+| Suite de tests | ✅ 53 en la raíz · 979 sumando los 8 mundos |
 
 ### Evidencia de la verificación (2026-09-19)
 
@@ -189,123 +189,72 @@ Esa asimetría es el punto donde en la Fase 5 se enchufan permisos y sandbox sin
 
 ---
 
-### `worlds/`: los ocho mundos como proyectos aparte
+### El repositorio son ocho proyectos
 
-**2026-09-27.** Leer el código final para entender el Mundo 1 no funciona: abrís `models.py` y
-encontrás ocho estados cuando en el Mundo 1 había cinco, y tres de ellos hablan de un verifier que
-todavía no te explicaron. **Los detalles de los mundos posteriores tienen que ser invisibles mientras
-leés uno.**
+**2026-09-27.** No hay un codebase único. Hay **ocho proyectos Python independientes**, uno por mundo,
+cada uno con el código tal cual estaba al cerrar ese mundo, su propio venv, sus propios tests y su
+propio comando.
 
-Eso no se resuelve partiendo el código final — es imposible: Python no deja extender un enum y el
-loop importa de seis mundos. Se resuelve con **ocho proyectos independientes**, cada uno con el
-código tal cual estaba al cerrar ese mundo.
+El motivo: leer el código final para entender el Mundo 1 no funciona. Abrís `models.py` y encontrás
+ocho estados cuando en el Mundo 1 había cinco, y tres de ellos hablan de un verifier que todavía no
+te explicaron. **Los detalles de los mundos posteriores tienen que ser invisibles mientras leés uno.**
 
-Y no hubo que escribirlos: cada mundo se cerró con un commit, así que los snapshots ya existían.
-[`scripts/build_worlds.py`](scripts/build_worlds.py) los materializa con `git archive`.
+Eso no se resuelve partiendo el código final: es imposible — Python no deja extender un enum y el
+loop importa de seis mundos. Se resuelve con ocho proyectos.
 
-| paso | mundo | archivos | tests | commit |
-|---|---|---|---|---|
-| 1 | W1 Foundations | 15 | 24 | `7a3295d` |
-| 2 | W2 Context | 19 | 59 | `49a0aaa` |
-| 3 | W3 Harness | 22 | 85 | `1c8c985` |
-| 4 | W5 Sandbox | 24 | 118 | `e2b48f9` |
-| 5 | W6 Durable | 26 | 133 | `24b24a5` |
-| 6 | W7 Evals | 28 | 159 | `1808094` |
-| 7 | W4 Skills | 31 | 177 | `5f62eb4` |
-| 8 | W8 Multi-agent | 33 | 184 | `5f62eb4` |
+```
+LocalForge/
+├── worlds/
+│   ├── 1-foundations-w1/     W1  15 archivos   24 tests   lfw1   foto (7a3295d)
+│   ├── 2-context-w2/         W2  19            59         lfw2   foto (49a0aaa)
+│   ├── 3-harness-w3/         W3  22            85         lfw3   foto (1c8c985)
+│   ├── 4-sandbox-w5/         W5  24           118         lfw5   foto (e2b48f9)
+│   ├── 5-durable-w6/         W6  26           133         lfw6   foto (24b24a5)
+│   ├── 6-evals-w7/           W7  28           159         lfw7   foto (1808094)
+│   ├── 7-skills-w4/          W4  31           177         lfw4   foto (5f62eb4)
+│   └── 8-multiagent-w8/      W8  33           184         lfw8   ← CÓDIGO VIVO
+├── docs/          GUIA.md · guia-web.html · code-refs.json
+├── scripts/       build_worlds.py · sync_code_refs.py
+├── tests/         53 tests: coherencia de los ocho + que las guías no mientan
+└── pyproject.toml el repo NO es un paquete
+```
 
-**El orden es el de construcción, no el del roadmap**, y es a propósito: el Mundo 5 (permisos) se
-hizo antes del 4 (skills), porque los permisos eran prerequisito duro de cualquier tool con efectos.
-Ordenarlos por número rompería lo que los hace útiles — el paso 4 tendría skills y el 5 las perdería.
-Así, cada paso es el anterior **más una cosa**, y los tests lo confirman: crecen monótonamente
-(24 → 59 → 85 → 118 → 133 → 159 → 177 → 184) sin que ninguno se rompa.
+**Los pasos 1 a 7 son fotos**, generadas desde la historia de git con `scripts/build_worlds.py`. No se
+editan: se regeneran. **El paso 8 es el código vivo**, el único que se edita a mano. Si mañana hay un
+Mundo 9, se construye ahí y después se saca su foto.
 
-`tests/test_worlds.py` verifica la propiedad central con una diagonal: cada módulo aparece en su paso
-y **no antes**. `VERIFYING` no está declarado antes del paso 3; el paso 1 tiene exactamente cinco
-estados. Más que cada carpeta sea un proyecto de verdad: raíz de su propio workspace, entrypoint
-único (`lfw1`…`lfw8`, para poder tener varios instalados), y README que dice de dónde sale.
+Y no hubo que escribir 25.000 líneas: cada mundo se había cerrado con un commit, así que los
+snapshots ya existían.
+
+### El orden es el de construcción, no el del roadmap
+
+El Mundo 5 (permisos) se hizo antes del 4 (skills), porque los permisos eran prerequisito duro de
+cualquier tool con efectos. Ordenarlos por número rompería lo que los hace útiles — el paso 4 tendría
+skills y el 5 las perdería. Así cada paso es el anterior **más una cosa**, y los tests lo confirman:
+crecen 24 → 59 → 85 → 118 → 133 → 159 → 177 → 184 sin que ninguno se rompa.
 
 El único caso que no salió directo de la historia: los Mundos 4 y 8 entraron en el **mismo commit**,
 así que el paso 7 es ese commit menos `subagent.py`.
 
-**`worlds/` son fotos para leer; `packages/` es el código vivo.** Las fotos se regeneran, no se editan.
+### Qué se eliminó, y por qué
 
----
+Hubo una etapa intermedia con `packages/`: un workspace de once subproyectos por capacidad
+(`core`, `sandbox`, `tools`, `harness`, …) con las dependencias declaradas y verificadas. **Se
+eliminó.** Funcionaba y tenía una ventaja real — el límite del paquete encontró que `delegate` no
+estaba conectado a la CLI — pero convivía con `worlds/` mostrando el mismo código con dos
+organizaciones distintas, y eso confunde más de lo que aporta. Lo que se rescató antes de borrarlo
+está en el paso 8: el flag `--delegate` y las anotaciones por mundo de `models.py`.
 
-## Estructura relevante del repositorio
+Queda en la historia (`b160136`) si alguna vez hace falta.
 
-**2026-09-27: un subproyecto de `uv` por mundo.** Cada uno declara sus propias dependencias, y eso
-es lo que vuelve **imposible** el import circular que este proyecto ya tuvo.
+### Los tests de la raíz
 
-```
-LocalForge/
-├── pyproject.toml           raíz del workspace — NO es un paquete
-├── uv.lock                  un lockfile para los once
-├── packages/
-│   ├── core/          localforge-core       models.py · config.py        → pydantic
-│   ├── providers/     localforge-providers  providers/                   → core, httpx
-│   ├── sandbox/  W5   localforge-sandbox    permissions · approvers      → core
-│   ├── skills/   W4   localforge-skills     discovery.py                 → (nada)
-│   ├── context/  W2   localforge-context    tokens · layers · builder    → core
-│   ├── durable/  W6   localforge-durable    checkpoint.py                → core
-│   ├── tools/  W1+W4  localforge-tools      base · fs · search · skill   → core, sandbox, skills
-│   ├── harness/W1+W3  localforge-harness    loop · prompt · state ·      → los siete de arriba
-│   │                                        verify                          (es el INTEGRADOR)
-│   ├── agents/   W8   localforge-agents     subagent.py                  → harness, tools, …
-│   ├── evals/    W7   localforge-evals      checks · dataset · runner ·   → core, harness
-│   │                                        report
-│   └── cli/           localforge-cli        app · commands · console     → todos
-├── tests/                   253 tests, testean el conjunto
-└── docs/
-```
+`tests/test_worlds.py` verifica la propiedad central con una diagonal: **cada módulo aparece en su
+paso y no antes.** `VERIFYING` no está declarado antes del paso 3; el paso 1 tiene exactamente cinco
+estados. Más que cada carpeta sea un proyecto de verdad, y que los entrypoints no se repitan.
 
-Todos montan sus módulos bajo el mismo `localforge.` con `namespace = true` (PEP 420), así que
-**los imports no cambiaron**: sigue siendo `from localforge.models import AgentTask`. Por eso
-`localforge/__init__.py` **no existe** — un `__init__.py` en la raíz del namespace rompe la fusión y
-sólo se vería el subproyecto que lo trae.
-
-### Por qué el grafo no es `w1 → w2 → w3`
-
-Porque cada mundo posterior **modificó** archivos de los anteriores. `harness/loop.py` —el archivo
-"de W1"— importa de W2, W4, W5 y W6; `tools/base.py` importa de W5. El layering real es:
-
-```
-core · skills  →  providers · sandbox · context · durable  →  tools  →  harness  →  agents · evals  →  cli
-```
-
-`harness` es explícitamente **el integrador**: siete dependencias, porque el loop es donde los
-mundos se encuentran.
-
-### El enforcement, y cuál es la invocación que de verdad aísla
-
-```bash
-uv sync --extra dev                       # todo el workspace en un env
-uv sync --package localforge-tools        # PODA: un env con SOLO tools y sus deps
-uv run pytest -q                          # los 253 tests
-```
-
-**Ojo con esto, que me equivoqué al medirlo la primera vez:** `uv run --package X` **no** aísla —
-reusa el env compartido y un import no declarado sigue funcionando. La que poda es
-`uv sync --package X`. Verificado:
-
-| env | ve | no ve |
-|---|---|---|
-| `localforge-core` | `models`, `config` | `tools`, `harness`, `sandbox` |
-| `localforge-tools` | `core`, `sandbox`, `skills` | `harness`, `evals` |
-
-Y como armar once envs tarda, `tests/test_workspace.py` da la misma garantía leyendo el AST: falla si
-un subproyecto importa algo que no declara, si declara algo que no importa, o si el grafo tiene un
-ciclo. Más la forma del workspace: nombres, `namespace = true`, que no haya `__init__.py` en la raíz,
-y que ninguna dependencia externa nueva se cuele (sólo `pydantic` y `httpx`).
-
-### Lo que el workspace destapó de entrada
-
-`localforge-agents` no se instalaba, porque **la CLI nunca importaba `agents`**: `delegate` existía,
-tenía tests, y no había forma de usarlo desde la línea de comandos. El `ruff --fix` había sacado el
-import como "sin usar" cuando partí `cli.py`, y nada lo notó. Ahora hay `localforge ask ... --delegate`.
-
-**Orden de lectura recomendado:** `core/models.py` → `harness/loop.py` → `tools/base.py` →
-`providers/ollama.py` → `context/builder.py`
+`tests/test_docs.py` verifica que las guías no mientan: que las líneas que citan correspondan, que
+las rutas existan, que el HTML esté bien formado y sin anclas rotas.
 
 ---
 
@@ -1098,13 +1047,13 @@ curl -s http://localhost:11434/api/version
 
 # --- LocalForge ---
 cd ~/Desktop/LocalForge
-uv sync --extra dev
-uv sync --package localforge-tools   # un env con solo ese subproyecto
+# --- leer o trabajar un mundo ---
+cd worlds/8-multiagent-w8 && uv sync --extra dev && uv run pytest -q
+uv run lfw8 ask . "explicame este proyecto"
 
-# --- leer un mundo suelto, sin nada de los siguientes ---
-cd worlds/3-harness-w3 && uv sync --extra dev && uv run pytest -q
-uv run lfw3 ask . "explicame este proyecto"
-cd ../.. && python scripts/build_worlds.py   # regenerar las ocho fotos
+# --- desde la raiz ---
+uv sync --extra dev && uv run pytest -q      # coherencia de los ocho
+python scripts/build_worlds.py               # regenerar las fotos 1-7
 uv run localforge health
 uv run localforge ask . "Explicame este proyecto"
 uv run localforge ask ../agent-harness-lab "¿Cómo está organizado el contenido?" -v

@@ -61,13 +61,14 @@ def test_todo_anclaje_se_encuentra_en_su_archivo() -> None:
 
 
 def _existe(ruta_de_import: str) -> bool:
-    """¿Existe `localforge/harness/loop.py` en alguno de los subproyectos?
+    """¿Existe `localforge/harness/loop.py` en alguno de los mundos?
 
-    Las guias citan la ruta de IMPORT y no la del filesystem, porque es mas
-    corta y no cambia si un subproyecto se renombra. La real vive en
-    `packages/<sub>/src/`, y este helper la busca ahi.
+    Las guias citan la ruta de IMPORT y no la del filesystem, porque es la misma
+    en los ocho mundos. La real vive en `worlds/<paso>/src/`, y alcanza con que
+    exista en UNO: la seccion del Mundo 1 cita archivos del Mundo 1, y el Mundo 6
+    puede citar uno que en el 1 todavia no existia.
     """
-    return any((ROOT / "packages").glob(f"*/src/{ruta_de_import}"))
+    return any((ROOT / "worlds").glob(f"*/src/{ruta_de_import}"))
 
 
 @pytest.mark.parametrize("doc", ["guia-web.html", "GUIA.md"])

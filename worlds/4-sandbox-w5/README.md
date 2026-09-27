@@ -34,5 +34,4 @@ de cualquier herramienta con efectos. Cada paso se apoya en el anterior de verda
 
 ---
 
-*Generado por `scripts/build_worlds.py` desde el commit `e2b48f9`. El código vivo del proyecto
-está en [`packages/`](../../packages/); esto es una foto para leer.*
+*Generado por `scripts/build_worlds.py` desde el commit `e2b48f9`: es una **foto para leer**, no se edita a mano. El código vivo es el [paso 8](../8-multiagent-w8/).*

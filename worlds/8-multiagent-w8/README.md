@@ -2,8 +2,8 @@
 
 > **Y delega sin pagar el contexto.**
 
-Este directorio es un **proyecto Python completo e independiente** con el código tal cual estaba al
-cerrar el Mundo 8. No tiene nada de los mundos posteriores: lo que leas acá es lo que existía
+Este directorio es un **proyecto Python completo e independiente**, y es el **código vivo**: el
+estado actual del proyecto, con los ocho mundos. No tiene nada de los mundos posteriores: lo que leas acá es lo que existía
 en ese momento, sin adelantos.
 
 ## Qué agrega este paso
@@ -34,5 +34,10 @@ de cualquier herramienta con efectos. Cada paso se apoya en el anterior de verda
 
 ---
 
-*Generado por `scripts/build_worlds.py` desde el commit `5f62eb4`. El código vivo del proyecto
-está en [`packages/`](../../packages/); esto es una foto para leer.*
+*Este paso es el **código vivo** del proyecto: acá se sigue trabajando, y es el único de los ocho que
+se edita a mano. Los pasos 1 a 7 son fotos generadas desde la historia de git con
+[`scripts/build_worlds.py`](../../scripts/build_worlds.py).*
+
+*Salió del commit `5f62eb4` y desde entonces sumó dos cosas: el flag `--delegate` (la tool existía
+pero no había forma de llamarla desde la CLI) y las anotaciones por mundo en `models.py`, que marcan
+de dónde vino cada valor del enum.*

@@ -16,6 +16,7 @@ from pathlib import Path
 
 from localforge.config import DOTENV_APPLIED, find_dotenv, settings
 from localforge.harness import AgentHarness
+from localforge.harness.subagent import registry_with_subagents
 from localforge.evals import localforge_suite, run_suite
 from localforge.harness.checkpoint import FileCheckpointStore
 from localforge.harness.context import ContextBreakdown, ContextBudget
@@ -245,6 +246,7 @@ async def cmd_ask(
     max_turns: int,
     read_only: bool = False,
     save: bool = False,
+    delegate: bool = False,
 ) -> int:
     repo_path = Path(repo).expanduser().resolve()
     if not repo_path.is_dir():
@@ -259,14 +261,22 @@ async def cmd_ask(
         await provider.aclose()
         return 1
 
-    registry = default_registry()
     policy = read_only_policy() if read_only else default_policy()
+    approver = _build_approver(read_only)
+    # Con --delegate el registry suma la tool `delegate`, que arma un subagente
+    # con su propio contexto. Es opt-in porque multiplica el costo: cada
+    # delegacion es un agente entero corriendo.
+    registry = (
+        registry_with_subagents(provider, cfg=settings, policy=policy, approver=approver)
+        if delegate
+        else default_registry()
+    )
     harness = AgentHarness(
         provider,
         registry,
         on_event=ConsoleSink(verbose),
         policy=policy,
-        approver=_build_approver(read_only),
+        approver=approver,
         checkpoints=FileCheckpointStore(settings.state_dir) if save else None,
     )
 
@@ -441,6 +451,11 @@ def main() -> int:
         help="Deniega toda tool con efectos sin preguntar. Para repos que no son tuyos.",
     )
     ask.add_argument(
+        "--delegate",
+        action="store_true",
+        help="Habilita la tool `delegate`: el agente puede abrir subagentes con contexto propio.",
+    )
+    ask.add_argument(
         "--save",
         action="store_true",
         help="Guarda un checkpoint por turno para poder retomar con `resume`.",
@@ -468,6 +483,7 @@ def main() -> int:
                 verbose=args.verbose,
                 max_turns=args.max_turns,
                 read_only=args.read_only,
+                delegate=args.delegate,
                 save=args.save,
             )
         )
