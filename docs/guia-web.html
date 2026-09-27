@@ -163,6 +163,27 @@
   .rail a.sub { padding-top: 4px; padding-bottom: 4px; font-size: 12.5px; color: var(--text-3); }
   .rail a.sub:hover { color: var(--text-2); }
 
+  /* Que archivos toca cada mundo: crea, extiende. */
+  .toca { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); margin: 22px 0; overflow: hidden; }
+  .toca > .hd { padding: 9px 14px; border-bottom: 1px solid var(--line); font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-3); font-family: "IBM Plex Sans", sans-serif; font-weight: 600; }
+  .toca ul { list-style: none; margin: 0; padding: 4px 0; }
+  .toca li { display: grid; grid-template-columns: 78px 1fr; gap: 12px; padding: 7px 14px; align-items: baseline; font-size: 14px; }
+  .toca li + li { border-top: 1px solid var(--line); }
+  .toca .k { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; padding: 2px 0; }
+  .toca .k.crea { color: var(--ok); }
+  .toca .k.ext  { color: var(--accent); }
+  .toca code { font-size: 13px; }
+  .toca .por { color: var(--text-3); font-size: 13px; }
+
+  /* Tabla de evolucion: una fila por archivo, una columna por mundo. */
+  .evo { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .evo th, .evo td { padding: 7px 9px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  .evo th { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-3); font-weight: 600; white-space: nowrap; }
+  .evo td:first-child { font-family: "IBM Plex Mono", monospace; font-size: 12px; white-space: nowrap; }
+  .evo .c  { color: var(--ok); font-weight: 600; }
+  .evo .e  { color: var(--accent); }
+  .evo .na { color: var(--text-3); }
+
   main { padding-top: 40px; min-width: 0; }
   .prose { max-width: var(--measure); }
 
@@ -459,10 +480,153 @@ uv run localforge ask . <span class="c">"Que hace la clase AgentHarness?"</span>
       </div>
 
       <!-- ============ sesion 1 ============ -->
+      <!-- ============ como crecen los archivos ============ -->
+      <div class="sec-head prose">
+        <div class="kicker"><span class="num">ANTES DE EMPEZAR</span></div>
+        <h2>Los archivos crecen</h2>
+      </div>
+
+      <p class="prose">
+        Esto es lo que más cuesta entender de un proyecto construido por fases, y conviene saberlo
+        antes de abrir el primer archivo: <strong>casi ningún archivo pertenece a un solo mundo.</strong>
+        El Mundo 1 crea <code>models.py</code> con cinco estados, y el Mundo 3 le agrega tres más.
+        El Mundo 1 escribe el <code>loop</code>, y después lo tocan cuatro mundos.
+      </p>
+
+      <p class="prose">
+        Por eso cada mundo de esta guía arranca diciendo <strong>qué archivos crea y cuáles extiende</strong>,
+        y cuando extiende uno, explica sólo lo que agregó. Si abrís un archivo del repo y encontrás
+        cosas que no viste todavía, esta tabla te dice de qué mundo vienen.
+      </p>
+
+      <div class="scroller">
+        <table class="evo">
+          <thead>
+            <tr><th>archivo</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>models.py</td>
+              <td class="c">crea</td>
+              <td class="e">+1 motivo</td>
+              <td class="e">+3 estados<br>+3 campos</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+            </tr>
+            <tr>
+              <td>harness/loop.py</td>
+              <td class="c">crea</td>
+              <td class="e">+presupuesto</td>
+              <td class="e">+estados<br>+verify<br>+repair</td>
+              <td class="e">+skills</td>
+              <td class="e">+permisos</td>
+              <td class="e">+checkpoints</td>
+              <td class="na">·</td><td class="na">·</td>
+            </tr>
+            <tr>
+              <td>tools/base.py</td>
+              <td class="c">crea</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td>
+              <td class="e">+autorización</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td>
+            </tr>
+            <tr>
+              <td>harness/prompt.py</td>
+              <td class="c">crea</td>
+              <td class="na">·</td><td class="na">·</td>
+              <td class="e">+disclosure</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+            </tr>
+            <tr>
+              <td>tools/</td>
+              <td class="c">list_files<br>read_file</td>
+              <td class="e">search_code</td>
+              <td class="na">·</td>
+              <td class="e">load_skill</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td>
+              <td class="e">delegate</td>
+            </tr>
+            <tr>
+              <td>providers/</td>
+              <td class="c">crea</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+            </tr>
+            <tr>
+              <td>context/</td>
+              <td class="na">·</td><td class="c">crea</td><td class="na">·</td>
+              <td class="e">+capa skills</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+            </tr>
+            <tr>
+              <td>harness/state.py</td>
+              <td class="na">·</td><td class="na">·</td><td class="c">crea</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+            </tr>
+            <tr>
+              <td>harness/verify.py</td>
+              <td class="na">·</td><td class="na">·</td><td class="c">crea</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+            </tr>
+            <tr>
+              <td>skills/</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="c">crea</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+            </tr>
+            <tr>
+              <td>sandbox/</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+              <td class="c">crea</td>
+              <td class="na">·</td><td class="na">·</td>
+              <td class="e">delegate → ASK</td>
+            </tr>
+            <tr>
+              <td>durable/</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+              <td class="c">crea</td>
+              <td class="na">·</td><td class="na">·</td>
+            </tr>
+            <tr>
+              <td>evals/</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+              <td class="c">crea</td>
+              <td class="na">·</td>
+            </tr>
+            <tr>
+              <td>agents/</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+              <td class="c">crea</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="q"><span class="label">Pregunta</span><p>Mirá la fila de <code>models.py</code>: el Mundo 3 le agrega tres estados. ¿Por qué no los pone en <code>harness/state.py</code>, que es el archivo que el Mundo 3 crea?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>Porque <strong>Python no deja extender un enum</strong>. Probalo:</p>
+        <pre><span class="c">class</span> AgentStatus(StrEnum):
+    CREATED = "created"
+
+<span class="c">class</span> Extendido(AgentStatus):          <span class="c"># lo que querria hacer el Mundo 3</span>
+    VERIFYING = "verifying"
+<span class="hl">TypeError: &lt;enum 'Extendido'&gt; cannot extend &lt;enum 'AgentStatus'&gt;</span></pre>
+        <p>Y partirlo en dos enums es peor: <code>AgentOutcome.status</code> tendría dos formas al serializar, <code>is_terminal</code> no podría vivir en ninguno de los dos, y hay <em>un</em> ciclo de vida, no dos.</p>
+        <p><strong>Lo que sí se separó es lo que importa:</strong> los nombres viven en <code>models.py</code>, y las <em>transiciones permitidas</em> en <code>harness/state.py</code>. Un enum puede decir qué valores existen; no puede decir que de <code>VERIFYING</code> no se vuelve a <code>WAITING_TOOL</code>. Esa segunda mitad es la que convierte una etiqueta en una máquina de estados, y esa sí es del Mundo 3.</p>
+        <p>En el código cada valor está marcado con el mundo que lo trajo, justamente para que leerlo de arriba a abajo sea leer la historia.</p>
+      </div></details>
+
       <div class="sec-head prose" id="s1">
         <div class="kicker"><span class="num">MUNDO 1 · 1 de 4</span><span class="mins">30 min</span></div>
         <h2>El vocabulario</h2>
-        <div class="file">📂 <b>src/localforge/models.py</b> · 293 líneas</div>
+        <div class="file">📂 <b>src/localforge/models.py</b> · 327 líneas</div>
+      </div>
+
+      <div class="toca">
+        <div class="hd">qué archivos toca el MUNDO 1</div>
+        <ul>
+          <li><span class="k crea">crea</span><span><code>models.py</code> <span class="por">— el vocabulario: enums, ToolCall/Result, AgentTask, AgentOutcome</span></span></li>
+          <li><span class="k crea">crea</span><span><code>providers/</code> <span class="por">— el Protocol y el adapter de Ollama</span></span></li>
+          <li><span class="k crea">crea</span><span><code>tools/base.py</code> · <code>fs.py</code> <span class="por">— registry, executor, list_files y read_file</span></span></li>
+          <li><span class="k crea">crea</span><span><code>harness/loop.py</code> · <code>prompt.py</code> <span class="por">— el agent loop y el system prompt</span></span></li>
+        </ul>
       </div>
 
       <p class="prose">
@@ -476,13 +640,32 @@ uv run localforge ask . <span class="c">"Que hace la clase AgentHarness?"</span>
         <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l1" target="_blank" rel="noopener">W1·C1 — Pydantic: el borde de confianza</a>
       </div>
 
-      <h3>1.1 Los tres enums <span class="ln">líneas 27-85</span></h3>
-      <p class="prose">Mirá <code>FailureReason</code>: seis valores fijos — <code>max_turns</code>, <code>wall_clock</code>, <code>token_budget</code>, <code>loop_detected</code>, <code>provider_error</code>, <code>cancelled</code>.</p>
+      <h3>1.1 Los tres enums <span class="ln">líneas 36-113</span></h3>
+      <p class="prose">
+        Abrí el archivo y vas a ver más valores de los que están acá: los agregaron mundos
+        posteriores, y cada uno está marcado en el código con el mundo que lo trajo.
+        <strong>Lo que el Mundo 1 escribió es esto:</strong>
+      </p>
+      <pre><span class="c">class</span> AgentStatus(StrEnum):      <span class="c"># en que estado esta la tarea</span>
+    CREATED · RUNNING · COMPLETED · FAILED · CANCELLED
+
+<span class="c">class</span> StopReason(StrEnum):       <span class="c"># por que el modelo dejo de escribir</span>
+    END_TURN · TOOL_USE · MAX_TOKENS · UNKNOWN
+
+<span class="c">class</span> FailureReason(StrEnum):    <span class="c"># por que cortamos la ejecucion</span>
+<span class="hl">    MAX_TURNS · WALL_CLOCK · TOKEN_BUDGET</span>
+<span class="hl">    LOOP_DETECTED · PROVIDER_ERROR · CANCELLED</span>       <span class="c"># ← seis, por ahora</span></pre>
+      <p class="prose">
+        Mirá <code>FailureReason</code>: <strong>seis valores fijos</strong>, ni uno más.
+        Guardate ese número — el Mundo 2 le va a agregar uno y el Mundo 3 otro, y ese crecimiento
+        es justamente el argumento de la pregunta que sigue.
+      </p>
 
       <div class="q"><span class="label">Pregunta</span><p>¿Por qué es un enum y no un string libre donde escribir el motivo que se te ocurra?</p></div>
       <details class="a"><summary>Ver respuesta</summary><div class="a-body">
         <p>Porque estos valores se van a <strong>agrupar</strong>. Cuando tengas 200 ejecuciones y quieras saber por qué falla tu agente, necesitás poder contar: <em>“el 60% de los fallos son loop_detected”</em>. Eso te dice exactamente qué arreglar.</p>
         <p>Si cada rama escribe un mensaje libre distinto (“se acabaron los turnos”, “límite alcanzado”), no podés agrupar nada y sólo sabés que “falló”.</p>
+        <p><strong>Y el crecimiento lo confirma.</strong> Este enum arrancó con seis valores y hoy tiene ocho: el Mundo 2 agregó <code>CONTEXT_OVERFLOW</code> y el Mundo 3 <code>VERIFICATION_FAILED</code>. Cada uno fue <em>una línea</em>, y la taxonomía del Mundo 7 los agrupa sin tocar nada, porque cuenta sobre un campo que ya existía. Con strings libres, cada motivo nuevo habría sido un string más que nadie sabe agrupar.</p>
       </div></details>
 
       <div class="academy">
@@ -491,7 +674,7 @@ uv run localforge ask . <span class="c">"Que hace la clase AgentHarness?"</span>
         <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w7-l48" target="_blank" rel="noopener">W7·C48 — Taxonomía de fallos</a>
       </div>
 
-      <h3>1.2 ToolCall y ToolResult <span class="ln">líneas 116 y 129</span></h3>
+      <h3>1.2 ToolCall y ToolResult <span class="ln">líneas 150 y 163</span></h3>
       <p class="prose">Van <strong>en par</strong>: el modelo emite un <code>ToolCall</code>, el harness produce un <code>ToolResult</code>.</p>
       <pre><span class="c">class</span> ToolCall(BaseModel):      <span class="c"># línea 97</span>
     id: str                     <span class="c"># ← la clave de correlación</span>
@@ -520,7 +703,7 @@ uv run localforge ask . <span class="c">"Que hace la clase AgentHarness?"</span>
         </p>
       </div>
 
-      <h3>1.3 El validador de coherencia <span class="ln">línea 146</span></h3>
+      <h3>1.3 El validador de coherencia <span class="ln">línea 180</span></h3>
       <pre><span class="c">@model_validator(mode="after")</span>
 <span class="c">def</span> _coherent(self) -&gt; ToolResult:
     <span class="c">if</span> self.success <span class="c">and</span> self.error <span class="c">is not None</span>:
@@ -552,7 +735,7 @@ uv run localforge ask . <span class="c">"Que hace la clase AgentHarness?"</span>
         <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l5" target="_blank" rel="noopener">W1·C5 — El error como feedback</a>
       </div>
 
-      <h3>1.5 AgentTask y AgentOutcome <span class="ln">líneas 221 y 248</span></h3>
+      <h3>1.5 AgentTask y AgentOutcome <span class="ln">líneas 255 y 282</span></h3>
       <pre>max_turns: int = Field(default=20, ge=1, le=100)
 wall_clock_s: float = Field(default=300.0, gt=0)
 token_budget: int = Field(default=200_000, gt=0)</pre>
@@ -859,6 +1042,16 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
         <div class="file">📂 <b>src/localforge/context/builder.py</b> · 266 líneas</div>
       </div>
 
+      <div class="toca">
+        <div class="hd">qué archivos toca el MUNDO 2</div>
+        <ul>
+          <li><span class="k crea">crea</span><span><code>context/</code> <span class="por">— tokens.py, layers.py, builder.py</span></span></li>
+          <li><span class="k crea">crea</span><span><code>tools/search.py</code> <span class="por">— search_code, que desbloquea el retrieval</span></span></li>
+          <li><span class="k ext">extiende</span><span><code>models.py</code> <span class="por">— +<code>FailureReason.CONTEXT_OVERFLOW</code></span></span></li>
+          <li><span class="k ext">extiende</span><span><code>harness/loop.py</code> <span class="por">— el contexto pasa por el builder, y se calibra el estimador</span></span></li>
+        </ul>
+      </div>
+
       <p class="prose">
         El Mundo 1 dejó un agente que <strong>corre y termina</strong>. Este mundo agrega la
         propiedad que sigue: que sea <strong>barato y preciso</strong>.
@@ -1005,6 +1198,16 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
         <div class="file">📂 <b>harness/state.py</b> · <b>harness/verify.py</b></div>
       </div>
 
+      <div class="toca">
+        <div class="hd">qué archivos toca el MUNDO 3</div>
+        <ul>
+          <li><span class="k crea">crea</span><span><code>harness/state.py</code> <span class="por">— el grafo de transiciones permitidas</span></span></li>
+          <li><span class="k crea">crea</span><span><code>harness/verify.py</code> <span class="por">— verifiers y el Verdict</span></span></li>
+          <li><span class="k ext">extiende</span><span><code>models.py</code> <span class="por">— +3 estados (<code>WAITING_TOOL</code>, <code>VERIFYING</code>, <code>REPAIRING</code>), +<code>VERIFICATION_FAILED</code>, +3 campos en <code>AgentOutcome</code></span></span></li>
+          <li><span class="k ext">extiende</span><span><code>harness/loop.py</code> <span class="por">— +la máquina de estados y el repair loop</span></span></li>
+        </ul>
+      </div>
+
       <p class="prose">
         Hasta acá, cuando el modelo dejaba de pedir herramientas el harness aceptaba su respuesta.
         Léelo otra vez: <strong>el modelo era juez de su propio trabajo.</strong> Este mundo le quita ese rol.
@@ -1102,6 +1305,16 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
         <div class="file">📂 <b>skills/discovery.py</b> · <b>tools/skill.py</b></div>
       </div>
 
+      <div class="toca">
+        <div class="hd">qué archivos toca el MUNDO 4</div>
+        <ul>
+          <li><span class="k crea">crea</span><span><code>skills/discovery.py</code> <span class="por">— descubrimiento y parseo del SKILL.md</span></span></li>
+          <li><span class="k crea">crea</span><span><code>tools/skill.py</code> <span class="por">— load_skill, la otra mitad del disclosure</span></span></li>
+          <li><span class="k ext">extiende</span><span><code>harness/prompt.py</code> <span class="por">— +el bloque de skills: una línea por skill</span></span></li>
+          <li><span class="k ext">extiende</span><span><code>context/layers.py</code> <span class="por">— la capa <code>skills</code> deja de reportarse ausente</span></span></li>
+        </ul>
+      </div>
+
       <p class="prose">
         Una skill es un directorio con un <code>SKILL.md</code> en <code>.localforge/skills/</code>.
         Le enseña al agente <strong>cómo se hacen las cosas en este repositorio</strong> — convenciones,
@@ -1149,6 +1362,16 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
         <div class="kicker"><span class="num">MUNDO 5</span><span class="mins">30 min</span></div>
         <h2>Permisos, y la mitad que falta</h2>
         <div class="file">📂 <b>sandbox/permissions.py</b> · enchufado en <b>tools/base.py</b></div>
+      </div>
+
+      <div class="toca">
+        <div class="hd">qué archivos toca el MUNDO 5</div>
+        <ul>
+          <li><span class="k crea">crea</span><span><code>sandbox/permissions.py</code> <span class="por">— Decision, Rule, PermissionPolicy</span></span></li>
+          <li><span class="k crea">crea</span><span><code>sandbox/approvers.py</code> <span class="por">— quién resuelve un ASK</span></span></li>
+          <li><span class="k ext">extiende</span><span><code>tools/base.py</code> <span class="por">— +la autorización, entre validar y ejecutar</span></span></li>
+          <li><span class="k ext">extiende</span><span><code>cli/</code> <span class="por">— +<code>ConsoleApprover</code> y <code>--read-only</code></span></span></li>
+        </ul>
       </div>
 
       <p class="prose">
@@ -1234,6 +1457,15 @@ default=Decision.ASK</pre>
         <div class="kicker"><span class="num">MUNDO 6</span><span class="mins">25 min</span></div>
         <h2>Sobrevivir al proceso</h2>
         <div class="file">📂 <b>durable/checkpoint.py</b></div>
+      </div>
+
+      <div class="toca">
+        <div class="hd">qué archivos toca el MUNDO 6</div>
+        <ul>
+          <li><span class="k crea">crea</span><span><code>durable/checkpoint.py</code> <span class="por">— el Checkpoint y los dos stores</span></span></li>
+          <li><span class="k ext">extiende</span><span><code>harness/loop.py</code> <span class="por">— +graba al cerrar cada turno, +<code>resume()</code></span></span></li>
+          <li><span class="k ext">extiende</span><span><code>cli/</code> <span class="por">— +<code>--save</code>, <code>runs</code> y <code>resume</code></span></span></li>
+        </ul>
       </div>
 
       <p class="prose">
@@ -1324,6 +1556,15 @@ uv run localforge resume &lt;id&gt;</pre>
         <div class="file">📂 <b>evals/</b></div>
       </div>
 
+      <div class="toca">
+        <div class="hd">qué archivos toca el MUNDO 7</div>
+        <ul>
+          <li><span class="k crea">crea</span><span><code>evals/</code> <span class="por">— checks.py, dataset.py, runner.py, report.py</span></span></li>
+          <li><span class="k ext">extiende</span><span><code>cli/</code> <span class="por">— +el comando <code>eval</code></span></span></li>
+          <li><span class="k por">—</span><span>nada más <span class="por">— los evals <em>leen</em> el <code>AgentOutcome</code>; no necesitaron cambiarlo</span></span></li>
+        </ul>
+      </div>
+
       <p class="prose">
         El repo tiene <strong>184 tests</strong>. Todos testean el harness: que el loop termine, que un
         permiso deniegue, que un checkpoint se restaure. <strong>Ninguno dice si el agente es bueno.</strong>
@@ -1408,6 +1649,14 @@ uv run localforge resume &lt;id&gt;</pre>
         <div class="kicker"><span class="num">MUNDO 8</span><span class="mins">20 min</span></div>
         <h2>Delegar es presupuesto, no paralelismo</h2>
         <div class="file">📂 <b>agents/subagent.py</b></div>
+      </div>
+
+      <div class="toca">
+        <div class="hd">qué archivos toca el MUNDO 8</div>
+        <ul>
+          <li><span class="k crea">crea</span><span><code>agents/subagent.py</code> <span class="por">— delegate y el registry con profundidad</span></span></li>
+          <li><span class="k por">—</span><span>nada más <span class="por">— <code>delegate</code> cayó en ASK <strong>sin tocar</strong> la política del Mundo 5</span></span></li>
+        </ul>
       </div>
 
       <p class="prose">

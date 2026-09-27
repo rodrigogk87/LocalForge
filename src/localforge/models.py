@@ -1,8 +1,17 @@
 """Modelo de datos de LocalForge.
 
-Todo lo que cruza un borde de confianza pasa por estas clases:
-el harness contra el modelo, el harness contra las tools, y mas adelante
-el proceso de hoy contra el checkpoint que lea el de manana.
+Todo lo que cruza un borde de confianza pasa por estas clases: el harness contra
+el modelo, el harness contra las tools, y el proceso de hoy contra el checkpoint
+que lea el de manana.
+
+**Este es el unico archivo que TODOS los mundos tocan.** Cada fase que agrega una
+capacidad agrega tambien su vocabulario: los estados de verificacion salieron del
+Mundo 3, `CONTEXT_OVERFLOW` del Mundo 2, los campos de reparacion del outcome del
+Mundo 3. Por eso cada valor lleva marcado de donde vino -- leerlo de arriba a
+abajo es leer la historia del proyecto.
+
+Que eso sea una linea por valor y no una migracion es la razon de que estos tipos
+sean enums cerrados y modelos explicitos, en vez de strings y diccionarios.
 """
 
 from __future__ import annotations
@@ -34,20 +43,29 @@ class AgentStatus(StrEnum):
 
     No hay PLANNING porque no hay planner. Un estado por el que el agente pasa
     sin hacer nada miente sobre lo que el sistema hace.
+
+    Los cinco primeros valores son del Mundo 1; los tres de verificacion se
+    agregaron en el Mundo 3. Un enum no se puede partir en dos archivos, asi que
+    los nombres viven juntos aca aunque pertenezcan a fases distintas.
     """
 
+    # --- Mundo 1: lo minimo para que una task tenga ciclo de vida ----------
     CREATED = "created"
     RUNNING = "running"
-    # El agente pidio tools y espera resultados. Se distingue de RUNNING porque
-    # es el unico momento en que corre codigo que no es del harness.
-    WAITING_TOOL = "waiting_tool"
-    # Hay una respuesta candidata y el verifier la esta juzgando.
-    VERIFYING = "verifying"
-    # El verifier rechazo y el agente tiene otra oportunidad, con feedback.
-    REPAIRING = "repairing"
     COMPLETED = "completed"
     FAILED = "failed"
     CANCELLED = "cancelled"
+
+    # --- Mundo 3: los estados que aparecen al meter verificacion -----------
+    # El agente pidio tools y espera resultados. Se distingue de RUNNING porque
+    # es el unico momento en que corre codigo que no es del harness.
+    WAITING_TOOL = "waiting_tool"
+    # Hay una respuesta candidata y el verifier la esta juzgando. Antes del
+    # Mundo 3 este estado no existia porque nadie juzgaba nada: el modelo dejaba
+    # de pedir tools y su respuesta se aceptaba.
+    VERIFYING = "verifying"
+    # El verifier rechazo y el agente tiene otra oportunidad, con feedback.
+    REPAIRING = "repairing"
 
     @property
     def is_terminal(self) -> bool:
@@ -55,7 +73,12 @@ class AgentStatus(StrEnum):
 
 
 class StopReason(StrEnum):
-    """Por que el modelo dejo de generar. Es la senal de control del loop."""
+    """Por que el modelo dejo de generar. Es la senal de control del loop.
+
+    El unico de los tres enums que no cambio desde el Mundo 1: describe lo que
+    hace el MODELO, y eso no depende de las capacidades que le agreguemos al
+    harness alrededor.
+    """
 
     END_TURN = "end_turn"
     TOOL_USE = "tool_use"
@@ -66,23 +89,34 @@ class StopReason(StrEnum):
 class FailureReason(StrEnum):
     """Vocabulario cerrado de motivos de corte.
 
-    Cerrado a proposito: en la Fase 7 estos valores se agrupan para armar la
+    Cerrado a proposito: en el Mundo 7 estos valores se agrupan para armar la
     taxonomia de fallos. Un string libre distinto en cada rama es inagrupable.
+
+    **Arranco con seis valores y hoy tiene ocho, y ese crecimiento es el argumento
+    a favor del enum.** Agregar un motivo nuevo fue una linea; la taxonomia del
+    Mundo 7 lo agrupa sin tocar nada, porque cuenta sobre un campo que ya existia.
+    Con strings libres, cada motivo nuevo habria sido un string mas que nadie sabe
+    agrupar.
     """
 
+    # --- Mundo 1: se acabo el presupuesto, o el proveedor fallo ------------
     MAX_TURNS = "max_turns"
     WALL_CLOCK = "wall_clock"
     TOKEN_BUDGET = "token_budget"
     LOOP_DETECTED = "loop_detected"
     PROVIDER_ERROR = "provider_error"
     CANCELLED = "cancelled"
-    # El verifier rechazo la respuesta y se agotaron los reintentos. Se
-    # distingue de los demas porque el agente TERMINO de trabajar: el problema
-    # es la calidad del resultado, no la ejecucion.
-    VERIFICATION_FAILED = "verification_failed"
-    # El contexto no entra ni compactando todo lo compactable. Cortar aca es
-    # mejor que mandarlo igual y dejar que Ollama trunque en silencio.
+
+    # --- Mundo 2: el contexto no entra ni compactando lo compactable -------
+    # Cortar aca es mejor que mandarlo igual y dejar que Ollama trunque en
+    # silencio por la izquierda, comiendose el system prompt.
     CONTEXT_OVERFLOW = "context_overflow"
+
+    # --- Mundo 3: el agente termino, pero el resultado no paso ------------
+    # Se distingue de todos los de arriba porque el agente TERMINO de trabajar:
+    # el problema es la calidad del resultado, no la ejecucion. El Mundo 7 usa
+    # justo esa diferencia para separar fallos de ejecucion de fallos de calidad.
+    VERIFICATION_FAILED = "verification_failed"
 
 
 # ---------------------------------------------------------------------------

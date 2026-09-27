@@ -132,7 +132,62 @@ Vas a ver algo así:
 
 ---
 
+## Los archivos crecen
+
+Esto es lo que más cuesta entender de un proyecto construido por fases, y conviene saberlo antes de
+abrir el primer archivo: **casi ningún archivo pertenece a un solo mundo.** El Mundo 1 crea
+`models.py` con cinco estados y el Mundo 3 le agrega tres. El Mundo 1 escribe el loop, y después lo
+tocan cuatro mundos.
+
+| archivo | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|
+| `models.py` | **crea** | +1 motivo | +3 estados, +3 campos | · | · | · | · | · |
+| `harness/loop.py` | **crea** | +presupuesto | +estados, +verify, +repair | +skills | +permisos | +checkpoints | · | · |
+| `tools/base.py` | **crea** | · | · | · | +autorización | · | · | · |
+| `harness/prompt.py` | **crea** | · | · | +disclosure | · | · | · | · |
+| `tools/` | list_files, read_file | search_code | · | load_skill | · | · | · | delegate |
+| `providers/` | **crea** | · | · | · | · | · | · | · |
+| `context/` | · | **crea** | · | +capa skills | · | · | · | · |
+| `harness/state.py` | · | · | **crea** | · | · | · | · | · |
+| `harness/verify.py` | · | · | **crea** | · | · | · | · | · |
+| `skills/` | · | · | · | **crea** | · | · | · | · |
+| `sandbox/` | · | · | · | · | **crea** | · | · | delegate → ASK |
+| `durable/` | · | · | · | · | · | **crea** | · | · |
+| `evals/` | · | · | · | · | · | · | **crea** | · |
+| `agents/` | · | · | · | · | · | · | · | **crea** |
+
+> **Pregunta:** el Mundo 3 le agrega tres estados a `models.py`. ¿Por qué no los pone en
+> `harness/state.py`, que es el archivo que ese mundo crea?
+
+<details>
+<summary>Respuesta</summary>
+
+Porque **Python no deja extender un enum**:
+
+```python
+class Extendido(AgentStatus):
+    VERIFYING = "verifying"
+# TypeError: <enum 'Extendido'> cannot extend <enum 'AgentStatus'>
+```
+
+Y partirlo en dos enums es peor: `AgentOutcome.status` tendría dos formas al serializar,
+`is_terminal` no podría vivir en ninguno de los dos, y hay *un* ciclo de vida, no dos.
+
+**Lo que sí se separó es lo que importa:** los nombres viven en `models.py`, y las *transiciones
+permitidas* en `harness/state.py`. Un enum puede decir qué valores existen; no puede decir que de
+`VERIFYING` no se vuelve a `WAITING_TOOL`. Esa segunda mitad es la que convierte una etiqueta en una
+máquina de estados, y esa sí es del Mundo 3.
+
+</details>
+
+---
+
 ## Mundo 1 · 1 de 4 — `models.py`: el vocabulario (30 min)
+
+
+**Qué toca el Mundo 1.** Crea `models.py` (el vocabulario), `providers/` (el Protocol y Ollama),
+`tools/base.py` + `fs.py` (registry, executor, `list_files`, `read_file`) y `harness/loop.py` +
+`prompt.py` (el agent loop y el system prompt). No extiende nada: es el primero.
 
 📂 `src/localforge/models.py` (265 líneas)
 
@@ -143,16 +198,25 @@ archivos usan estos nombres.
 > estudiaste esa clase todavía, conviene hacerlo antes o en paralelo: explica por qué los type
 > hints de Python no validan nada y por qué la salida de un LLM es entrada no confiable.
 
-### 1.1 — Los tres enums (líneas 27-85)
+### 1.1 — Los tres enums (líneas 36-113)
+
+Abrí el archivo y vas a ver más valores de los que están acá: los agregaron mundos posteriores, y
+cada uno está marcado en el código con el mundo que lo trajo. **Lo que el Mundo 1 escribió es esto:**
 
 ```python
-class AgentStatus(StrEnum):    # línea 27 — en qué estado está la tarea
-class StopReason(StrEnum):     # línea 45 — por qué el modelo dejó de escribir
-class FailureReason(StrEnum):  # línea 54 — por qué cortamos la ejecución
+class AgentStatus(StrEnum):      # en qué estado está la tarea
+    CREATED · RUNNING · COMPLETED · FAILED · CANCELLED
+
+class StopReason(StrEnum):       # por qué el modelo dejó de escribir
+    END_TURN · TOOL_USE · MAX_TOKENS · UNKNOWN
+
+class FailureReason(StrEnum):    # por qué cortamos la ejecución
+    MAX_TURNS · WALL_CLOCK · TOKEN_BUDGET
+    LOOP_DETECTED · PROVIDER_ERROR · CANCELLED     # ← seis, por ahora
 ```
 
-**Mirá `FailureReason` (línea 54).** Son 6 valores fijos: `max_turns`, `wall_clock`,
-`token_budget`, `loop_detected`, `provider_error`, `cancelled`.
+**Mirá `FailureReason`: seis valores fijos**, ni uno más. Guardate ese número — el Mundo 2 le va a
+agregar uno y el Mundo 3 otro, y ese crecimiento es el argumento de la pregunta que sigue.
 
 > **Pregunta:** ¿por qué es un enum y no un string libre donde escribir el motivo que se te ocurra?
 
@@ -166,13 +230,17 @@ exactamente qué arreglar.
 Si cada rama del código escribe un mensaje libre distinto ("se acabaron los turnos", "límite de
 turnos alcanzado"), no podés agrupar nada y solo sabés que "falló".
 
+**Y el crecimiento lo confirma.** Este enum arrancó con seis valores y hoy tiene ocho: el Mundo 2
+agregó `CONTEXT_OVERFLOW` y el Mundo 3 `VERIFICATION_FAILED`. Cada uno fue *una línea*, y la
+taxonomía del Mundo 7 los agrupa sin tocar nada, porque cuenta sobre un campo que ya existía.
+
 </details>
 
 > 🎓 **W7·C48 "Taxonomía de fallos"** — las siete categorías (model, context, tool, planning,
 > execution, verification, environment) y por qué cada una tiene un arreglo distinto. Este enum es
 > el primer paso hacia esa taxonomía.
 
-### 1.2 — `ToolCall` y `ToolResult` (líneas 116 y 129)
+### 1.2 — `ToolCall` y `ToolResult` (líneas 150 y 163)
 
 Estos dos van **en par**. El modelo emite un `ToolCall`, el harness produce un `ToolResult`.
 
@@ -212,7 +280,7 @@ directamente no hay default.**
 > El mismo criterio vuelve en **W5·C34 (permisos)**: el default de un permiso desconocido nunca
 > es `ALLOW`.
 
-### 1.3 — El validador de coherencia (línea 146)
+### 1.3 — El validador de coherencia (línea 180)
 
 ```python
 @model_validator(mode="after")
@@ -229,7 +297,7 @@ puede razonar sobre la relación *entre* campos, que es algo que ningún campo s
 La segunda regla es la importante: **un fallo está obligado a explicar por qué falló.** No podés
 tener un `ToolResult` que diga "falló" y nada más.
 
-### 1.4 — `as_content()` (línea 153)
+### 1.4 — `as_content()` (línea 187)
 
 ```python
 def as_content(self) -> str:
@@ -266,7 +334,7 @@ resultado válido.
 > regla para decidir qué SÍ debe cortar la ejecución (credenciales inválidas, presupuesto agotado,
 > el mismo error 3 veces) y qué vuelve como feedback.
 
-### 1.5 — `AgentTask` (línea 221)
+### 1.5 — `AgentTask` (línea 255)
 
 ```python
 max_turns: int = Field(default=20, ge=1, le=100)
@@ -281,7 +349,7 @@ gastando plata**. Volvés a verlos en la Sesión 2.
 > Ahí se explica por qué `ge=1` y `le=100`, y por qué el `id` es un UUID y no un autoincrement.
 > Es literalmente el mismo modelo que estás mirando.
 
-### 1.6 — `AgentOutcome` (línea 248)
+### 1.6 — `AgentOutcome` (línea 282)
 
 Lo que devuelve el agente cuando termina. Mirá todo lo que trae: `status`, `reason`, `turns`,
 `input_tokens`, `output_tokens`, `duration_ms`, `trajectory`.
@@ -763,6 +831,11 @@ es que hay trabajo pendiente, así que la señal se deriva de la *presencia* de 
 
 ## Mundo 2 — `context/builder.py`: el contexto es un presupuesto (30 min)
 
+
+**Qué toca el Mundo 2.** Crea `context/` (tokens, layers, builder) y `tools/search.py`.
+Extiende `models.py` con `FailureReason.CONTEXT_OVERFLOW`, y `harness/loop.py` para que el contexto
+pase por el builder y el estimador se calibre con el conteo real del modelo.
+
 > 🎓 **W2·C8**, **W2·C9** y **W2·C12**. Primera sesión de Mundo 2.
 
 Hasta acá leíste W1: un agente que corre y termina. Este archivo agrega la propiedad siguiente —
@@ -902,12 +975,12 @@ Los seis mundos restantes están desarrollados, con el mismo formato de pregunta
 
 | Mundo | Archivo | Qué agrega |
 |---|---|---|
-| **3** Harness Engineering | `harness/state.py`, `harness/verify.py` | Máquina de estados con transiciones prohibidas, verifier de trayectoria, repair loop |
-| **4** Skills & Protocols | `skills.py`, `tools/skill.py` | Skills con progressive disclosure (una línea por skill en el prompt, el cuerpo a demanda) |
-| **5** Sandbox Engineering | `sandbox/permissions.py` | ALLOW/ASK/DENY con fail-closed, secretos denegados, aprobación humana. **Falta el sandbox** |
-| **6** Durable Agents | `durable/checkpoint.py` | Checkpoints atómicos por turno y `resume` idempotente |
-| **7** Agent Evals | `evals/` | Golden tasks, checks deterministas, taxonomía de fallos, comparador de harnesses |
-| **8** Multi-Agent | `agents/subagent.py` | Subagentes con contexto aislado — lo que el Mundo 2 dejó pendiente |
+| **3** Harness Engineering | crea `harness/state.py`, `harness/verify.py` · extiende `models.py` y `loop.py` | Máquina de estados con transiciones prohibidas, verifier de trayectoria, repair loop |
+| **4** Skills & Protocols | crea `skills/`, `tools/skill.py` · extiende `prompt.py` y `context/layers.py` | Skills con progressive disclosure (una línea por skill en el prompt, el cuerpo a demanda) |
+| **5** Sandbox Engineering | crea `sandbox/` · extiende `tools/base.py` y `cli/` | ALLOW/ASK/DENY con fail-closed, secretos denegados, aprobación humana. **Falta el sandbox** |
+| **6** Durable Agents | crea `durable/` · extiende `loop.py` y `cli/` | Checkpoints atómicos por turno y `resume` idempotente |
+| **7** Agent Evals | crea `evals/` · extiende `cli/` | Golden tasks, checks deterministas, taxonomía de fallos, comparador de harnesses |
+| **8** Multi-Agent | crea `agents/` · no extiende nada | Subagentes con contexto aislado — lo que el Mundo 2 dejó pendiente |
 
 El detalle de qué falta en cada uno está en [`PROJECT_STATE.md`](../PROJECT_STATE.md).
 
