@@ -9,7 +9,7 @@ infraestructura (`httpx`, `pydantic`), no abstracciones de agentes.
 
 | Si sos… | Leé |
 |---|---|
-| 🧑‍🎓 **una persona aprendiendo** | **[`docs/GUIA.md`](docs/GUIA.md)** — recorrido guiado del código en 6 sesiones, con preguntas, respuestas y experimentos para romperlo a propósito |
+| 🧑‍🎓 **una persona aprendiendo** | **[`docs/GUIA.md`](docs/GUIA.md)** — recorrido guiado del código por los 8 mundos del roadmap, con preguntas, respuestas y experimentos para romperlo a propósito |
 | 🤖 **un agente retomando el trabajo** | **[`PROJECT_STATE.md`](PROJECT_STATE.md)** — estado real, decisiones de arquitectura y handoff |
 
 ### Proyecto hermano: AgentForge Academy

@@ -3,8 +3,8 @@
 Esto no es documentación de referencia. Es un **recorrido guiado** para que entiendas cómo
 funciona un agent harness leyendo el código de a poco, en el orden correcto.
 
-Son 6 sesiones de 30-40 minutos. No hace falta hacerlas seguidas.
-Las 5 primeras son del Mundo 1; la 6 es la primera del Mundo 2.
+Está dividido por **los ocho mundos del roadmap**, en orden. No hace falta hacerlos seguidos.
+Cada mundo te dice qué propiedad le agrega al agente y qué le falta todavía.
 
 **Cómo usar esta guía:** cada sección te dice qué archivo abrir y en qué línea mirar, te hace una
 pregunta, y recién después te da la respuesta. **Intentá contestar antes de seguir leyendo.** Si
@@ -92,7 +92,7 @@ Y tres trucos que sirven siempre:
 
 ---
 
-## Sesión 0 — Verlo correr antes de leer nada (10 min)
+## Antes de empezar — Verlo correr antes de leer nada (10 min)
 
 No leas código todavía. Mirá qué hace.
 
@@ -132,7 +132,7 @@ Vas a ver algo así:
 
 ---
 
-## Sesión 1 — `models.py`: el vocabulario (30 min)
+## Mundo 1 · 1 de 4 — `models.py`: el vocabulario (30 min)
 
 📂 `src/localforge/models.py` (265 líneas)
 
@@ -307,7 +307,7 @@ con impresiones.
 > ejercicio te hace escribir esta misma clase desde cero. Y **W7·C47 "Costo y latencia"** explica
 > por qué `input_tokens` y `output_tokens` van separados (el output cuesta ~5x más).
 
-### ✅ Checkpoint Sesión 1
+### ✅ Checkpoint — 1
 
 Deberías poder responder sin mirar:
 
@@ -319,7 +319,7 @@ Deberías poder responder sin mirar:
 
 ---
 
-## Sesión 2 — `harness/loop.py`: el corazón (40 min)
+## Mundo 1 · 2 de 4 — `harness/loop.py`: el corazón (40 min)
 
 📂 `src/localforge/harness/loop.py` (240 líneas)
 
@@ -564,7 +564,7 @@ return finish(AgentStatus.FAILED, reason=FailureReason.MAX_TURNS, turns=task.max
 El `for` que termina sin `return` **es** la condición de terminación por turnos. Esta línea es la
 que garantiza que, sea cual sea el camino, el loop siempre devuelve algo.
 
-### ✅ Checkpoint Sesión 2
+### ✅ Checkpoint — 2
 
 1. ¿Por qué el `for` solo no garantiza que el agente termine?
 2. ¿Qué pasa si correlacionás resultados por posición en vez de por `call_id`?
@@ -577,7 +577,7 @@ que garantiza que, sea cual sea el camino, el loop siempre devuelve algo.
 
 ---
 
-## Sesión 3 — `tools/base.py`: el borde de confianza (30 min)
+## Mundo 1 · 3 de 4 — `tools/base.py`: el borde de confianza (30 min)
 
 📂 `src/localforge/tools/base.py` (194 líneas)
 
@@ -664,7 +664,7 @@ El mensaje dice qué pasó **y cómo seguir**.
 > correlación rota y la pérdida al compactar. En **W2** esto deja de ser una constante (8000) y
 > pasa a ser un presupuesto calculado.
 
-### ✅ Checkpoint Sesión 3
+### ✅ Checkpoint — 3
 
 1. ¿Por qué el schema de argumentos se genera y no se escribe a mano?
 2. ¿Qué tienen en común los 4 mensajes de error de `run_one`?
@@ -674,7 +674,7 @@ El mensaje dice qué pasó **y cómo seguir**.
 
 ---
 
-## Sesión 4 — `providers/ollama.py`: la suciedad del mundo real (30 min)
+## Mundo 1 · 4 de 4 — `providers/ollama.py`: la suciedad del mundo real (30 min)
 
 📂 `src/localforge/providers/ollama.py` (209 líneas)
 
@@ -751,7 +751,7 @@ es que hay trabajo pendiente, así que la señal se deriva de la *presencia* de 
 > con cada valor. Acá se ve por qué conviene escribir el adapter a mano: la Academy enseña el
 > contrato ideal, y el mundo real tiene esta clase de desprolijidades en cada backend.
 
-### ✅ Checkpoint Sesión 4
+### ✅ Checkpoint — 4
 
 1. ¿Cuántos métodos tiene `ModelProvider` y por qué tan pocos?
 2. ¿Qué tres cosas raras de Ollama quedan encapsuladas acá?
@@ -761,85 +761,7 @@ es que hay trabajo pendiente, así que la señal se deriva de la *presencia* de 
 
 ---
 
-## Sesión 5 — Rompelo (la sesión que más enseña)
-
-Leer no alcanza. Los fallos de un agente son contraintuitivos porque **casi ninguno se ve como un
-error**. La única forma de que se te graben es provocarlos.
-
-Hacé cada experimento, corré el agente, **y volvé a dejar el código como estaba** (`git checkout .`).
-
-| # | Experimento | Clase de la Academy |
-|---|---|---|
-| 1 | Romper la correlación por `call_id` | **W1·C5** · W1·C7 · W7·C48 |
-| 2 | Ahogar el contexto (`num_ctx=2048`) | **W2·C9** · W2·C12 |
-| 3 | Sacar el truncado | **W1·C5** · W2·C8 |
-| 4 | Volver al prompt sin grounding | **W2** · W3·C18 |
-| 5 | Terminación con `--max-turns 1` | **W1·C6** |
-
-### Experimento 1 — Romper la correlación ⭐ el más importante
-
-En `harness/loop.py`, alrededor de la línea 201, reemplazá:
-
-```python
-by_id = {r.call_id: r for r in results}
-```
-
-por:
-
-```python
-by_id = {c.id: r for c, r in zip(response.tool_calls, sorted(results, key=lambda r: r.duration_ms))}
-```
-
-Corré: `uv run localforge ask . "Compara cli.py con models.py"`
-
-**Qué vas a ver:** el modelo describe un archivo con el contenido de otro. Sin errores. Sin logs.
-Una respuesta perfectamente coherente y completamente falsa.
-
-**Por qué importa:** esto se ve igual que "el modelo alucina". Si no conocés el bug, cambiás el
-prompt, probás otro modelo, subís el contexto — y nunca lo encontrás.
-
-> 🎓 Después de verlo, andá a **W1·C7 → "Diagnóstico 1: el agente que *alucina*"**. Vas a leer el
-> mismo caso sabiendo exactamente cómo se siente. Y a **W7·C48**, que lo clasifica como *execution
-> failure* y explica por qué es la categoría más peligrosa.
-
-### Experimento 2 — Ahogar el contexto
-
-```bash
-LOCALFORGE_NUM_CTX=2048 uv run localforge ask . "Explicame el proyecto"
-```
-
-**Qué vas a ver:** el agente se comporta raro, ignora las herramientas o responde cualquier cosa.
-Ollama se comió el system prompt por la izquierda y no avisó.
-
-### Experimento 3 — Sacar el truncado
-
-En `tools/base.py` línea 186, hacé que `_truncate` devuelva siempre `(text, False)`.
-
-Corré el agente sobre un repo con archivos grandes y mirá cómo crece `input_tokens` por turno.
-
-### Experimento 4 — Volver al prompt sin grounding
-
-```bash
-git show a3d4a02:src/localforge/harness/prompt.py > src/localforge/harness/prompt.py
-uv run localforge ask . "Explicame la arquitectura"
-```
-
-**Qué vas a ver:** el agente responde leyendo **cero archivos**, inventando a partir de los
-nombres. Compará con el prompt actual y mirá qué cambió (`git diff`).
-
-Después: `git checkout src/localforge/harness/prompt.py`
-
-### Experimento 5 — Terminación
-
-```bash
-uv run localforge ask . "Analiza todo el proyecto en detalle" --max-turns 1
-```
-
-**Qué vas a ver:** `failed (max_turns)` — un final **explícito y con motivo**, no un cuelgue.
-
----
-
-## Sesión 6 — `harness/context.py`: el contexto es un presupuesto (30 min)
+## Mundo 2 — `harness/context.py`: el contexto es un presupuesto (30 min)
 
 > 🎓 **W2·C8**, **W2·C9** y **W2·C12**. Primera sesión de Mundo 2.
 
@@ -962,12 +884,110 @@ el piso de `keep_recent_messages` no alcanza y el contexto no entra ni compactan
 agujero: un `FailureReason.CONTEXT_OVERFLOW` que corte limpio en vez de degradar en silencio.
 Encontrarlo leyendo el código es el ejercicio.
 
-### ✅ Checkpoint Sesión 6
+### ✅ Checkpoint — 6
 
 - ¿Por qué `available` no es `num_ctx`?
 - ¿Qué capa se come el 83% del contexto, y qué implica para dónde optimizar?
 - ¿Por qué el marcador de compactación dice cuántos caracteres había?
 - ¿Por qué la próxima pieza de W2 es una tool de búsqueda?
+
+---
+
+## Mundos 3 a 8
+
+Los seis mundos restantes están desarrollados, con el mismo formato de preguntas, en la
+**versión web de esta guía**:
+
+### 👉 **https://localforge-guia.vercel.app**
+
+| Mundo | Archivo | Qué agrega |
+|---|---|---|
+| **3** Harness Engineering | `harness/state.py`, `harness/verify.py` | Máquina de estados con transiciones prohibidas, verifier de trayectoria, repair loop |
+| **4** Skills & Protocols | `skills.py`, `tools/skills.py` | Skills con progressive disclosure (una línea por skill en el prompt, el cuerpo a demanda) |
+| **5** Sandbox Engineering | `permissions.py` | ALLOW/ASK/DENY con fail-closed, secretos denegados, aprobación humana. **Falta el sandbox** |
+| **6** Durable Agents | `harness/checkpoint.py` | Checkpoints atómicos por turno y `resume` idempotente |
+| **7** Agent Evals | `evals.py` | Golden tasks, checks deterministas, taxonomía de fallos, comparador de harnesses |
+| **8** Multi-Agent | `harness/subagent.py` | Subagentes con contexto aislado — lo que el Mundo 2 dejó pendiente |
+
+El detalle de qué falta en cada uno está en [`PROJECT_STATE.md`](../PROJECT_STATE.md).
+
+---
+
+## Al final — Rompelo (la parte que más enseña)
+
+Leer no alcanza. Los fallos de un agente son contraintuitivos porque **casi ninguno se ve como un
+error**. La única forma de que se te graben es provocarlos.
+
+Hacé cada experimento, corré el agente, **y volvé a dejar el código como estaba** (`git checkout .`).
+
+| # | Experimento | Clase de la Academy |
+|---|---|---|
+| 1 | Romper la correlación por `call_id` | **W1·C5** · W1·C7 · W7·C48 |
+| 2 | Ahogar el contexto (`num_ctx=2048`) | **W2·C9** · W2·C12 |
+| 3 | Sacar el truncado | **W1·C5** · W2·C8 |
+| 4 | Volver al prompt sin grounding | **W2** · W3·C18 |
+| 5 | Terminación con `--max-turns 1` | **W1·C6** |
+
+### Experimento 1 — Romper la correlación ⭐ el más importante
+
+En `harness/loop.py`, alrededor de la línea 201, reemplazá:
+
+```python
+by_id = {r.call_id: r for r in results}
+```
+
+por:
+
+```python
+by_id = {c.id: r for c, r in zip(response.tool_calls, sorted(results, key=lambda r: r.duration_ms))}
+```
+
+Corré: `uv run localforge ask . "Compara cli.py con models.py"`
+
+**Qué vas a ver:** el modelo describe un archivo con el contenido de otro. Sin errores. Sin logs.
+Una respuesta perfectamente coherente y completamente falsa.
+
+**Por qué importa:** esto se ve igual que "el modelo alucina". Si no conocés el bug, cambiás el
+prompt, probás otro modelo, subís el contexto — y nunca lo encontrás.
+
+> 🎓 Después de verlo, andá a **W1·C7 → "Diagnóstico 1: el agente que *alucina*"**. Vas a leer el
+> mismo caso sabiendo exactamente cómo se siente. Y a **W7·C48**, que lo clasifica como *execution
+> failure* y explica por qué es la categoría más peligrosa.
+
+### Experimento 2 — Ahogar el contexto
+
+```bash
+LOCALFORGE_NUM_CTX=2048 uv run localforge ask . "Explicame el proyecto"
+```
+
+**Qué vas a ver:** el agente se comporta raro, ignora las herramientas o responde cualquier cosa.
+Ollama se comió el system prompt por la izquierda y no avisó.
+
+### Experimento 3 — Sacar el truncado
+
+En `tools/base.py` línea 186, hacé que `_truncate` devuelva siempre `(text, False)`.
+
+Corré el agente sobre un repo con archivos grandes y mirá cómo crece `input_tokens` por turno.
+
+### Experimento 4 — Volver al prompt sin grounding
+
+```bash
+git show a3d4a02:src/localforge/harness/prompt.py > src/localforge/harness/prompt.py
+uv run localforge ask . "Explicame la arquitectura"
+```
+
+**Qué vas a ver:** el agente responde leyendo **cero archivos**, inventando a partir de los
+nombres. Compará con el prompt actual y mirá qué cambió (`git diff`).
+
+Después: `git checkout src/localforge/harness/prompt.py`
+
+### Experimento 5 — Terminación
+
+```bash
+uv run localforge ask . "Analiza todo el proyecto en detalle" --max-turns 1
+```
+
+**Qué vas a ver:** `failed (max_turns)` — un final **explícito y con motivo**, no un cuelgue.
 
 ---
 
