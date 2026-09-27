@@ -14,6 +14,7 @@ Dos cosas de Ollama que el harness NO debe enterarse nunca:
 
 from __future__ import annotations
 
+import os
 import time
 from typing import Any
 from uuid import uuid4
@@ -65,18 +66,57 @@ class OllamaProvider:
             raise ProviderError(f"no se pudo contactar Ollama en {self._host}: {exc}", retryable=True) from exc
 
         installed = [m.get("model", "") for m in tags.get("models", [])]
+        nota = ""
         if self.model not in installed:
-            raise ProviderError(
-                f"el modelo '{self.model}' no esta instalado. Disponibles: {', '.join(installed) or 'ninguno'}. "
-                f"Instalalo con: ollama pull {self.model}"
-            )
-        return {
+            # Si alguien pidio un modelo EXPLICITAMENTE, no se lo cambiamos: pidio
+            # ese. Pero si venimos con el default del codigo y no esta instalado,
+            # ese default es una opinion sobre OTRA maquina -- buscamos uno que
+            # este y que sepa usar tools.
+            if os.environ.get("LOCALFORGE_MODEL"):
+                raise ProviderError(
+                    f"el modelo '{self.model}' no esta instalado. Disponibles: "
+                    f"{', '.join(installed) or 'ninguno'}. Instalalo con: ollama pull {self.model}"
+                )
+            elegido = await self._primero_con_tools(installed)
+            if elegido is None:
+                raise ProviderError(
+                    "ninguno de los modelos instalados soporta tool calling, que es el requisito "
+                    f"duro del harness. Instalados: {', '.join(installed) or 'ninguno'}. "
+                    "Probá: ollama pull qwen3:8b"
+                )
+            nota = f"'{self.model}' no esta instalado; se usa '{elegido}'"
+            self.model = elegido
+
+        info = {
             "provider": self.name,
             "host": self._host,
             "version": str(version.get("version", "?")),
             "model": self.model,
             "installed_models": ", ".join(installed),
         }
+        if nota:
+            info["nota"] = nota
+        return info
+
+    async def _primero_con_tools(self, instalados: list[str]) -> str | None:
+        """El primer modelo instalado que sepa usar tools.
+
+        `/api/show` lista las capabilities de un modelo. Sin `tools` el harness no
+        puede funcionar: el modelo nunca va a pedir una herramienta, asi que el
+        loop termina en el primer turno sin haber mirado nada.
+        """
+        for nombre in instalados:
+            try:
+                data = (
+                    await self._client.post(
+                        f"{self._host}/api/show", json={"model": nombre}, timeout=10
+                    )
+                ).json()
+            except (httpx.HTTPError, ValueError):
+                continue
+            if "tools" in (data.get("capabilities") or []):
+                return nombre
+        return None
 
     # -- inferencia ---------------------------------------------------------
 

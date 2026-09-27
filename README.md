@@ -51,29 +51,43 @@ agent loop a los evals y los sistemas multi-agente. LocalForge es esa teoría he
 
 ## Correr cualquier mundo
 
+Los comandos viven en un solo lugar, el `Makefile`. `WORLD` es el número de **paso** (1 a 8):
+
 ```bash
-cd worlds/8-multiagent-w8        # o cualquiera de los ocho
-uv sync --extra dev
-uv run pytest -q
-uv run lfw8 health              # ¿responde el LLM local?
-uv run lfw8 ask . "Explicame este proyecto"
+make                                    # la ayuda, con todos los targets
+make worlds                             # los ocho pasos y su comando
+make setup-all                          # instala los ocho
+
+make test WORLD=3                       # los 85 tests del paso 3
+make test-all                           # los ocho, con resumen
+make health WORLD=1                     # ¿responde el LLM local?
+make ask WORLD=1 Q="Que hace AgentHarness?"
+make ask WORLD=8 Q="..." FLAGS="--delegate -v"
+make eval WORLD=6                       # el dataset de golden tasks
 ```
 
-Requiere Ollama en `localhost:11434` y un modelo con soporte de tool calling
-(`ollama show <modelo>` tiene que listar `tools` en *Capabilities*). Python ≥ 3.12, gestionado con `uv`.
+Sin `make` funciona igual, sólo que con tres pasos en vez de uno:
+`cd worlds/1-foundations-w1 && uv sync --extra dev && uv run lfw1 ask . "..."`.
+
+Requiere Ollama en `localhost:11434`. **No hace falta que tengas un modelo en
+particular:** si el configurado no está instalado, el provider busca uno que sí esté y que soporte
+tool calling, y te dice cuál eligió. Python ≥ 3.12, gestionado con `uv`.
 
 ## Configuración
 
-Todo por variables de entorno. Precedencia: **shell > `.env` > default del código**.
+**Un solo `.env`, en la raíz, para los ocho mundos.**
 
 ```bash
 cp .env.example .env    # y ajustalo a tu maquina
 ```
 
-Los defaults del código son neutrales: lo que depende del hardware (qué modelo tenés, cuántos turnos
-y cuánto tiempo necesita) vive en el `.env`, que no se commitea. Del `.env` sólo se leen las claves
-con prefijo `LOCALFORGE_` — el agente corre *sobre* otros repositorios, y esos repos tienen su propio
-`.env` con secretos ajenos.
+El `Makefile` lo incluye y lo **exporta**, así los ocho lo ven sin que tengas que repetir nada. Eso
+importa más de lo que parece: el Mundo 1 no sabe leer un `.env` — esa capacidad llegó en el Mundo 2 —
+y sin el export quedaba pidiendo el default del código, que es el modelo de otra máquina.
+
+Precedencia: **shell > `.env` > autodetección**. Del `.env` sólo se leen las claves con prefijo
+`LOCALFORGE_`, porque el agente corre *sobre* otros repositorios y esos repos tienen su propio `.env`
+con secretos ajenos.
 
 | Variable | Default | Qué controla |
 |---|---|---|
@@ -87,7 +101,8 @@ con prefijo `LOCALFORGE_` — el agente corre *sobre* otros repositorios, y esos
 Además de los tests de cada mundo, la raíz tiene los que verifican que la colección sea coherente:
 
 ```bash
-uv sync --extra dev && uv run pytest -q     # 53 tests
+make repo-test     # o: uv sync --extra dev && uv run pytest -q
+make check         # docs-check + repo-test + test-all: todo antes de un commit
 ```
 
 Que cada módulo aparezca en su paso y **no antes**, que los tests crezcan paso a paso, que cada

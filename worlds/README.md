@@ -20,14 +20,26 @@ todavía no existían.
 
 ## Correr cualquiera
 
+Desde la raíz del repo, con el `Makefile`. `WORLD` es el número de **paso**:
+
 ```bash
-cd worlds/3-harness-w3
-uv sync --extra dev
-uv run pytest -q                 # los 85 tests que existían en ese punto
-uv run lfw3 ask . "explicame este proyecto"
+make test WORLD=3                        # los 85 tests que existían en ese punto
+make ask WORLD=3 Q="explicame este proyecto"
+make health WORLD=3
 ```
 
-Cada mundo tiene su propio comando para que puedas tener varios instalados sin que se pisen.
+O a mano, si preferís ver las piezas:
+
+```bash
+cd worlds/3-harness-w3 && uv sync --extra dev && uv run lfw3 ask . "..."
+```
+
+Cada mundo tiene su propio comando (`lfw1`…`lfw8`, por número de **mundo**, no de paso) para que
+puedas tener varios instalados sin que se pisen. `make worlds` muestra la correspondencia.
+
+**La configuración del modelo es una sola**, en el `.env` de la raíz: el Makefile lo exporta a los
+ocho. Y si el modelo configurado no está instalado, el provider busca uno que sí esté y que soporte
+tool calling — así cualquier mundo arranca en cualquier máquina.
 
 ## Fotos y código vivo
 

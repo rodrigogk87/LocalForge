@@ -1042,42 +1042,76 @@ Ordenados por lo que más duele, no por el orden de las fases:
 
 ## Comandos útiles
 
+**Todo pasa por el `Makefile`.** `WORLD` es el número de **paso** (1 a 8), no el del mundo del
+roadmap; `make worlds` muestra la correspondencia.
+
 ```bash
+make                                  # la ayuda, con todos los targets
+make worlds                           # los ocho pasos, su mundo y su comando
+
+make setup-all                        # instala los ocho
+make test WORLD=3                     # los tests del paso 3
+make test-all                         # los ocho, con resumen
+make health WORLD=1                   # ¿responde el LLM local?
+make ask WORLD=1 Q="Que hace AgentHarness?"
+make ask WORLD=8 Q="..." FLAGS="--delegate -v"
+make ask WORLD=8 Q="..." REPO=../otro-repo
+make eval WORLD=6                     # el dataset de golden tasks
+make runs WORLD=5                     # corridas guardadas
+make resume WORLD=5 ID=<uuid>
+
+make repo-test                        # los 53+ tests del repo
+make docs                             # reescribe las lineas que las guias citan
+make docs-check                       # falla si estan viejas
+make build                            # regenera las fotos 1-7 desde git
+make check                            # docs-check + repo-test + test-all
+make clean                            # borra venvs, caches y lockfiles
+
 # --- Ollama ---
-ollama serve                                  # o abrir la app
-ollama list
-ollama show gemma4:e4b                        # tiene que listar `tools` en Capabilities
-curl -s http://localhost:11434/api/version
-
-# --- trabajar en el codigo vivo (el paso 8) ---
-cd worlds/8-multiagent-w8
-uv sync --extra dev
-uv run pytest -q                              # 184 tests
-uv run lfw8 health                            # ¿responde el LLM local?
-uv run lfw8 ask . "Explicame este proyecto"
-uv run lfw8 ask . "¿Donde se valida la entrada?" -v
-uv run lfw8 ask . "..." --delegate             # habilita subagentes
-uv run lfw8 ask . "..." --read-only            # deniega todo lo que no sea lectura
-
-# --- leer cualquier otro mundo ---
-cd worlds/1-foundations-w1 && uv sync --extra dev && uv run pytest -q
-uv run lfw1 ask . "Que hace la clase AgentHarness?"
-
-# --- checkpoints (desde worlds/5-durable-w6) ---
-uv run lfw6 ask . "explicame el repo" --save   # imprime el run id
-uv run lfw6 runs                               # lista las corridas guardadas
-uv run lfw6 resume <id>                        # retoma
-
-# --- evals (desde worlds/6-evals-w7) ---
-uv run lfw7 eval .                             # el dataset contra el LLM local
-
-# --- desde la raiz del repo ---
-uv sync --extra dev && uv run pytest -q        # 53 tests: coherencia de los ocho
-python scripts/build_worlds.py                 # regenerar las fotos 1-7
-python scripts/build_worlds.py --check         # verificar que esten
-uv run python scripts/sync_code_refs.py        # reescribir las lineas que citan las guias
-uv run python scripts/sync_code_refs.py --check
+ollama serve
+ollama show gemma4:e4b                # tiene que listar `tools` en Capabilities
 ```
+
+---
+
+## Configuración: centralizada, y funciona con cualquier modelo
+
+**2026-09-27.** Dos problemas que aparecieron al correr el Mundo 1 desde su carpeta:
+
+```
+✗ el modelo 'qwen3:14b' no esta instalado. Disponibles: gemma4:latest, gemma4:e4b
+```
+
+**1. El `.env` no llegaba a todos los mundos.** `qwen3:14b` es el default hardcodeado del código —
+el modelo de la RTX 4090 — y el Mundo 1 **no sabe leer un `.env`**, porque esa capacidad se agregó
+después (en el orden de construcción, el commit de config es posterior al de la Fase 1).
+
+La solución es el `Makefile`: incluye el `.env` de la raíz y lo **exporta**, así los ocho mundos ven
+el mismo modelo sin repetir nada y sin tocar el código de ninguno. Un solo lugar de configuración
+para ocho proyectos.
+
+**2. El default era una opinión sobre otra máquina.** Se arregló en `providers/ollama.py`, que es
+**byte-idéntico en los ocho**, así que un solo parche alcanzó (`scripts/patch_provider.py`, aplicado
+por `make build`):
+
+- si alguien pidió un modelo **explícitamente** (`LOCALFORGE_MODEL` en el entorno) y no está, es un
+  error: pidió *ese*;
+- si venimos con el **default del código**, se busca el primer modelo instalado que soporte tool
+  calling — vía `/api/show`, que lista las `capabilities` — y se anuncia la sustitución:
+
+```
+  model              gemma4:latest
+  nota               'qwen3:14b' no esta instalado; se usa 'gemma4:latest'
+```
+
+- si **ninguno** soporta tools, el error lo dice y sugiere qué instalar. Sin `tools` el harness no
+  puede funcionar: el modelo nunca pediría una herramienta y el loop terminaría en el primer turno
+  sin haber mirado nada.
+
+**Verificado end-to-end:** `make ask WORLD=1 Q="Que hace la clase AgentHarness?"` corre con
+`gemma4:e4b`, lee archivos y responde citando líneas. En el camino el agente adivinó mal una ruta,
+el error le listó qué había en ese directorio, y se corrigió solo — el diseño de "el error vuelve
+como feedback" de la Fase 1, contra un modelo real.
 
 ---
 

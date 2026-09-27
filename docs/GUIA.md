@@ -98,9 +98,7 @@ Y tres trucos que sirven siempre:
 No leas código todavía. Mirá qué hace.
 
 ```bash
-cd worlds/1-foundations-w1
-uv sync --extra dev
-uv run lfw1 ask . "Que hace la clase AgentHarness?"
+make ask WORLD=1 Q="Que hace la clase AgentHarness?"
 ```
 
 Vas a ver algo así:
@@ -766,7 +764,7 @@ que agregás es un método que todo backend futuro tiene que implementar.
 > Esa clase también explica por qué esto decide si tu agente es testeable: el `ScriptedProvider`
 > de `tests/test_loop.py` existe gracias a este Protocol.
 
-### 4.1 — Inventar los `call_id` (línea 83)
+### 4.1 — Inventar los `call_id` (línea 123)
 
 ```python
 def _next_call_id(self) -> str:
@@ -795,7 +793,7 @@ proveedor — que es todo el punto de tener un `Protocol`.
 > explícitamente porque usa APIs que sí devuelven ids: **es un hallazgo propio de LocalForge**, y
 > está documentado en `PROJECT_STATE.md` → *Modelo local → Limitaciones encontradas*.
 
-### 4.2 — `num_ctx` explícito (línea 104)
+### 4.2 — `num_ctx` explícito (línea 144)
 
 ```python
 options: dict[str, Any] = {"num_ctx": self.cfg.num_ctx}
@@ -811,7 +809,7 @@ Por eso se fija explícito en cada request en vez de confiar en el default del m
 > acción individual es razonable, lo que se perdió es el marco. Es el fallo más difícil de
 > diagnosticar de los agentes largos.
 
-### 4.3 — `done_reason` no alcanza (líneas 176-181)
+### 4.3 — `done_reason` no alcanza (líneas 216-221)
 
 ```python
 stop = _STOP_MAP.get(done_reason, StopReason.UNKNOWN)
@@ -953,8 +951,7 @@ en orden, se completan cuando se destraba lo que las bloquea.**
 ### Experimento 6 — Rompé el presupuesto
 
 ```bash
-cd worlds/2-context-w2
-LOCALFORGE_NUM_CTX=6000 uv run lfw2 ask . "explicame la arquitectura" -v
+make ask WORLD=2 Q="explicame la arquitectura" FLAGS="-v" LOCALFORGE_NUM_CTX=6000
 ```
 
 Mirá la línea `ctx:` por turno y el `compactado N obs` en amarillo. Seguí bajando: en algún punto
@@ -1023,7 +1020,7 @@ por:
 by_id = {c.id: r for c, r in zip(response.tool_calls, sorted(results, key=lambda r: r.duration_ms))}
 ```
 
-Corré, desde `worlds/8-multiagent-w8`: `uv run lfw8 ask . "Compara cli.py con models.py"`
+Corré: `make ask WORLD=8 Q="Compara cli.py con models.py"`
 
 **Qué vas a ver:** el modelo describe un archivo con el contenido de otro. Sin errores. Sin logs.
 Una respuesta perfectamente coherente y completamente falsa.
@@ -1038,7 +1035,7 @@ prompt, probás otro modelo, subís el contexto — y nunca lo encontrás.
 ### Experimento 2 — Ahogar el contexto
 
 ```bash
-LOCALFORGE_NUM_CTX=2048 uv run lfw8 ask . "Explicame el proyecto"
+make ask WORLD=8 Q="Explicame el proyecto" LOCALFORGE_NUM_CTX=2048
 ```
 
 **Qué vas a ver:** el agente se comporta raro, ignora las herramientas o responde cualquier cosa.
@@ -1054,7 +1051,7 @@ Corré el agente sobre un repo con archivos grandes y mirá cómo crece `input_t
 
 ```bash
 git show a3d4a02:localforge/harness/prompt.py > localforge/harness/prompt.py
-uv run lfw8 ask . "Explicame la arquitectura"
+make ask WORLD=8 Q="Explicame la arquitectura"
 ```
 
 **Qué vas a ver:** el agente responde leyendo **cero archivos**, inventando a partir de los
@@ -1065,7 +1062,7 @@ Después: `git checkout localforge/harness/prompt.py`
 ### Experimento 5 — Terminación
 
 ```bash
-uv run lfw8 ask . "Analiza todo el proyecto en detalle" --max-turns 1
+make ask WORLD=8 Q="Analiza todo el proyecto en detalle" FLAGS="--max-turns 1"
 ```
 
 **Qué vas a ver:** `failed (max_turns)` — un final **explícito y con motivo**, no un cuelgue.
