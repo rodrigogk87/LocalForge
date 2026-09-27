@@ -2,6 +2,22 @@ version = 1
 revision = 3
 requires-python = ">=3.12"
 
+[manifest]
+members = [
+    "localforge-agents",
+    "localforge-cli",
+    "localforge-context",
+    "localforge-core",
+    "localforge-durable",
+    "localforge-evals",
+    "localforge-harness",
+    "localforge-providers",
+    "localforge-sandbox",
+    "localforge-skills",
+    "localforge-tools",
+    "localforge-workspace",
+]
+
 [[package]]
 name = "annotated-types"
 version = "0.8.0"
@@ -98,12 +114,190 @@ wheels = [
 ]
 
 [[package]]
-name = "localforge"
+name = "localforge-agents"
 version = "0.1.0"
-source = { editable = "." }
+source = { editable = "packages/agents" }
+dependencies = [
+    { name = "localforge-core" },
+    { name = "localforge-harness" },
+    { name = "localforge-providers" },
+    { name = "localforge-sandbox" },
+    { name = "localforge-tools" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "localforge-core", editable = "packages/core" },
+    { name = "localforge-harness", editable = "packages/harness" },
+    { name = "localforge-providers", editable = "packages/providers" },
+    { name = "localforge-sandbox", editable = "packages/sandbox" },
+    { name = "localforge-tools", editable = "packages/tools" },
+    { name = "pydantic", specifier = ">=2.9" },
+]
+
+[[package]]
+name = "localforge-cli"
+version = "0.1.0"
+source = { editable = "packages/cli" }
+dependencies = [
+    { name = "localforge-agents" },
+    { name = "localforge-context" },
+    { name = "localforge-core" },
+    { name = "localforge-durable" },
+    { name = "localforge-evals" },
+    { name = "localforge-harness" },
+    { name = "localforge-providers" },
+    { name = "localforge-sandbox" },
+    { name = "localforge-tools" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "localforge-agents", editable = "packages/agents" },
+    { name = "localforge-context", editable = "packages/context" },
+    { name = "localforge-core", editable = "packages/core" },
+    { name = "localforge-durable", editable = "packages/durable" },
+    { name = "localforge-evals", editable = "packages/evals" },
+    { name = "localforge-harness", editable = "packages/harness" },
+    { name = "localforge-providers", editable = "packages/providers" },
+    { name = "localforge-sandbox", editable = "packages/sandbox" },
+    { name = "localforge-tools", editable = "packages/tools" },
+]
+
+[[package]]
+name = "localforge-context"
+version = "0.1.0"
+source = { editable = "packages/context" }
+dependencies = [
+    { name = "localforge-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "localforge-core", editable = "packages/core" }]
+
+[[package]]
+name = "localforge-core"
+version = "0.1.0"
+source = { editable = "packages/core" }
+dependencies = [
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pydantic", specifier = ">=2.9" }]
+
+[[package]]
+name = "localforge-durable"
+version = "0.1.0"
+source = { editable = "packages/durable" }
+dependencies = [
+    { name = "localforge-core" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "localforge-core", editable = "packages/core" },
+    { name = "pydantic", specifier = ">=2.9" },
+]
+
+[[package]]
+name = "localforge-evals"
+version = "0.1.0"
+source = { editable = "packages/evals" }
+dependencies = [
+    { name = "localforge-core" },
+    { name = "localforge-harness" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "localforge-core", editable = "packages/core" },
+    { name = "localforge-harness", editable = "packages/harness" },
+]
+
+[[package]]
+name = "localforge-harness"
+version = "0.1.0"
+source = { editable = "packages/harness" }
+dependencies = [
+    { name = "localforge-context" },
+    { name = "localforge-core" },
+    { name = "localforge-durable" },
+    { name = "localforge-providers" },
+    { name = "localforge-sandbox" },
+    { name = "localforge-skills" },
+    { name = "localforge-tools" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "localforge-context", editable = "packages/context" },
+    { name = "localforge-core", editable = "packages/core" },
+    { name = "localforge-durable", editable = "packages/durable" },
+    { name = "localforge-providers", editable = "packages/providers" },
+    { name = "localforge-sandbox", editable = "packages/sandbox" },
+    { name = "localforge-skills", editable = "packages/skills" },
+    { name = "localforge-tools", editable = "packages/tools" },
+]
+
+[[package]]
+name = "localforge-providers"
+version = "0.1.0"
+source = { editable = "packages/providers" }
 dependencies = [
     { name = "httpx" },
+    { name = "localforge-core" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "localforge-core", editable = "packages/core" },
+]
+
+[[package]]
+name = "localforge-sandbox"
+version = "0.1.0"
+source = { editable = "packages/sandbox" }
+dependencies = [
+    { name = "localforge-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "localforge-core", editable = "packages/core" }]
+
+[[package]]
+name = "localforge-skills"
+version = "0.1.0"
+source = { editable = "packages/skills" }
+
+[[package]]
+name = "localforge-tools"
+version = "0.1.0"
+source = { editable = "packages/tools" }
+dependencies = [
+    { name = "localforge-core" },
+    { name = "localforge-sandbox" },
+    { name = "localforge-skills" },
     { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "localforge-core", editable = "packages/core" },
+    { name = "localforge-sandbox", editable = "packages/sandbox" },
+    { name = "localforge-skills", editable = "packages/skills" },
+    { name = "pydantic", specifier = ">=2.9" },
+]
+
+[[package]]
+name = "localforge-workspace"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "localforge-cli" },
 ]
 
 [package.optional-dependencies]
@@ -114,8 +308,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "httpx", specifier = ">=0.27" },
-    { name = "pydantic", specifier = ">=2.9" },
+    { name = "localforge-cli", editable = "packages/cli" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.3" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.24" },
 ]

@@ -1,7 +1,7 @@
 """Ruteo: argparse y nada mas.
 
     localforge health
-    localforge ask <repo> "<objetivo>" [--save] [--read-only]
+    localforge ask <repo> "<objetivo>" [--save] [--read-only] [--delegate]
     localforge resume <id>
     localforge runs
     localforge eval [repo]
@@ -32,6 +32,11 @@ def main() -> int:
         help="Deniega toda tool con efectos sin preguntar. Para repos que no son tuyos.",
     )
     ask.add_argument(
+        "--delegate",
+        action="store_true",
+        help="Habilita la tool `delegate`: el agente puede abrir subagentes con contexto propio.",
+    )
+    ask.add_argument(
         "--save",
         action="store_true",
         help="Guarda un checkpoint por turno para poder retomar con `resume`.",
@@ -60,6 +65,7 @@ def main() -> int:
                 max_turns=args.max_turns,
                 read_only=args.read_only,
                 save=args.save,
+                delegate=args.delegate,
             )
         )
     if args.command == "resume":

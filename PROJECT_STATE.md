@@ -92,7 +92,8 @@ respuesta final` funciona. Evidencia reproducible más abajo.
 | **Skills con progressive disclosure** | ✅ Fase 4, con tests |
 | **Subagentes con contexto aislado** | ✅ Fase 8, con tests |
 | **Referencias de las guías verificadas contra el código** | ✅ con tests |
-| Suite de tests | ✅ 194 passed |
+| **Workspace: un subproyecto por mundo, deps verificadas** | ✅ con tests |
+| Suite de tests | ✅ 253 passed |
 
 ### Evidencia de la verificación (2026-09-19)
 
@@ -105,9 +106,9 @@ Comando: `uv run localforge ask . "Explicame la arquitectura de este proyecto...
 [   0.8s]   ✓ list_files 564 chars
 [   0.8s] ── turno 2
 [   2.1s]   modelo: tool_use · 1134→117 tok | 1.4s
-[   2.1s]   → read_file(path='src/localforge/cli/', limit=100, offset=0)
-[   2.1s]   → read_file(path='src/localforge/models.py', limit=100, offset=0)
-[   2.1s]   → read_file(path='src/localforge/harness/loop.py', limit=100, offset=0)
+[   2.1s]   → read_file(path='localforge/cli/', limit=100, offset=0)
+[   2.1s]   → read_file(path='localforge/models.py', limit=100, offset=0)
+[   2.1s]   → read_file(path='localforge/harness/loop.py', limit=100, offset=0)
 [   2.1s]   ✓ read_file 3888 chars   ← los tres completan a la vez:
 [   2.1s]   ✓ read_file 3735 chars      ejecucion paralela confirmada
 [   2.1s]   ✓ read_file 4248 chars
@@ -189,58 +190,78 @@ Esa asimetría es el punto donde en la Fase 5 se enchufan permisos y sandbox sin
 
 ## Estructura relevante del repositorio
 
-**Reorganizada el 2026-09-27: un paquete por mundo del roadmap.** Antes `harness/` era un cajón de
-sastre con siete archivos de cuatro mundos distintos, y `evals/` y `cli.py` pasaban las 450 líneas.
+**2026-09-27: un subproyecto de `uv` por mundo.** Cada uno declara sus propias dependencias, y eso
+es lo que vuelve **imposible** el import circular que este proyecto ya tuvo.
 
 ```
 LocalForge/
-├── PROJECT_STATE.md              ← este archivo (fuente de verdad)
-├── README.md · .env.example · pyproject.toml
-├── src/localforge/
-│   ├── models.py                 TODO el modelo de datos. Leer PRIMERO.
-│   ├── config.py                 Settings desde .env + env vars
-│   │
-│   ├── providers/                inferencia          base.py · ollama.py
-│   ├── sandbox/            W5    permissions.py · approvers.py
-│   ├── tools/              W1    base.py · fs.py · search.py · skill.py
-│   ├── context/            W2    tokens.py · layers.py · builder.py
-│   ├── skills/             W4    discovery.py
-│   ├── harness/           W1+W3  loop.py · prompt.py · state.py · verify.py
-│   ├── durable/            W6    checkpoint.py
-│   ├── agents/             W8    subagent.py
-│   ├── evals/              W7    checks.py · dataset.py · runner.py · report.py
-│   └── cli/                      app.py · commands.py · console.py
-├── tests/                        8 archivos, 184 tests
+├── pyproject.toml           raíz del workspace — NO es un paquete
+├── uv.lock                  un lockfile para los once
+├── packages/
+│   ├── core/          localforge-core       models.py · config.py        → pydantic
+│   ├── providers/     localforge-providers  providers/                   → core, httpx
+│   ├── sandbox/  W5   localforge-sandbox    permissions · approvers      → core
+│   ├── skills/   W4   localforge-skills     discovery.py                 → (nada)
+│   ├── context/  W2   localforge-context    tokens · layers · builder    → core
+│   ├── durable/  W6   localforge-durable    checkpoint.py                → core
+│   ├── tools/  W1+W4  localforge-tools      base · fs · search · skill   → core, sandbox, skills
+│   ├── harness/W1+W3  localforge-harness    loop · prompt · state ·      → los siete de arriba
+│   │                                        verify                          (es el INTEGRADOR)
+│   ├── agents/   W8   localforge-agents     subagent.py                  → harness, tools, …
+│   ├── evals/    W7   localforge-evals      checks · dataset · runner ·   → core, harness
+│   │                                        report
+│   └── cli/           localforge-cli        app · commands · console     → todos
+├── tests/                   253 tests, testean el conjunto
 └── docs/
-    ├── GUIA.md                   recorrido por mundos
-    ├── guia-web.html             la misma guía, deployada
-    └── dev-log/
 ```
 
-### La regla que ordena el layout
+Todos montan sus módulos bajo el mismo `localforge.` con `namespace = true` (PEP 420), así que
+**los imports no cambiaron**: sigue siendo `from localforge.models import AgentTask`. Por eso
+`localforge/__init__.py` **no existe** — un `__init__.py` en la raíz del namespace rompe la fusión y
+sólo se vería el subproyecto que lo trae.
 
-**Las dependencias van en una sola dirección**, y eso es lo que decide dónde va cada cosa:
+### Por qué el grafo no es `w1 → w2 → w3`
+
+Porque cada mundo posterior **modificó** archivos de los anteriores. `harness/loop.py` —el archivo
+"de W1"— importa de W2, W4, W5 y W6; `tools/base.py` importa de W5. El layering real es:
 
 ```
-models · config  →  sandbox  →  tools  →  harness  →  agents
-                    context  ↗   skills ↗    evals  ↗
+core · skills  →  providers · sandbox · context · durable  →  tools  →  harness  →  agents · evals  →  cli
 ```
 
-`models.py` y `config.py` quedan en la raíz, sin paquete, porque son el vocabulario que **todo**
-importa: meterlos en un `core/` agregaría un nivel sin agregar información.
+`harness` es explícitamente **el integrador**: siete dependencias, porque el loop es donde los
+mundos se encuentran.
 
-Dos casos concretos donde la regla no es teórica:
+### El enforcement, y cuál es la invocación que de verdad aísla
 
-- **`sandbox/` no puede vivir dentro de `harness/`.** `tools/base.py` necesita los permisos para
-  autorizar antes de ejecutar, y `harness/` necesita a `tools/`. Cuando `sandbox/permissions.py` estaba en
-  `harness/`, el import era circular — y los 85 tests de entonces pasaban igual, porque la suite
-  importaba en un orden que funcionaba.
-- **`agents/` está ARRIBA de `harness/`.** Un subagente *construye* un `AgentHarness`, y el harness
-  no sabe que existen los subagentes. Mientras `subagent.py` vivía dentro de `harness/` había que
-  importar el loop de forma diferida para no cerrar el ciclo; ahora es un import normal al tope.
+```bash
+uv sync --extra dev                       # todo el workspace en un env
+uv sync --package localforge-tools        # PODA: un env con SOLO tools y sus deps
+uv run pytest -q                          # los 253 tests
+```
 
-**Orden de lectura recomendado para un agente nuevo:**
-`models.py` → `harness/loop.py` → `tools/base.py` → `providers/ollama.py` → `context/builder.py`
+**Ojo con esto, que me equivoqué al medirlo la primera vez:** `uv run --package X` **no** aísla —
+reusa el env compartido y un import no declarado sigue funcionando. La que poda es
+`uv sync --package X`. Verificado:
+
+| env | ve | no ve |
+|---|---|---|
+| `localforge-core` | `models`, `config` | `tools`, `harness`, `sandbox` |
+| `localforge-tools` | `core`, `sandbox`, `skills` | `harness`, `evals` |
+
+Y como armar once envs tarda, `tests/test_workspace.py` da la misma garantía leyendo el AST: falla si
+un subproyecto importa algo que no declara, si declara algo que no importa, o si el grafo tiene un
+ciclo. Más la forma del workspace: nombres, `namespace = true`, que no haya `__init__.py` en la raíz,
+y que ninguna dependencia externa nueva se cuele (sólo `pydantic` y `httpx`).
+
+### Lo que el workspace destapó de entrada
+
+`localforge-agents` no se instalaba, porque **la CLI nunca importaba `agents`**: `delegate` existía,
+tenía tests, y no había forma de usarlo desde la línea de comandos. El `ruff --fix` había sacado el
+import como "sin usar" cuando partí `cli.py`, y nada lo notó. Ahora hay `localforge ask ... --delegate`.
+
+**Orden de lectura recomendado:** `core/models.py` → `harness/loop.py` → `tools/base.py` →
+`providers/ollama.py` → `context/builder.py`
 
 ---
 
@@ -303,7 +324,7 @@ cualquier repo mediano. Ver `.env` (no commiteado): 35 turnos y 900s.
 
 ## Agent Loop
 
-`src/localforge/harness/loop.py` → `AgentHarness.run(task)`
+`localforge/harness/loop.py` → `AgentHarness.run(task)`
 
 ### Cómo funciona
 
@@ -368,7 +389,7 @@ en el M1, ante *"¿dónde se valida que una ruta no escape del workspace?"*, el 
 abrió `cli.py` (mal), lo leyó dos veces, nunca encontró `safe_path` en `tools/fs.py` y contestó con
 *"el más probable lugar"* — la palabra que el prompt prohíbe. El prompt no era el problema: no
 existía la herramienta para responder esa pregunta. Hoy `search_code(pattern="safe_path")` devuelve
-`src/localforge/tools/fs.py:31  def safe_path(...)` en una llamada.
+`localforge/tools/fs.py:31  def safe_path(...)` en una llamada.
 
 El orden del registry es deliberado: `list_files` → `search_code` → `read_file`, que son las tres
 operaciones de una investigación de código en el orden en que se usan.
@@ -391,7 +412,7 @@ archivo inexistente → lista los vecinos del directorio).
 
 ## Persistencia
 
-**Fase 6 implementada (2026-09-26).** `src/localforge/durable/checkpoint.py`.
+**Fase 6 implementada (2026-09-26).** `localforge/durable/checkpoint.py`.
 
 Desde la Fase 1 el loop tenía un comentario diciendo que su estado local *"es exactamente lo que en
 la Fase 6 se serializa en un checkpoint"*. Se pudo cobrar esa promesa por una sola razón: **el
@@ -441,7 +462,7 @@ de correr el agente. Sin `--save`, el comportamiento es idéntico al de antes.
 
 ## Context Management
 
-**Fase 2 — primera porción implementada (2026-09-26).** `src/localforge/context/builder.py`.
+**Fase 2 — primera porción implementada (2026-09-26).** `localforge/context/builder.py`.
 
 El contexto dejó de ser una lista que crece y pasó a ser una **asignación que se recalcula por
 turno**. El loop sigue siendo dueño del state completo (`messages`); lo que viaja al provider es
@@ -507,7 +528,7 @@ problema que evita.
 
 ## Seguridad
 
-**Fase 5, permisos: implementados (2026-09-26).** `src/localforge/sandbox/permissions.py`.
+**Fase 5, permisos: implementados (2026-09-26).** `localforge/sandbox/permissions.py`.
 
 El harness ya tenía la asimetría correcta desde la Fase 1 — **el modelo propone, el harness
 ejecuta** — y `tools/base.py` decía en su docstring que ahí se enchufarían los permisos. Se
@@ -577,7 +598,7 @@ el permiso.
 
 ## Verificación
 
-**Fase 3 implementada (2026-09-26).** `src/localforge/harness/verify.py` y `harness/state.py`.
+**Fase 3 implementada (2026-09-26).** `localforge/harness/verify.py` y `harness/state.py`.
 
 Hasta acá, cuando el modelo dejaba de pedir tools el harness aceptaba su respuesta. O sea que
 **el modelo era juez de su propio trabajo.** El verifier mueve esa decisión al harness, que puede
@@ -655,7 +676,7 @@ son de lectura, pero deja de serlo el día que exista `write_file`.
 
 ## Evals
 
-**Fase 7 implementada (2026-09-26).** `src/localforge/evals/`.
+**Fase 7 implementada (2026-09-26).** `localforge/evals/`.
 
 Los 159 tests testean el **harness**: que el loop termine, que un permiso deniegue, que un
 checkpoint se restaure. **Nada de eso dice si el agente es bueno.** Un agente puede pasar los 159 y
@@ -759,7 +780,7 @@ contra un límite de 10, y 17 contra 12. Subirlos sería honesto; bajar la exige
 
 ## Skills y extensibilidad (Fase 4)
 
-**Implementado (2026-09-26).** `src/localforge/skills/discovery.py` + `tools/skill.py`.
+**Implementado (2026-09-26).** `localforge/skills/discovery.py` + `tools/skill.py`.
 
 Una skill es un directorio con un `SKILL.md` (frontmatter `name`/`description` + cuerpo) en
 `.localforge/skills/` o `.claude/skills/`.
@@ -788,7 +809,7 @@ necesita un server MCP real contra el que hablar. Es un trabajo aparte, no una t
 
 ## Multi-agente (Fase 8)
 
-**Subagentes implementados (2026-09-26).** `src/localforge/agents/subagent.py`.
+**Subagentes implementados (2026-09-26).** `localforge/agents/subagent.py`.
 
 Es la pieza que la Fase 2 dejó pendiente por escrito: *"aislamiento de contexto necesita
 subagentes, que son W8"*.
@@ -843,7 +864,7 @@ y en el código, y nada los ata.
 
 ```json
 "correlation": {
-  "src": "src/localforge/harness/loop.py",
+  "src": "localforge/harness/loop.py",
   "from": "by_id = {r.call_id",
   "to": "raise RuntimeError(f\"faltan tool results para:"
 }
@@ -1034,6 +1055,7 @@ curl -s http://localhost:11434/api/version
 # --- LocalForge ---
 cd ~/Desktop/LocalForge
 uv sync --extra dev
+uv sync --package localforge-tools   # un env con solo ese subproyecto
 uv run localforge health
 uv run localforge ask . "Explicame este proyecto"
 uv run localforge ask ../agent-harness-lab "¿Cómo está organizado el contenido?" -v
@@ -1058,7 +1080,7 @@ uv run localforge resume <id>
 
 **Si estás retomando este proyecto, empezá por:**
 
-1. Leer `src/localforge/models.py` y `src/localforge/harness/loop.py`. Son ~450 líneas y contienen
+1. Leer `localforge/models.py` y `localforge/harness/loop.py`. Son ~450 líneas y contienen
    todo el diseño. Los comentarios explican el *por qué* de cada decisión.
 2. Correr `uv run pytest -q` — deben pasar 24 tests.
 3. Correr `uv run localforge health` — debe reportar el modelo instalado.

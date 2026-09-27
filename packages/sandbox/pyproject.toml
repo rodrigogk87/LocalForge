@@ -1,0 +1,26 @@
+# Mundo 5: permisos ALLOW/ASK/DENY y aprobacion.
+#
+# Las dependencias de abajo NO son decorativas: si este paquete importa algo que
+# no declara, `uv run --package localforge-sandbox` falla con ModuleNotFoundError.
+# Es lo que hace imposible el import circular que este proyecto ya tuvo una vez.
+[project]
+name = "localforge-sandbox"
+version = "0.1.0"
+description = "Mundo 5: permisos ALLOW/ASK/DENY y aprobacion."
+requires-python = ">=3.12"
+dependencies = [
+    "localforge-core",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.10,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "localforge.sandbox"
+# namespace: los once paquetes montan sus modulos bajo el mismo `localforge.`
+# sin que ninguno sea dueño del paquete raiz (PEP 420).
+namespace = true
+
+[tool.uv.sources]
+localforge-core = { workspace = true }

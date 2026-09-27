@@ -60,13 +60,23 @@ def test_todo_anclaje_se_encuentra_en_su_archivo() -> None:
     assert not perdidos, "anclajes perdidos:\n  " + "\n  ".join(perdidos)
 
 
+def _existe(ruta_de_import: str) -> bool:
+    """¿Existe `localforge/harness/loop.py` en alguno de los subproyectos?
+
+    Las guias citan la ruta de IMPORT y no la del filesystem, porque es mas
+    corta y no cambia si un subproyecto se renombra. La real vive en
+    `packages/<sub>/src/`, y este helper la busca ahi.
+    """
+    return any((ROOT / "packages").glob(f"*/src/{ruta_de_import}"))
+
+
 @pytest.mark.parametrize("doc", ["guia-web.html", "GUIA.md"])
 def test_toda_ruta_de_codigo_citada_en_las_guias_existe(doc: str) -> None:
     """Atrapa la mudanza de un archivo, que es lo que mas duele: un numero viejo
     apunta a otro lado, una ruta vieja no apunta a ningun lado."""
     texto = (DOCS / doc).read_text(encoding="utf-8")
-    rutas = set(re.findall(r"src/localforge/[\w/]+\.py", texto))
-    faltan = sorted(r for r in rutas if not (ROOT / r).is_file())
+    rutas = set(re.findall(r"localforge/[\w/]+\.py", texto))
+    faltan = sorted(r for r in rutas if not _existe(r))
     assert not faltan, f"{doc} cita archivos que no existen: {faltan}"
 
 

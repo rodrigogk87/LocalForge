@@ -9,6 +9,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+from localforge.agents import registry_with_subagents
 from localforge.cli.console import (
     BAD_MARK,
     DIM,
@@ -70,6 +71,7 @@ async def cmd_ask(
     max_turns: int,
     read_only: bool = False,
     save: bool = False,
+    delegate: bool = False,
 ) -> int:
     repo_path = Path(repo).expanduser().resolve()
     if not repo_path.is_dir():
@@ -84,14 +86,22 @@ async def cmd_ask(
         await provider.aclose()
         return 1
 
-    registry = default_registry()
     policy = read_only_policy() if read_only else default_policy()
+    approver = build_approver(read_only)
+    # Con --delegate el registry suma la tool `delegate`, que arma un subagente
+    # con su propio contexto. Es opt-in porque multiplica el costo: cada
+    # delegacion es un agente entero corriendo.
+    registry = (
+        registry_with_subagents(provider, cfg=settings, policy=policy, approver=approver)
+        if delegate
+        else default_registry()
+    )
     harness = AgentHarness(
         provider,
         registry,
         on_event=ConsoleSink(verbose),
         policy=policy,
-        approver=build_approver(read_only),
+        approver=approver,
         checkpoints=FileCheckpointStore(settings.state_dir) if save else None,
     )
 
@@ -108,6 +118,8 @@ async def cmd_ask(
     print(f"{c('tools', DIM)}  {', '.join(registry.names())}")
     modo = "solo lectura" if read_only else f"default (ASK -> {'consola' if sys.stdin.isatty() else 'denegado, sin TTY'})"
     print(f"{c('permisos', DIM)} {modo}")
+    if delegate:
+        print(f"{c('delegar', DIM)}  activado (cada subagente corre en su propio contexto)")
     print(f"{c('tarea', DIM)}  {objective}")
     if save:
         print(f"{c('run id', DIM)} {task.id}  {c('(localforge resume <id> para retomar)', DIM)}")

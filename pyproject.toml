@@ -1,13 +1,18 @@
+# Raiz del workspace. NO es un paquete: solo declara los miembros y las
+# dependencias de desarrollo. El codigo vive en packages/, un subproyecto por
+# mundo, cada uno con sus propias dependencias.
+#
+#   uv sync                              todo el workspace en un env
+#   uv run --package localforge-tools    un env con SOLO tools y sus deps
+#   uv run pytest -q                     los tests, que testean el conjunto
 [project]
-name = "localforge"
+name = "localforge-workspace"
 version = "0.1.0"
 description = "Coding agent local sobre LLM propio. Harness explicito, sin frameworks de agentes."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [
-    "pydantic>=2.9",
-    "httpx>=0.27",
-]
+# Depender del cli alcanza: arrastra los otros diez por transitividad.
+dependencies = ["localforge-cli"]
 
 [project.optional-dependencies]
 dev = [
@@ -15,16 +20,25 @@ dev = [
     "pytest-asyncio>=0.24",
 ]
 
-[project.scripts]
-localforge = "localforge.cli:main"
+[tool.uv.workspace]
+members = ["packages/*"]
 
-[build-system]
-requires = ["uv_build>=0.12.10,<0.13.0"]
-build-backend = "uv_build"
+[tool.uv.sources]
+localforge-agents = { workspace = true }
+localforge-cli = { workspace = true }
+localforge-context = { workspace = true }
+localforge-core = { workspace = true }
+localforge-durable = { workspace = true }
+localforge-evals = { workspace = true }
+localforge-harness = { workspace = true }
+localforge-providers = { workspace = true }
+localforge-sandbox = { workspace = true }
+localforge-skills = { workspace = true }
+localforge-tools = { workspace = true }
+
+[tool.uv]
+package = false
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-
-[tool.uv]
-package = true

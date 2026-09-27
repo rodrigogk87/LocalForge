@@ -73,6 +73,12 @@ listar `tools` en *Capabilities*.
 
 ## Arquitectura
 
+El código son **once subproyectos de `uv`**, uno por mundo del roadmap, cada uno con sus propias
+dependencias. Los imports no cambian (`from localforge.models import ...`) porque todos montan bajo
+el mismo namespace, pero un subproyecto que importa algo que no declara **falla**: es lo que evita
+que vuelva el import circular que el proyecto ya tuvo. `uv sync --package localforge-tools` te deja
+un env con sólo ese subtree.
+
 ```
 usuario → CLI → AgentHarness → ModelProvider → LLM local
                      ↓
@@ -89,5 +95,5 @@ Agregar `LlamaCppProvider` u `OpenAIProvider` no toca el loop.
 ## Tests
 
 ```bash
-uv run pytest -q     # 184 tests
+uv run pytest -q     # 253 tests
 ```

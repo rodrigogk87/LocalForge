@@ -3,161 +3,163 @@
     "Anclajes de las referencias al codigo que hacen las guias.",
     "Cada entrada dice QUE simbolo se cita, no en que linea esta: el numero de",
     "linea lo calcula scripts/sync_code_refs.py y lo escribe en los documentos.",
-    "Asi, cuando el codigo se mueve, se corre el script en vez de buscar a mano.",
+    "`src` es la ruta REAL en disco (packages/<sub>/src/...); las guias muestran",
+    "la ruta de IMPORT (localforge/...), que es mas corta y no cambia si un",
+    "subproyecto se renombra.",
     "`from` solo -> 'linea N'. `from`+`to` -> 'lineas N-M'. `pair` -> 'lineas N y M'."
   ],
   "refs": {
     "enums": {
-      "src": "src/localforge/models.py",
+      "src": "packages/core/src/localforge/models.py",
       "from": "class AgentStatus",
       "to": "CONTEXT_OVERFLOW = \"context_overflow\""
     },
     "toolcall": {
-      "src": "src/localforge/models.py",
+      "src": "packages/core/src/localforge/models.py",
       "pair": [
         "class ToolCall",
         "class ToolResult"
       ]
     },
     "coherent": {
-      "src": "src/localforge/models.py",
+      "src": "packages/core/src/localforge/models.py",
       "from": "def _coherent"
     },
     "as-content": {
-      "src": "src/localforge/models.py",
+      "src": "packages/core/src/localforge/models.py",
       "from": "def as_content"
     },
     "agent-task": {
-      "src": "src/localforge/models.py",
+      "src": "packages/core/src/localforge/models.py",
       "from": "class AgentTask"
     },
     "agent-outcome": {
-      "src": "src/localforge/models.py",
+      "src": "packages/core/src/localforge/models.py",
       "from": "class AgentOutcome"
     },
     "task-outcome": {
-      "src": "src/localforge/models.py",
+      "src": "packages/core/src/localforge/models.py",
       "pair": [
         "class AgentTask",
         "class AgentOutcome"
       ]
     },
     "loop-state": {
-      "src": "src/localforge/harness/loop.py",
+      "src": "packages/harness/src/localforge/harness/loop.py",
       "from": "messages: list[AgentMessage] = [AgentMessage",
       "to": "records: list[TurnRecord] = []"
     },
     "budgets-pre": {
-      "src": "src/localforge/harness/loop.py",
+      "src": "packages/harness/src/localforge/harness/loop.py",
       "from": "remaining = deadline - time.monotonic()",
       "to": "if tokens_in + tokens_out > task.token_budget"
     },
     "budget-compo": {
-      "src": "src/localforge/harness/loop.py",
+      "src": "packages/harness/src/localforge/harness/loop.py",
       "from": "timeout=min(self.cfg.request_timeout_s, remaining)"
     },
     "budgets-all": {
-      "src": "src/localforge/harness/loop.py",
+      "src": "packages/harness/src/localforge/harness/loop.py",
       "from": "remaining = deadline - time.monotonic()",
       "to": "timeout=min(self.cfg.request_timeout_s, remaining)"
     },
     "max-tokens": {
-      "src": "src/localforge/harness/loop.py",
+      "src": "packages/harness/src/localforge/harness/loop.py",
       "from": "if response.stop_reason is StopReason.MAX_TOKENS",
       "to": "content=\"Tu respuesta quedo cortada. Continua.\""
     },
     "loop-detect": {
-      "src": "src/localforge/harness/loop.py",
+      "src": "packages/harness/src/localforge/harness/loop.py",
       "from": "key = _signature(call)",
       "to": "seen[key] >= REPEAT_LIMIT"
     },
     "msg-order": {
-      "src": "src/localforge/harness/loop.py",
+      "src": "packages/harness/src/localforge/harness/loop.py",
       "from": "role=\"assistant\", content=response.content, tool_calls=response.tool_calls"
     },
     "correlation": {
-      "src": "src/localforge/harness/loop.py",
+      "src": "packages/harness/src/localforge/harness/loop.py",
       "from": "by_id = {r.call_id",
       "to": "raise RuntimeError(f\"faltan tool results para:"
     },
     "loop-end": {
-      "src": "src/localforge/harness/loop.py",
+      "src": "packages/harness/src/localforge/harness/loop.py",
       "from": "reason=FailureReason.MAX_TURNS, turns=task.max_turns"
     },
     "definitions": {
-      "src": "src/localforge/tools/base.py",
+      "src": "packages/tools/src/localforge/tools/base.py",
       "from": "def definitions"
     },
     "run-one": {
-      "src": "src/localforge/tools/base.py",
+      "src": "packages/tools/src/localforge/tools/base.py",
       "from": "async def run_one",
       "to": "except Exception as exc:  # noqa: BLE001"
     },
     "except-exc": {
-      "src": "src/localforge/tools/base.py",
+      "src": "packages/tools/src/localforge/tools/base.py",
       "from": "except Exception as exc:  # noqa: BLE001"
     },
     "truncate": {
-      "src": "src/localforge/tools/base.py",
+      "src": "packages/tools/src/localforge/tools/base.py",
       "from": "def _truncate"
     },
     "call-id": {
-      "src": "src/localforge/providers/ollama.py",
+      "src": "packages/providers/src/localforge/providers/ollama.py",
       "from": "def _next_call_id"
     },
     "num-ctx": {
-      "src": "src/localforge/providers/ollama.py",
+      "src": "packages/providers/src/localforge/providers/ollama.py",
       "from": "options: dict[str, Any] = {\"num_ctx\""
     },
     "done-reason": {
-      "src": "src/localforge/providers/ollama.py",
+      "src": "packages/providers/src/localforge/providers/ollama.py",
       "from": "done_reason = str(data.get(\"done_reason\")",
       "to": "stop = StopReason.TOOL_USE"
     },
     "estimator": {
-      "src": "src/localforge/context/tokens.py",
+      "src": "packages/context/src/localforge/context/tokens.py",
       "from": "class TokenEstimator",
       "to": "def calibrated"
     },
     "layers": {
-      "src": "src/localforge/context/layers.py",
+      "src": "packages/context/src/localforge/context/layers.py",
       "from": "LAYER_ORDER = (",
       "to": "\"retrieved\","
     },
     "budget": {
-      "src": "src/localforge/context/builder.py",
+      "src": "packages/context/src/localforge/context/builder.py",
       "from": "class ContextBudget",
       "to": "def from_settings"
     },
     "compact": {
-      "src": "src/localforge/context/builder.py",
+      "src": "packages/context/src/localforge/context/builder.py",
       "from": "def _compact",
       "to": "return out, compacted, max(0, recovered)"
     },
     "state-graph": {
-      "src": "src/localforge/harness/state.py",
+      "src": "packages/harness/src/localforge/harness/state.py",
       "from": "_ALLOWED: dict[AgentStatus",
       "to": "_ABORTS = frozenset"
     },
     "evidence": {
-      "src": "src/localforge/harness/verify.py",
+      "src": "packages/harness/src/localforge/harness/verify.py",
       "from": "EVIDENCE_TOOLS = frozenset"
     },
     "sensitive": {
-      "src": "src/localforge/sandbox/permissions.py",
+      "src": "packages/sandbox/src/localforge/sandbox/permissions.py",
       "from": "SENSITIVE_GLOBS: tuple[str, ...] = ("
     },
     "atomic-write": {
-      "src": "src/localforge/durable/checkpoint.py",
+      "src": "packages/durable/src/localforge/durable/checkpoint.py",
       "from": "fd, tmp = tempfile.mkstemp",
       "to": "os.replace(tmp, target)"
     },
     "taxonomy": {
-      "src": "src/localforge/evals/report.py",
+      "src": "packages/evals/src/localforge/evals/report.py",
       "from": "def failure_taxonomy"
     },
     "depth-limit": {
-      "src": "src/localforge/agents/subagent.py",
+      "src": "packages/agents/src/localforge/agents/subagent.py",
       "from": "def build(depth: int)",
       "to": "return registry"
     }
@@ -206,11 +208,11 @@
     "6.4": "budget",
     "6.5": "compact"
   },
-  "file_badges": [
-    "src/localforge/models.py",
-    "src/localforge/harness/loop.py",
-    "src/localforge/tools/base.py",
-    "src/localforge/providers/ollama.py",
-    "src/localforge/context/builder.py"
-  ]
+  "file_badges": {
+    "localforge/models.py": "packages/core/src/localforge/models.py",
+    "localforge/harness/loop.py": "packages/harness/src/localforge/harness/loop.py",
+    "localforge/tools/base.py": "packages/tools/src/localforge/tools/base.py",
+    "localforge/providers/ollama.py": "packages/providers/src/localforge/providers/ollama.py",
+    "localforge/context/builder.py": "packages/context/src/localforge/context/builder.py"
+  }
 }

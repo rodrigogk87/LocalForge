@@ -101,11 +101,17 @@ def sync_md(text: str, mapping: dict, refs: dict) -> tuple[str, list[str]]:
     return re.sub(r"^### (\d+\.\d+) —(.*?)\((líneas? [^)]+)\)$", repl, text, flags=re.M), problemas
 
 
-def sync_badges(text: str, archivos: list[str]) -> tuple[str, list[str]]:
-    """Actualiza los `· N líneas` que acompañan a cada archivo citado."""
+def sync_badges(text: str, archivos: dict[str, str]) -> tuple[str, list[str]]:
+    """Actualiza los `· N líneas` que acompañan a cada archivo citado.
+
+    `archivos` mapea lo que el documento MUESTRA (la ruta de import,
+    `localforge/models.py`) a la ruta REAL en disco
+    (`packages/core/src/localforge/models.py`). Las guias muestran la de import
+    porque es mas corta y no cambia si un subproyecto se renombra.
+    """
     problemas: list[str] = []
-    for rel in archivos:
-        real = len((ROOT / rel).read_text(encoding="utf-8").splitlines())
+    for rel, ruta in archivos.items():
+        real = len((ROOT / ruta).read_text(encoding="utf-8").splitlines())
         for envoltura in (f"<b>{rel}</b>", f"`{rel}`"):
             pat = re.compile(re.escape(envoltura) + r" · (\d+) líneas")
             for m in pat.finditer(text):

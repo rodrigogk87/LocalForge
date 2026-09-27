@@ -110,7 +110,7 @@ Vas a ver algo así:
 [   0.8s]   ✓ list_files 564 chars
 [   0.8s] ── turno 2
 [   2.1s]   modelo: tool_use · 1134→117 tok | 1.4s
-[   2.1s]   → read_file(path='src/localforge/harness/loop.py')
+[   2.1s]   → read_file(path='localforge/harness/loop.py')
 [   2.1s]   ✓ read_file 4248 chars
 [   2.1s] ── turno 3
 [  12.8s]   modelo: end_turn · 4975→835 tok | 10.7s
@@ -189,7 +189,7 @@ máquina de estados, y esa sí es del Mundo 3.
 `tools/base.py` + `fs.py` (registry, executor, `list_files`, `read_file`) y `harness/loop.py` +
 `prompt.py` (el agent loop y el system prompt). No extiende nada: es el primero.
 
-📂 `src/localforge/models.py` (265 líneas)
+📂 `localforge/models.py` (265 líneas)
 
 Este archivo no *hace* nada: define las cosas que existen. Léelo primero porque todos los demás
 archivos usan estos nombres.
@@ -389,7 +389,7 @@ Deberías poder responder sin mirar:
 
 ## Mundo 1 · 2 de 4 — `harness/loop.py`: el corazón (40 min)
 
-📂 `src/localforge/harness/loop.py` (240 líneas)
+📂 `localforge/harness/loop.py` (240 líneas)
 
 Este es **el archivo más importante del proyecto**. Todo lo demás existe para servirlo.
 
@@ -647,7 +647,7 @@ que garantiza que, sea cual sea el camino, el loop siempre devuelve algo.
 
 ## Mundo 1 · 3 de 4 — `tools/base.py`: el borde de confianza (30 min)
 
-📂 `src/localforge/tools/base.py` (194 líneas)
+📂 `localforge/tools/base.py` (194 líneas)
 
 ### 3.1 — `definitions()` (línea 73)
 
@@ -744,7 +744,7 @@ El mensaje dice qué pasó **y cómo seguir**.
 
 ## Mundo 1 · 4 de 4 — `providers/ollama.py`: la suciedad del mundo real (30 min)
 
-📂 `src/localforge/providers/ollama.py` (209 líneas)
+📂 `localforge/providers/ollama.py` (209 líneas)
 
 Este archivo existe para que **el resto del proyecto no se entere** de las rarezas de Ollama.
 Es el único módulo que sabe que Ollama existe.
@@ -1045,14 +1045,14 @@ Corré el agente sobre un repo con archivos grandes y mirá cómo crece `input_t
 ### Experimento 4 — Volver al prompt sin grounding
 
 ```bash
-git show a3d4a02:src/localforge/harness/prompt.py > src/localforge/harness/prompt.py
+git show a3d4a02:localforge/harness/prompt.py > localforge/harness/prompt.py
 uv run localforge ask . "Explicame la arquitectura"
 ```
 
 **Qué vas a ver:** el agente responde leyendo **cero archivos**, inventando a partir de los
 nombres. Compará con el prompt actual y mirá qué cambió (`git diff`).
 
-Después: `git checkout src/localforge/harness/prompt.py`
+Después: `git checkout localforge/harness/prompt.py`
 
 ### Experimento 5 — Terminación
 

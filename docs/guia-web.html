@@ -459,7 +459,7 @@ uv run localforge ask . <span class="c">"Que hace la clase AgentHarness?"</span>
 <span class="c">[   0.8s]</span>   <span class="ok">✓</span> list_files 564 chars
 <span class="c">[   0.8s]</span> ── turno 2
 <span class="c">[   2.1s]</span>   modelo: tool_use · 1134→117 tok | 1.4s
-<span class="c">[   2.1s]</span>   <span class="ar">→</span> read_file(path='src/localforge/harness/loop.py')
+<span class="c">[   2.1s]</span>   <span class="ar">→</span> read_file(path='localforge/harness/loop.py')
 <span class="c">[   2.1s]</span>   <span class="ok">✓</span> read_file 4248 chars
 <span class="c">[   2.1s]</span> ── turno 3
 <span class="c">[  12.8s]</span>   modelo: end_turn · 4975→835 tok | 10.7s</pre>
@@ -616,7 +616,7 @@ uv run localforge ask . <span class="c">"Que hace la clase AgentHarness?"</span>
       <div class="sec-head prose" id="s1">
         <div class="kicker"><span class="num">MUNDO 1 · 1 de 4</span><span class="mins">30 min</span></div>
         <h2>El vocabulario</h2>
-        <div class="file">📂 <b>src/localforge/models.py</b> · 327 líneas</div>
+        <div class="file">📂 <b>localforge/models.py</b> · 327 líneas</div>
       </div>
 
       <div class="toca">
@@ -776,7 +776,7 @@ token_budget: int = Field(default=200_000, gt=0)</pre>
       <div class="sec-head prose" id="s2">
         <div class="kicker"><span class="num">MUNDO 1 · 2 de 4</span><span class="mins">40 min</span></div>
         <h2>El corazón</h2>
-        <div class="file">📂 <b>src/localforge/harness/loop.py</b> · 420 líneas</div>
+        <div class="file">📂 <b>localforge/harness/loop.py</b> · 420 líneas</div>
       </div>
 
       <p class="prose">Este es <strong>el archivo más importante del proyecto</strong>. Todo lo demás existe para servirlo.</p>
@@ -934,7 +934,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
       <div class="sec-head prose" id="s3">
         <div class="kicker"><span class="num">MUNDO 1 · 3 de 4</span><span class="mins">30 min</span></div>
         <h2>El borde de confianza</h2>
-        <div class="file">📂 <b>src/localforge/tools/base.py</b> · 255 líneas</div>
+        <div class="file">📂 <b>localforge/tools/base.py</b> · 255 líneas</div>
       </div>
 
       <h3>3.1 Una definición, dos usos <span class="ln">línea 73</span></h3>
@@ -990,7 +990,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
       <div class="sec-head prose" id="s4">
         <div class="kicker"><span class="num">MUNDO 1 · 4 de 4</span><span class="mins">30 min</span></div>
         <h2>La suciedad del mundo real</h2>
-        <div class="file">📂 <b>src/localforge/providers/ollama.py</b> · 209 líneas</div>
+        <div class="file">📂 <b>localforge/providers/ollama.py</b> · 209 líneas</div>
       </div>
 
       <p class="prose">
@@ -1039,7 +1039,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
       <div class="sec-head prose" id="s6">
         <div class="kicker"><span class="num">MUNDO 2</span><span class="mins">30 min</span></div>
         <h2>El contexto es un presupuesto</h2>
-        <div class="file">📂 <b>src/localforge/context/builder.py</b> · 266 líneas</div>
+        <div class="file">📂 <b>localforge/context/builder.py</b> · 266 líneas</div>
       </div>
 
       <div class="toca">
@@ -1754,7 +1754,7 @@ subagente: 10 archivos                    -&gt;  28000 tokens, <span class="hl">
 
       <div class="exp">
         <h4>Experimento 4 — Volver al prompt sin grounding</h4>
-        <pre>git show a3d4a02:src/localforge/harness/prompt.py &gt; src/localforge/harness/prompt.py
+        <pre>git show a3d4a02:localforge/harness/prompt.py &gt; localforge/harness/prompt.py
 uv run localforge ask . "Explicame la arquitectura"</pre>
         <p><strong>Qué vas a ver:</strong> el agente responde leyendo <strong>cero archivos</strong>, inventando a partir de los nombres. Compará con <code>git diff</code> qué cambió en el prompt.</p>
       </div>
