@@ -362,6 +362,7 @@
         <li class="grp"><a href="#w7"><span class="n">7</span><span>Agent Evals</span></a></li>
         <li class="grp"><a href="#w8"><span class="n">8</span><span>Multi-Agent</span></a></li>
         <li><a href="#s5"><span class="n">→</span><span>Rompelo <span class="mins">45 min</span></span></a></li>
+        <li><a href="#evo"><span class="n">→</span><span>Cómo creció cada archivo</span></a></li>
         <li><a href="#falta"><span class="n">→</span><span>Qué le falta</span></a></li>
       </ol>
     </nav>
@@ -481,138 +482,6 @@ uv run localforge ask . <span class="c">"Que hace la clase AgentHarness?"</span>
 
       <!-- ============ sesion 1 ============ -->
       <!-- ============ como crecen los archivos ============ -->
-      <div class="sec-head prose">
-        <div class="kicker"><span class="num">ANTES DE EMPEZAR</span></div>
-        <h2>Los archivos crecen</h2>
-      </div>
-
-      <p class="prose">
-        Esto es lo que más cuesta entender de un proyecto construido por fases, y conviene saberlo
-        antes de abrir el primer archivo: <strong>casi ningún archivo pertenece a un solo mundo.</strong>
-        El Mundo 1 crea <code>models.py</code> con cinco estados, y el Mundo 3 le agrega tres más.
-        El Mundo 1 escribe el <code>loop</code>, y después lo tocan cuatro mundos.
-      </p>
-
-      <p class="prose">
-        Por eso cada mundo de esta guía arranca diciendo <strong>qué archivos crea y cuáles extiende</strong>,
-        y cuando extiende uno, explica sólo lo que agregó. Si abrís un archivo del repo y encontrás
-        cosas que no viste todavía, esta tabla te dice de qué mundo vienen.
-      </p>
-
-      <div class="scroller">
-        <table class="evo">
-          <thead>
-            <tr><th>archivo</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>models.py</td>
-              <td class="c">crea</td>
-              <td class="e">+1 motivo</td>
-              <td class="e">+3 estados<br>+3 campos</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
-            </tr>
-            <tr>
-              <td>harness/loop.py</td>
-              <td class="c">crea</td>
-              <td class="e">+presupuesto</td>
-              <td class="e">+estados<br>+verify<br>+repair</td>
-              <td class="e">+skills</td>
-              <td class="e">+permisos</td>
-              <td class="e">+checkpoints</td>
-              <td class="na">·</td><td class="na">·</td>
-            </tr>
-            <tr>
-              <td>tools/base.py</td>
-              <td class="c">crea</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td>
-              <td class="e">+autorización</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td>
-            </tr>
-            <tr>
-              <td>harness/prompt.py</td>
-              <td class="c">crea</td>
-              <td class="na">·</td><td class="na">·</td>
-              <td class="e">+disclosure</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
-            </tr>
-            <tr>
-              <td>tools/</td>
-              <td class="c">list_files<br>read_file</td>
-              <td class="e">search_code</td>
-              <td class="na">·</td>
-              <td class="e">load_skill</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td>
-              <td class="e">delegate</td>
-            </tr>
-            <tr>
-              <td>providers/</td>
-              <td class="c">crea</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
-            </tr>
-            <tr>
-              <td>context/</td>
-              <td class="na">·</td><td class="c">crea</td><td class="na">·</td>
-              <td class="e">+capa skills</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
-            </tr>
-            <tr>
-              <td>harness/state.py</td>
-              <td class="na">·</td><td class="na">·</td><td class="c">crea</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
-            </tr>
-            <tr>
-              <td>harness/verify.py</td>
-              <td class="na">·</td><td class="na">·</td><td class="c">crea</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
-            </tr>
-            <tr>
-              <td>skills/</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="c">crea</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
-            </tr>
-            <tr>
-              <td>sandbox/</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
-              <td class="c">crea</td>
-              <td class="na">·</td><td class="na">·</td>
-              <td class="e">delegate → ASK</td>
-            </tr>
-            <tr>
-              <td>durable/</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
-              <td class="c">crea</td>
-              <td class="na">·</td><td class="na">·</td>
-            </tr>
-            <tr>
-              <td>evals/</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
-              <td class="c">crea</td>
-              <td class="na">·</td>
-            </tr>
-            <tr>
-              <td>agents/</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
-              <td class="c">crea</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="q"><span class="label">Pregunta</span><p>Mirá la fila de <code>models.py</code>: el Mundo 3 le agrega tres estados. ¿Por qué no los pone en <code>harness/state.py</code>, que es el archivo que el Mundo 3 crea?</p></div>
-      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
-        <p>Porque <strong>Python no deja extender un enum</strong>. Probalo:</p>
-        <pre><span class="c">class</span> AgentStatus(StrEnum):
-    CREATED = "created"
-
-<span class="c">class</span> Extendido(AgentStatus):          <span class="c"># lo que querria hacer el Mundo 3</span>
-    VERIFYING = "verifying"
-<span class="hl">TypeError: &lt;enum 'Extendido'&gt; cannot extend &lt;enum 'AgentStatus'&gt;</span></pre>
-        <p>Y partirlo en dos enums es peor: <code>AgentOutcome.status</code> tendría dos formas al serializar, <code>is_terminal</code> no podría vivir en ninguno de los dos, y hay <em>un</em> ciclo de vida, no dos.</p>
-        <p><strong>Lo que sí se separó es lo que importa:</strong> los nombres viven en <code>models.py</code>, y las <em>transiciones permitidas</em> en <code>harness/state.py</code>. Un enum puede decir qué valores existen; no puede decir que de <code>VERIFYING</code> no se vuelve a <code>WAITING_TOOL</code>. Esa segunda mitad es la que convierte una etiqueta en una máquina de estados, y esa sí es del Mundo 3.</p>
-        <p>En el código cada valor está marcado con el mundo que lo trajo, justamente para que leerlo de arriba a abajo sea leer la historia.</p>
-      </div></details>
-
       <div class="sec-head prose" id="s1">
         <div class="kicker"><span class="num">MUNDO 1 · 1 de 4</span><span class="mins">30 min</span></div>
         <h2>El vocabulario</h2>
@@ -1778,6 +1647,136 @@ uv run localforge ask . "Explicame la arquitectura"</pre>
 
       <!-- ============ que falta ============ -->
       <!-- ============ SESIÓN 06 ============ -->
+      <div class="sec-head prose" id="evo">
+        <div class="kicker"><span class="num">REFERENCIA</span></div>
+        <h2>Cómo creció cada archivo</h2>
+      </div>
+
+      <p class="prose">
+        Ya recorriste los ocho mundos, así que esta tabla te va a servir de otra forma: como mapa
+        para volver. <strong>Casi ningún archivo pertenece a un solo mundo</strong> — el
+        <code>loop</code> lo escribió el Mundo 1 y después lo tocaron cuatro más.
+      </p>
+
+      <p class="prose">
+        Usala al revés de como leíste la guía: si abrís un archivo del repo y encontrás algo que no
+        reconocés, la fila te dice de qué mundo salió.
+      </p>
+
+      <div class="scroller">
+        <table class="evo">
+          <thead>
+            <tr><th>archivo</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>models.py</td>
+              <td class="c">crea</td>
+              <td class="e">+1 motivo</td>
+              <td class="e">+3 estados<br>+3 campos</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+            </tr>
+            <tr>
+              <td>harness/loop.py</td>
+              <td class="c">crea</td>
+              <td class="e">+presupuesto</td>
+              <td class="e">+estados<br>+verify<br>+repair</td>
+              <td class="e">+skills</td>
+              <td class="e">+permisos</td>
+              <td class="e">+checkpoints</td>
+              <td class="na">·</td><td class="na">·</td>
+            </tr>
+            <tr>
+              <td>tools/base.py</td>
+              <td class="c">crea</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td>
+              <td class="e">+autorización</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td>
+            </tr>
+            <tr>
+              <td>harness/prompt.py</td>
+              <td class="c">crea</td>
+              <td class="na">·</td><td class="na">·</td>
+              <td class="e">+disclosure</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+            </tr>
+            <tr>
+              <td>tools/</td>
+              <td class="c">list_files<br>read_file</td>
+              <td class="e">search_code</td>
+              <td class="na">·</td>
+              <td class="e">load_skill</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td>
+              <td class="e">delegate</td>
+            </tr>
+            <tr>
+              <td>providers/</td>
+              <td class="c">crea</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+            </tr>
+            <tr>
+              <td>context/</td>
+              <td class="na">·</td><td class="c">crea</td><td class="na">·</td>
+              <td class="e">+capa skills</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+            </tr>
+            <tr>
+              <td>harness/state.py</td>
+              <td class="na">·</td><td class="na">·</td><td class="c">crea</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+            </tr>
+            <tr>
+              <td>harness/verify.py</td>
+              <td class="na">·</td><td class="na">·</td><td class="c">crea</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+            </tr>
+            <tr>
+              <td>skills/</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="c">crea</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+            </tr>
+            <tr>
+              <td>sandbox/</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+              <td class="c">crea</td>
+              <td class="na">·</td><td class="na">·</td>
+              <td class="e">delegate → ASK</td>
+            </tr>
+            <tr>
+              <td>durable/</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+              <td class="c">crea</td>
+              <td class="na">·</td><td class="na">·</td>
+            </tr>
+            <tr>
+              <td>evals/</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+              <td class="c">crea</td>
+              <td class="na">·</td>
+            </tr>
+            <tr>
+              <td>agents/</td>
+              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+              <td class="c">crea</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="q"><span class="label">Pregunta</span><p>Mirá la fila de <code>models.py</code>: el Mundo 3 le agrega tres estados. ¿Por qué no los pone en <code>harness/state.py</code>, que es el archivo que el Mundo 3 crea?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>Porque <strong>Python no deja extender un enum</strong>. Probalo:</p>
+        <pre><span class="c">class</span> AgentStatus(StrEnum):
+    CREATED = "created"
+
+<span class="c">class</span> Extendido(AgentStatus):          <span class="c"># lo que querria hacer el Mundo 3</span>
+    VERIFYING = "verifying"
+<span class="hl">TypeError: &lt;enum 'Extendido'&gt; cannot extend &lt;enum 'AgentStatus'&gt;</span></pre>
+        <p>Y partirlo en dos enums es peor: <code>AgentOutcome.status</code> tendría dos formas al serializar, <code>is_terminal</code> no podría vivir en ninguno de los dos, y hay <em>un</em> ciclo de vida, no dos.</p>
+        <p><strong>Lo que sí se separó es lo que importa:</strong> los nombres viven en <code>models.py</code>, y las <em>transiciones permitidas</em> en <code>harness/state.py</code>. Un enum puede decir qué valores existen; no puede decir que de <code>VERIFYING</code> no se vuelve a <code>WAITING_TOOL</code>. Esa segunda mitad es la que convierte una etiqueta en una máquina de estados, y esa sí es del Mundo 3.</p>
+        <p>En el código cada valor está marcado con el mundo que lo trajo, justamente para que leerlo de arriba a abajo sea leer la historia.</p>
+      </div></details>
+
       <div class="sec-head prose" id="falta">
         <div class="kicker"><span class="num">DESPUÉS</span></div>
         <h2>Qué le falta a LocalForge</h2>
