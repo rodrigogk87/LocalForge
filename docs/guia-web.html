@@ -462,7 +462,7 @@ uv run localforge ask . <span class="c">"Que hace la clase AgentHarness?"</span>
       <div class="sec-head prose" id="s1">
         <div class="kicker"><span class="num">MUNDO 1 · 1 de 4</span><span class="mins">30 min</span></div>
         <h2>El vocabulario</h2>
-        <div class="file">📂 <b>src/localforge/models.py</b> · 265 líneas</div>
+        <div class="file">📂 <b>src/localforge/models.py</b> · 293 líneas</div>
       </div>
 
       <p class="prose">
@@ -476,7 +476,7 @@ uv run localforge ask . <span class="c">"Que hace la clase AgentHarness?"</span>
         <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l1" target="_blank" rel="noopener">W1·C1 — Pydantic: el borde de confianza</a>
       </div>
 
-      <h3>1.1 Los tres enums <span class="ln">líneas 27-67</span></h3>
+      <h3>1.1 Los tres enums <span class="ln">líneas 27-85</span></h3>
       <p class="prose">Mirá <code>FailureReason</code>: seis valores fijos — <code>max_turns</code>, <code>wall_clock</code>, <code>token_budget</code>, <code>loop_detected</code>, <code>provider_error</code>, <code>cancelled</code>.</p>
 
       <div class="q"><span class="label">Pregunta</span><p>¿Por qué es un enum y no un string libre donde escribir el motivo que se te ocurra?</p></div>
@@ -491,7 +491,7 @@ uv run localforge ask . <span class="c">"Que hace la clase AgentHarness?"</span>
         <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w7-l48" target="_blank" rel="noopener">W7·C48 — Taxonomía de fallos</a>
       </div>
 
-      <h3>1.2 ToolCall y ToolResult <span class="ln">líneas 97 y 110</span></h3>
+      <h3>1.2 ToolCall y ToolResult <span class="ln">líneas 116 y 129</span></h3>
       <p class="prose">Van <strong>en par</strong>: el modelo emite un <code>ToolCall</code>, el harness produce un <code>ToolResult</code>.</p>
       <pre><span class="c">class</span> ToolCall(BaseModel):      <span class="c"># línea 97</span>
     id: str                     <span class="c"># ← la clave de correlación</span>
@@ -520,7 +520,7 @@ uv run localforge ask . <span class="c">"Que hace la clase AgentHarness?"</span>
         </p>
       </div>
 
-      <h3>1.3 El validador de coherencia <span class="ln">línea 126</span></h3>
+      <h3>1.3 El validador de coherencia <span class="ln">línea 146</span></h3>
       <pre><span class="c">@model_validator(mode="after")</span>
 <span class="c">def</span> _coherent(self) -&gt; ToolResult:
     <span class="c">if</span> self.success <span class="c">and</span> self.error <span class="c">is not None</span>:
@@ -552,7 +552,7 @@ uv run localforge ask . <span class="c">"Que hace la clase AgentHarness?"</span>
         <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l5" target="_blank" rel="noopener">W1·C5 — El error como feedback</a>
       </div>
 
-      <h3>1.5 AgentTask y AgentOutcome <span class="ln">líneas 202 y 229</span></h3>
+      <h3>1.5 AgentTask y AgentOutcome <span class="ln">líneas 221 y 248</span></h3>
       <pre>max_turns: int = Field(default=20, ge=1, le=100)
 wall_clock_s: float = Field(default=300.0, gt=0)
 token_budget: int = Field(default=200_000, gt=0)</pre>
@@ -593,7 +593,7 @@ token_budget: int = Field(default=200_000, gt=0)</pre>
       <div class="sec-head prose" id="s2">
         <div class="kicker"><span class="num">MUNDO 1 · 2 de 4</span><span class="mins">40 min</span></div>
         <h2>El corazón</h2>
-        <div class="file">📂 <b>src/localforge/harness/loop.py</b> · 240 líneas</div>
+        <div class="file">📂 <b>src/localforge/harness/loop.py</b> · 420 líneas</div>
       </div>
 
       <p class="prose">Este es <strong>el archivo más importante del proyecto</strong>. Todo lo demás existe para servirlo.</p>
@@ -607,7 +607,7 @@ token_budget: int = Field(default=200_000, gt=0)</pre>
         </p>
       </div>
 
-      <h3>2.1 El estado del loop <span class="ln">líneas 85-97</span></h3>
+      <h3>2.1 El estado del loop <span class="ln">líneas 152-157</span></h3>
       <pre>messages: list[AgentMessage] = [...]   <span class="c"># la conversación</span>
 tokens_in = 0                          <span class="c"># cuánto gastamos</span>
 tokens_out = 0
@@ -634,7 +634,7 @@ started = time.monotonic()
         </p>
       </div>
 
-      <h3>2.2 La composición de presupuestos <span class="ln">líneas 119-137</span></h3>
+      <h3>2.2 La composición de presupuestos <span class="ln">líneas 241-283</span></h3>
       <pre><span class="c">for</span> turn <span class="c">in</span> range(task.max_turns):
     remaining = deadline - time.monotonic()
     <span class="c">if</span> remaining &lt;= 0:
@@ -689,7 +689,7 @@ started = time.monotonic()
         <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l4" target="_blank" rel="noopener">W1·C4 — El loop que acepta respuestas truncadas</a>
       </div>
 
-      <h3>2.4 Detección de loops <span class="ln">líneas 176-187</span></h3>
+      <h3>2.4 Detección de loops <span class="ln">líneas 355-357</span></h3>
       <pre><span class="c">for</span> call <span class="c">in</span> response.tool_calls:
     key = _signature(call)
     seen[key] += 1
@@ -711,7 +711,7 @@ started = time.monotonic()
         </p>
       </div>
 
-      <h3>2.5 La línea más importante del proyecto <span class="ln">líneas 201-204</span></h3>
+      <h3>2.5 La línea más importante del proyecto <span class="ln">líneas 380-383</span></h3>
       <pre><span class="hl">by_id = {r.call_id: r <span class="c">for</span> r <span class="c">in</span> results}</span>
 missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.tool_calls} - set(by_id)
 <span class="c">if</span> missing:
@@ -751,10 +751,10 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
       <div class="sec-head prose" id="s3">
         <div class="kicker"><span class="num">MUNDO 1 · 3 de 4</span><span class="mins">30 min</span></div>
         <h2>El borde de confianza</h2>
-        <div class="file">📂 <b>src/localforge/tools/base.py</b> · 194 líneas</div>
+        <div class="file">📂 <b>src/localforge/tools/base.py</b> · 255 líneas</div>
       </div>
 
-      <h3>3.1 Una definición, dos usos <span class="ln">línea 61</span></h3>
+      <h3>3.1 Una definición, dos usos <span class="ln">línea 73</span></h3>
       <pre>schema = tool.args_model.model_json_schema()</pre>
       <p class="prose">
         Una sola definición produce <strong>dos cosas</strong>: la descripción que lee el modelo para saber qué
@@ -763,7 +763,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
         reintentos que nunca puede ganar.
       </p>
 
-      <h3>3.2 Cuatro formas de fallar <span class="ln">líneas 97-170</span></h3>
+      <h3>3.2 Cuatro formas de fallar <span class="ln">líneas 119-191</span></h3>
       <p class="prose">Los cuatro casos devuelven un <code>ToolResult</code>. <strong>Ninguno lanza una excepción.</strong></p>
       <div class="scroller">
         <table>
@@ -795,7 +795,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
         </p>
       </div>
 
-      <h3>3.4 Nunca truncar en silencio <span class="ln">línea 179</span></h3>
+      <h3>3.4 Nunca truncar en silencio <span class="ln">línea 225</span></h3>
       <pre>head + f"\n\n[...truncado: se muestran {limit} de {len(text)} caracteres.
 <span class="hl">        Usa los parametros offset/limit de la tool para leer el resto.]"</span></pre>
       <p class="prose">
@@ -856,7 +856,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
       <div class="sec-head prose" id="s6">
         <div class="kicker"><span class="num">MUNDO 2</span><span class="mins">30 min</span></div>
         <h2>El contexto es un presupuesto</h2>
-        <div class="file">📂 <b>src/localforge/harness/context.py</b> · 390 líneas</div>
+        <div class="file">📂 <b>src/localforge/context/builder.py</b> · 266 líneas</div>
       </div>
 
       <p class="prose">
@@ -898,7 +898,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
         <p>Fijate el orden: primero la instrumentación, después el presupuesto, y la compactación sólo se activa cuando el presupuesto se rompe. Con <code>num_ctx=32768</code> el compactador está en el código y <strong>nunca se ejecuta</strong>. Eso es lo correcto.</p>
       </div></details>
 
-      <h3>6.2 Estimar tokens sin tokenizer <span class="ln">líneas 56-120</span></h3>
+      <h3>6.2 Estimar tokens sin tokenizer <span class="ln">líneas 33-96</span></h3>
       <pre><span class="c">def</span> estimate(self, text: str | None) -&gt; int:
     <span class="c">if not</span> text:
         <span class="c">return</span> 0
@@ -918,7 +918,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
         <p><strong>El patrón general:</strong> estimá antes de gastar, medí después de gastar, y usá la medición para mejorar la estimación. Es lo mismo que hace un planificador de queries con sus estadísticas.</p>
       </div></details>
 
-      <h3>6.3 Las nueve capas, y las cuatro que no existen <span class="ln">líneas 136-146</span></h3>
+      <h3>6.3 Las nueve capas, y las cuatro que no existen <span class="ln">líneas 16-25</span></h3>
       <p class="prose">
         Los nombres son exactamente los de W2·C8. Las cinco que LocalForge sí tiene se miden;
         las cuatro que no, se reportan igual con <code>present=False</code>:
@@ -938,7 +938,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
         <p>Y el reparto real es la lección: <strong>las observaciones son el 83% del contexto.</strong> El system prompt, que es lo que uno tiende a querer acortar, es el 2%. Optimizar el prompt para ahorrar contexto es trabajar en el lugar equivocado.</p>
       </div></details>
 
-      <h3>6.4 Reservar lugar para la salida <span class="ln">líneas 205-230</span></h3>
+      <h3>6.4 Reservar lugar para la salida <span class="ln">líneas 28-51</span></h3>
       <pre><span class="c">@dataclass(frozen=True)</span>
 <span class="c">class</span> ContextBudget:
     limit: int
@@ -957,7 +957,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
         <p><strong>Regla:</strong> un presupuesto que no reserva lugar para el resultado no es un presupuesto.</p>
       </div></details>
 
-      <h3>6.5 Compactar sin silencio <span class="ln">líneas 288-330</span></h3>
+      <h3>6.5 Compactar sin silencio <span class="ln">líneas 124-168</span></h3>
       <p class="prose">Cuando la conversación no entra, se compactan observaciones viejas. Lo que queda en su lugar:</p>
       <pre>[observacion compactada: read_file habia devuelto 4210 caracteres
  que ya no estan en el contexto. Si los necesitas, volve a pedir la tool.]</pre>
@@ -1099,7 +1099,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
       <div class="sec-head prose" id="w4">
         <div class="kicker"><span class="num">MUNDO 4</span><span class="mins">20 min</span></div>
         <h2>Capacidades sin recompilar</h2>
-        <div class="file">📂 <b>skills.py</b> · <b>tools/skills.py</b></div>
+        <div class="file">📂 <b>skills/discovery.py</b> · <b>tools/skill.py</b></div>
       </div>
 
       <p class="prose">
@@ -1148,7 +1148,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
       <div class="sec-head prose" id="w5">
         <div class="kicker"><span class="num">MUNDO 5</span><span class="mins">30 min</span></div>
         <h2>Permisos, y la mitad que falta</h2>
-        <div class="file">📂 <b>permissions.py</b> · enchufado en <b>tools/base.py</b></div>
+        <div class="file">📂 <b>sandbox/permissions.py</b> · enchufado en <b>tools/base.py</b></div>
       </div>
 
       <p class="prose">
@@ -1233,7 +1233,7 @@ default=Decision.ASK</pre>
       <div class="sec-head prose" id="w6">
         <div class="kicker"><span class="num">MUNDO 6</span><span class="mins">25 min</span></div>
         <h2>Sobrevivir al proceso</h2>
-        <div class="file">📂 <b>harness/checkpoint.py</b></div>
+        <div class="file">📂 <b>durable/checkpoint.py</b></div>
       </div>
 
       <p class="prose">
@@ -1321,7 +1321,7 @@ uv run localforge resume &lt;id&gt;</pre>
       <div class="sec-head prose" id="w7">
         <div class="kicker"><span class="num">MUNDO 7</span><span class="mins">25 min</span></div>
         <h2>Medir con datos, no con impresiones</h2>
-        <div class="file">📂 <b>evals.py</b></div>
+        <div class="file">📂 <b>evals/</b></div>
       </div>
 
       <p class="prose">
@@ -1407,7 +1407,7 @@ uv run localforge resume &lt;id&gt;</pre>
       <div class="sec-head prose" id="w8">
         <div class="kicker"><span class="num">MUNDO 8</span><span class="mins">20 min</span></div>
         <h2>Delegar es presupuesto, no paralelismo</h2>
-        <div class="file">📂 <b>harness/subagent.py</b></div>
+        <div class="file">📂 <b>agents/subagent.py</b></div>
       </div>
 
       <p class="prose">

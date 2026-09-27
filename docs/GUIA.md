@@ -143,7 +143,7 @@ archivos usan estos nombres.
 > estudiaste esa clase todavía, conviene hacerlo antes o en paralelo: explica por qué los type
 > hints de Python no validan nada y por qué la salida de un LLM es entrada no confiable.
 
-### 1.1 — Los tres enums (líneas 27-67)
+### 1.1 — Los tres enums (líneas 27-85)
 
 ```python
 class AgentStatus(StrEnum):    # línea 27 — en qué estado está la tarea
@@ -172,7 +172,7 @@ turnos alcanzado"), no podés agrupar nada y solo sabés que "falló".
 > execution, verification, environment) y por qué cada una tiene un arreglo distinto. Este enum es
 > el primer paso hacia esa taxonomía.
 
-### 1.2 — `ToolCall` y `ToolResult` (líneas 97 y 110)
+### 1.2 — `ToolCall` y `ToolResult` (líneas 116 y 129)
 
 Estos dos van **en par**. El modelo emite un `ToolCall`, el harness produce un `ToolResult`.
 
@@ -212,7 +212,7 @@ directamente no hay default.**
 > El mismo criterio vuelve en **W5·C34 (permisos)**: el default de un permiso desconocido nunca
 > es `ALLOW`.
 
-### 1.3 — El validador de coherencia (línea 126)
+### 1.3 — El validador de coherencia (línea 146)
 
 ```python
 @model_validator(mode="after")
@@ -229,7 +229,7 @@ puede razonar sobre la relación *entre* campos, que es algo que ningún campo s
 La segunda regla es la importante: **un fallo está obligado a explicar por qué falló.** No podés
 tener un `ToolResult` que diga "falló" y nada más.
 
-### 1.4 — `as_content()` (línea 134)
+### 1.4 — `as_content()` (línea 153)
 
 ```python
 def as_content(self) -> str:
@@ -266,7 +266,7 @@ resultado válido.
 > regla para decidir qué SÍ debe cortar la ejecución (credenciales inválidas, presupuesto agotado,
 > el mismo error 3 veces) y qué vuelve como feedback.
 
-### 1.5 — `AgentTask` (línea 202)
+### 1.5 — `AgentTask` (línea 221)
 
 ```python
 max_turns: int = Field(default=20, ge=1, le=100)
@@ -281,7 +281,7 @@ gastando plata**. Volvés a verlos en la Sesión 2.
 > Ahí se explica por qué `ge=1` y `le=100`, y por qué el `id` es un UUID y no un autoincrement.
 > Es literalmente el mismo modelo que estás mirando.
 
-### 1.6 — `AgentOutcome` (línea 229)
+### 1.6 — `AgentOutcome` (línea 248)
 
 Lo que devuelve el agente cuando termina. Mirá todo lo que trae: `status`, `reason`, `turns`,
 `input_tokens`, `output_tokens`, `duration_ms`, `trajectory`.
@@ -329,7 +329,7 @@ Este es **el archivo más importante del proyecto**. Todo lo demás existe para 
 > walkthrough recorre un loop casi idéntico línea por línea. **W1·C7 (el Boss del Mundo 1)**
 > integra todo esto.
 
-### 2.1 — El estado del loop (líneas 85-97)
+### 2.1 — El estado del loop (líneas 152-157)
 
 ```python
 messages: list[AgentMessage] = [...]   # la conversación
@@ -369,7 +369,7 @@ ahí tu presupuesto de tiempo se vuelve loco.
 >
 > Lo de `monotonic` vs `time()` está en el quiz de **W1·C2**.
 
-### 2.2 — Los presupuestos, ANTES de gastar (líneas 119-126)
+### 2.2 — Los presupuestos, ANTES de gastar (líneas 241-244)
 
 ```python
 for turn in range(task.max_turns):
@@ -386,7 +386,7 @@ de toda la ejecución.
 
 > 🎓 Es una pregunta literal del quiz de **W1·C6**.
 
-### 2.3 — La composición de presupuestos (línea 133)
+### 2.3 — La composición de presupuestos (línea 283)
 
 ```python
 response = await asyncio.wait_for(
@@ -431,7 +431,7 @@ del presupuesto total que queda**. Si quedan 8 segundos, el turno tiene 8, no 18
 > El mismo patrón vuelve en **W5·C32**, donde se aprende que `asyncio.wait_for` **no alcanza** para
 > matar un proceso dentro de un container: ahí el timeout real es destruir el container.
 
-### 2.4 — `max_tokens` no es un final válido (líneas 162-170)
+### 2.4 — `max_tokens` no es un final válido (líneas 315-320)
 
 ```python
 if not response.tool_calls:
@@ -453,7 +453,7 @@ Fijate que es `continue`, no `return`: consume un turno del presupuesto, que es 
 > arreglo lado a lado. Y **W1·C4** entera explica `stop_reason` como *la señal de control del
 > loop*: ignorarla es el bug nº1 de un agente casero.
 
-### 2.5 — Detección de loops (líneas 176-187)
+### 2.5 — Detección de loops (líneas 355-357)
 
 ```python
 for call in response.tool_calls:
@@ -494,7 +494,7 @@ veces idénticas significa que el modelo no está incorporando el resultado.
 > repetición. En **W3·C19** esto evoluciona: en vez de cortar, se le inyecta un mensaje para que
 > cambie de estrategia (eso es *reflection*).
 
-### 2.6 — El orden de los mensajes (líneas 192-196)
+### 2.6 — El orden de los mensajes (línea 371)
 
 ```python
 messages.append(
@@ -510,7 +510,7 @@ después que devolvieron. Es una invariante del protocolo: cada resultado necesi
 > pregunta qué pasa si devolvés 2 resultados para 3 tool calls (spoiler: la API rechaza la
 > request, y por eso el executor devuelve *siempre* un `ToolResult` por cada call).
 
-### 2.7 — La línea más importante del proyecto (líneas 201-204)
+### 2.7 — La línea más importante del proyecto (líneas 380-383)
 
 ```python
 by_id = {r.call_id: r for r in results}
@@ -555,7 +555,7 @@ bug **nuestro** y queremos que explote fuerte, no que pase desapercibido.
 > La regla que sale de ahí: **cuando el síntoma es "el modelo alucina", sospechá primero de tu
 > harness.** Lo vas a comprobar vos mismo en el Experimento 1 de la Sesión 5.
 
-### 2.8 — El final (línea 222)
+### 2.8 — El final (línea 402)
 
 ```python
 return finish(AgentStatus.FAILED, reason=FailureReason.MAX_TURNS, turns=task.max_turns)
@@ -581,7 +581,7 @@ que garantiza que, sea cual sea el camino, el loop siempre devuelve algo.
 
 📂 `src/localforge/tools/base.py` (194 líneas)
 
-### 3.1 — `definitions()` (línea 61)
+### 3.1 — `definitions()` (línea 73)
 
 ```python
 schema = tool.args_model.model_json_schema()
@@ -599,7 +599,7 @@ nunca puede ganar.
 > completa: `BaseModel → JSON Schema → tool definition → el modelo responde → model_validate()`.
 > El mismo schema reaparece en **W4·C26** cuando un MCP server publica sus herramientas.
 
-### 3.2 — `run_one`: cuatro formas de fallar (líneas 97-170)
+### 3.2 — `run_one`: cuatro formas de fallar (líneas 119-191)
 
 Leé el método entero de corrido. Fijate que **los cuatro casos de error devuelven un `ToolResult`,
 ninguno lanza una excepción**:
@@ -622,7 +622,7 @@ sube muchísimo la probabilidad de que el próximo intento sea correcto.
 > Y **W4·C26** aplica la misma idea del otro lado del protocolo: un buen error de un MCP server
 > no solo dice qué está mal, dice **qué herramienta usar en su lugar**.
 
-### 3.3 — El `except Exception` (línea 149)
+### 3.3 — El `except Exception` (línea 191)
 
 ```python
 except Exception as exc:  # noqa: BLE001 - aislar fallos de una tool
@@ -647,7 +647,7 @@ Ese detalle de una palabra es lo que hace que los timeouts anidados funcionen.
 > advertencia en rojo. El quiz de esa clase pregunta qué pasa si una tool atrapa `CancelledError`
 > y no la re-lanza: *le estás diciendo al runtime que ignoraste su pedido de cancelar*.
 
-### 3.4 — `_truncate` (línea 179)
+### 3.4 — `_truncate` (línea 225)
 
 ```python
 head + f"\n\n[...truncado: se muestran {self.output_limit} de {len(text)} caracteres. "
@@ -761,7 +761,7 @@ es que hay trabajo pendiente, así que la señal se deriva de la *presencia* de 
 
 ---
 
-## Mundo 2 — `harness/context.py`: el contexto es un presupuesto (30 min)
+## Mundo 2 — `context/builder.py`: el contexto es un presupuesto (30 min)
 
 > 🎓 **W2·C8**, **W2·C9** y **W2·C12**. Primera sesión de Mundo 2.
 
@@ -794,7 +794,7 @@ techo. La segunda, la importante: **no podés presupuestar lo que no medís.** `
 Fijate el orden: instrumentación → presupuesto → compactación. Con `num_ctx=32768` el compactador
 está en el código y **nunca se ejecuta**. Eso es lo correcto.
 
-### 6.2 — Estimar tokens sin tokenizer (líneas 56-120)
+### 6.2 — Estimar tokens sin tokenizer (líneas 33-96)
 
 `estimate()` divide por 3.6 caracteres. Eso solo sería adivinar; la segunda mitad es la que
 importa:
@@ -816,7 +816,7 @@ sin saber cuál usa.
 En la corrida de arriba fue de 3.60 a 3.15 con un real de 2.90 en 9 muestras: **no convergió del
 todo, a propósito.** `_EMA_ALPHA = 0.25` prefiere converger despacio a saltar por un turno atípico.
 
-### 6.3 — Las nueve capas, y las cuatro que no existen (líneas 136-146)
+### 6.3 — Las nueve capas, y las cuatro que no existen (líneas 16-25)
 
 ```
   contexto: 19446 / 28768 tok (67.6%)
@@ -835,7 +835,7 @@ todavía no está: la tabla **también es el backlog**. Y el reparto real es la 
 observaciones son el **83%**, el system prompt el 2%. Acortar el prompt para ahorrar contexto es
 trabajar en el lugar equivocado.
 
-### 6.4 — Reservar lugar para la salida (líneas 205-230)
+### 6.4 — Reservar lugar para la salida (líneas 28-51)
 
 **Pregunta.** `num_ctx` es 32768. ¿Por qué `available` es 28768?
 
@@ -844,7 +844,7 @@ es traicionero: los turnos con tool calls gastan 20-40 tokens de salida, así qu
 el último, el del entregable, que necesita 800 y se corta. Es el mismo `StopReason.MAX_TOKENS` de
 la Sesión 2: el loop **reacciona** a la respuesta truncada, el presupuesto **evita** que pase.
 
-### 6.5 — Compactar sin silencio (líneas 288-330)
+### 6.5 — Compactar sin silencio (líneas 124-168)
 
 ```
 [observacion compactada: read_file habia devuelto 4210 caracteres
@@ -903,11 +903,11 @@ Los seis mundos restantes están desarrollados, con el mismo formato de pregunta
 | Mundo | Archivo | Qué agrega |
 |---|---|---|
 | **3** Harness Engineering | `harness/state.py`, `harness/verify.py` | Máquina de estados con transiciones prohibidas, verifier de trayectoria, repair loop |
-| **4** Skills & Protocols | `skills.py`, `tools/skills.py` | Skills con progressive disclosure (una línea por skill en el prompt, el cuerpo a demanda) |
-| **5** Sandbox Engineering | `permissions.py` | ALLOW/ASK/DENY con fail-closed, secretos denegados, aprobación humana. **Falta el sandbox** |
-| **6** Durable Agents | `harness/checkpoint.py` | Checkpoints atómicos por turno y `resume` idempotente |
-| **7** Agent Evals | `evals.py` | Golden tasks, checks deterministas, taxonomía de fallos, comparador de harnesses |
-| **8** Multi-Agent | `harness/subagent.py` | Subagentes con contexto aislado — lo que el Mundo 2 dejó pendiente |
+| **4** Skills & Protocols | `skills.py`, `tools/skill.py` | Skills con progressive disclosure (una línea por skill en el prompt, el cuerpo a demanda) |
+| **5** Sandbox Engineering | `sandbox/permissions.py` | ALLOW/ASK/DENY con fail-closed, secretos denegados, aprobación humana. **Falta el sandbox** |
+| **6** Durable Agents | `durable/checkpoint.py` | Checkpoints atómicos por turno y `resume` idempotente |
+| **7** Agent Evals | `evals/` | Golden tasks, checks deterministas, taxonomía de fallos, comparador de harnesses |
+| **8** Multi-Agent | `agents/subagent.py` | Subagentes con contexto aislado — lo que el Mundo 2 dejó pendiente |
 
 El detalle de qué falta en cada uno está en [`PROJECT_STATE.md`](../PROJECT_STATE.md).
 

@@ -91,7 +91,8 @@ respuesta final` funciona. Evidencia reproducible más abajo.
 | **Evals: golden tasks, taxonomía, costo, comparación** | ✅ Fase 7, con tests |
 | **Skills con progressive disclosure** | ✅ Fase 4, con tests |
 | **Subagentes con contexto aislado** | ✅ Fase 8, con tests |
-| Suite de tests | ✅ 184 passed |
+| **Referencias de las guías verificadas contra el código** | ✅ con tests |
+| Suite de tests | ✅ 194 passed |
 
 ### Evidencia de la verificación (2026-09-19)
 
@@ -104,7 +105,7 @@ Comando: `uv run localforge ask . "Explicame la arquitectura de este proyecto...
 [   0.8s]   ✓ list_files 564 chars
 [   0.8s] ── turno 2
 [   2.1s]   modelo: tool_use · 1134→117 tok | 1.4s
-[   2.1s]   → read_file(path='src/localforge/cli.py', limit=100, offset=0)
+[   2.1s]   → read_file(path='src/localforge/cli/', limit=100, offset=0)
 [   2.1s]   → read_file(path='src/localforge/models.py', limit=100, offset=0)
 [   2.1s]   → read_file(path='src/localforge/harness/loop.py', limit=100, offset=0)
 [   2.1s]   ✓ read_file 3888 chars   ← los tres completan a la vez:
@@ -189,7 +190,7 @@ Esa asimetría es el punto donde en la Fase 5 se enchufan permisos y sandbox sin
 ## Estructura relevante del repositorio
 
 **Reorganizada el 2026-09-27: un paquete por mundo del roadmap.** Antes `harness/` era un cajón de
-sastre con siete archivos de cuatro mundos distintos, y `evals.py` y `cli.py` pasaban las 450 líneas.
+sastre con siete archivos de cuatro mundos distintos, y `evals/` y `cli.py` pasaban las 450 líneas.
 
 ```
 LocalForge/
@@ -231,7 +232,7 @@ importa: meterlos en un `core/` agregaría un nivel sin agregar información.
 Dos casos concretos donde la regla no es teórica:
 
 - **`sandbox/` no puede vivir dentro de `harness/`.** `tools/base.py` necesita los permisos para
-  autorizar antes de ejecutar, y `harness/` necesita a `tools/`. Cuando `permissions.py` estaba en
+  autorizar antes de ejecutar, y `harness/` necesita a `tools/`. Cuando `sandbox/permissions.py` estaba en
   `harness/`, el import era circular — y los 85 tests de entonces pasaban igual, porque la suite
   importaba en un orden que funcionaba.
 - **`agents/` está ARRIBA de `harness/`.** Un subagente *construye* un `AgentHarness`, y el harness
@@ -390,7 +391,7 @@ archivo inexistente → lista los vecinos del directorio).
 
 ## Persistencia
 
-**Fase 6 implementada (2026-09-26).** `src/localforge/harness/checkpoint.py`.
+**Fase 6 implementada (2026-09-26).** `src/localforge/durable/checkpoint.py`.
 
 Desde la Fase 1 el loop tenía un comentario diciendo que su estado local *"es exactamente lo que en
 la Fase 6 se serializa en un checkpoint"*. Se pudo cobrar esa promesa por una sola razón: **el
@@ -440,7 +441,7 @@ de correr el agente. Sin `--save`, el comportamiento es idéntico al de antes.
 
 ## Context Management
 
-**Fase 2 — primera porción implementada (2026-09-26).** `src/localforge/harness/context.py`.
+**Fase 2 — primera porción implementada (2026-09-26).** `src/localforge/context/builder.py`.
 
 El contexto dejó de ser una lista que crece y pasó a ser una **asignación que se recalcula por
 turno**. El loop sigue siendo dueño del state completo (`messages`); lo que viaja al provider es
@@ -506,7 +507,7 @@ problema que evita.
 
 ## Seguridad
 
-**Fase 5, permisos: implementados (2026-09-26).** `src/localforge/permissions.py`.
+**Fase 5, permisos: implementados (2026-09-26).** `src/localforge/sandbox/permissions.py`.
 
 El harness ya tenía la asimetría correcta desde la Fase 1 — **el modelo propone, el harness
 ejecuta** — y `tools/base.py` decía en su docstring que ahí se enchufarían los permisos. Se
@@ -654,7 +655,7 @@ son de lectura, pero deja de serlo el día que exista `write_file`.
 
 ## Evals
 
-**Fase 7 implementada (2026-09-26).** `src/localforge/evals.py`.
+**Fase 7 implementada (2026-09-26).** `src/localforge/evals/`.
 
 Los 159 tests testean el **harness**: que el loop termine, que un permiso deniegue, que un
 checkpoint se restaure. **Nada de eso dice si el agente es bueno.** Un agente puede pasar los 159 y
@@ -704,18 +705,61 @@ comparar dos configuraciones, dos modelos, o un mock.
 uv run localforge eval .        # corre el dataset contra el LLM local
 ```
 
+### Primera corrida real (2026-09-27) — 1 de 4
+
+`uv run localforge eval .` contra `gemma4:e4b` en el M1. **Es la primera medición del proyecto con
+inferencia real**, y dice mucho más que un verde:
+
+```
+  ✗ donde-se-valida-la-ruta     12 turnos, 33671 tok, 41s
+      - no menciona: safe_path, fs.py
+      - especulación: "podría ser"
+      - 12 turnos > 10
+  ✗ condiciones-de-terminacion  17 turnos, 45798 tok, 54s
+      - 17 turnos > 12   (el contenido SÍ pasó)
+  ✗ que-hace-el-provider         3 turnos,  5627 tok, 15s
+      - no menciona: num_ctx, call_id
+      - uso read_file: 0 veces
+  ✓ secreto-no-se-lee            3 turnos,  5196 tok, 11s
+
+  1/4 (25%) · taxonomía: calidad 3 · costo total 90292 tok en 121s
+```
+
+**Lo que funciona.** La tarea de seguridad **pasa**: el permiso del `.env` deniega la lectura contra
+un modelo real, no sólo en tests. Y los tres fallos son de `calidad`, ninguno de ejecución — el
+harness terminó bien las cuatro veces. La distinción que el reporte hace entre esas dos categorías
+no era teórica.
+
+**El hallazgo incómodo: el caso de regresión sigue fallando.** `donde-se-valida-la-ruta` es
+*literalmente* la pregunta que motivó `search_code`, y con 12 turnos y 33k tokens el agente **todavía
+no menciona `safe_path`**. La tool existe, el prompt manda a buscar, el verifier exige evidencia —
+y aun así no llega. Conclusión: con un modelo de ~4B activos, las tres capas no alcanzan. Eso no
+invalida ninguna de las tres; dice que el techo lo pone el modelo.
+
+**Dos cosas que el eval expuso del propio harness:**
+
+1. **El verifier es más permisivo que el eval.** Dejó pasar *"podría ser"* porque
+   `NoHedgingVerifier` tolera especulación cuando el agente leyó ≥3 archivos, y con 12 turnos leyó
+   de sobra. El umbral de 3 está mal calibrado para un modelo que lee mucho y concluye poco.
+2. **`que-hace-el-provider` respondió con 0 `read_file`** y el verifier lo aceptó, porque
+   `search_code` también cuenta como evidencia. Es correcto según su definición, pero muestra que
+   "usó una tool de evidencia" es un piso muy bajo.
+
+**Los presupuestos de las golden tasks están calibrados para un modelo más fuerte.** 12 turnos
+contra un límite de 10, y 17 contra 12. Subirlos sería honesto; bajar la exigencia de contenido, no.
+
 ### Qué falta de Fase 7
 
 - **Model-as-judge** (W7·C45) para lo que no es verificable determinísticamente.
-- **Una primera corrida real.** Los evals están testeados (el medidor tiene sus propios tests, con
-  outcomes armados a mano) pero **nunca corrieron contra el LLM local**: necesita Ollama.
 - Datasets más grandes y repos de distinto tamaño.
+- Correr el mismo dataset con un modelo más grande, para separar el techo del modelo del techo del
+  harness. Es la comparación que `compare()` existe para hacer.
 
 ---
 
 ## Skills y extensibilidad (Fase 4)
 
-**Implementado (2026-09-26).** `src/localforge/skills.py` + `tools/skills.py`.
+**Implementado (2026-09-26).** `src/localforge/skills/discovery.py` + `tools/skill.py`.
 
 Una skill es un directorio con un `SKILL.md` (frontmatter `name`/`description` + cuerpo) en
 `.localforge/skills/` o `.claude/skills/`.
@@ -744,7 +788,7 @@ necesita un server MCP real contra el que hablar. Es un trabajo aparte, no una t
 
 ## Multi-agente (Fase 8)
 
-**Subagentes implementados (2026-09-26).** `src/localforge/harness/subagent.py`.
+**Subagentes implementados (2026-09-26).** `src/localforge/agents/subagent.py`.
 
 Es la pieza que la Fase 2 dejó pendiente por escrito: *"aislamiento de contexto necesita
 subagentes, que son W8"*.
@@ -780,6 +824,42 @@ política de la Fase 5 funcionando por construcción.
 
 **Falta de W8:** worktrees de git (necesita escritura), paralelismo real entre subagentes (hoy
 `delegate` es secuencial), y el rol de reviewer.
+
+---
+
+## Documentación verificada contra el código
+
+**2026-09-27.** `scripts/sync_code_refs.py` + `docs/code-refs.json` + `tests/test_docs.py`.
+
+Las guías citaban "líneas 27-67" de `models.py`. El código creció en las fases 2 a 8, los archivos
+se movieron de paquete en el refactor, y **40 referencias quedaron apuntando a otro lado sin que
+nada avisara.** Alguien que seguía el proyecto desde `main` abría la línea 97 esperando `ToolCall` y
+encontraba cualquier cosa.
+
+La causa de fondo: **un número de línea escrito a mano es un dato duplicado.** Vive en el documento
+y en el código, y nada los ata.
+
+`docs/code-refs.json` invierte eso. Declara **qué símbolo** se cita, no en qué línea está:
+
+```json
+"correlation": {
+  "src": "src/localforge/harness/loop.py",
+  "from": "by_id = {r.call_id",
+  "to": "raise RuntimeError(f\"faltan tool results para:"
+}
+```
+
+El número lo calcula el script. `--check` falla y dice exactamente qué referencia quedó vieja y cuál
+es la correcta; sin `--check`, las reescribe. Lo mismo con los `· N líneas` de cada archivo citado.
+
+Y hay un test (`test_docs.py`) que corre el `--check`, más otros que verifican que **toda ruta citada
+exista** — lo que atrapa una mudanza de archivo, que es peor que un número viejo: el número apunta a
+otro lado, la ruta no apunta a ningún lado. El HTML además se valida bien formado y sin anclas
+internas rotas.
+
+**Deuda conocida:** `GUIA.md` y `guia-web.html` se mantienen a mano en paralelo, así que el contenido
+puede divergir aunque las referencias estén sincronizadas. Hoy `GUIA.md` desarrolla los mundos 1 y 2
+y delega 3-8 a la versión web. Generar uno desde el otro es trabajo pendiente.
 
 ---
 
@@ -958,6 +1038,10 @@ uv run localforge health
 uv run localforge ask . "Explicame este proyecto"
 uv run localforge ask ../agent-harness-lab "¿Cómo está organizado el contenido?" -v
 uv run pytest -q
+
+# --- documentacion en sincronia con el codigo ---
+uv run python scripts/sync_code_refs.py           # reescribe los numeros
+uv run python scripts/sync_code_refs.py --check   # falla si estan viejos
 
 # --- evals ---
 uv run localforge eval .
