@@ -8,8 +8,8 @@ Dos reglas que valen la pena tener presentes:
 
 1. Los defaults del codigo NO son los de ninguna maquina en particular. Lo
    especifico de cada maquina (que modelo hay instalado, cuanto tarda un turno)
-   vive en un `.env` que no se commitea. Un default que asume una RTX 4090 es
-   una trampa para el que clona el repo en otra maquina.
+   vive en un `.env` que no se commitea. Un default que asume el hardware de
+   quien lo escribio es una trampa para el que clona el repo.
 
 2. El entorno se lee al CONSTRUIR (`Settings.from_env()`), no al importar el
    modulo. Si los valores viven en los defaults del dataclass, Python los

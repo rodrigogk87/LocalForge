@@ -409,7 +409,7 @@
         <div class="hd"><span class="cap">🎓</span><span class="who">cómo se conectan los dos proyectos</span></div>
         <p>
           <strong>La Academy</strong> enseña los conceptos: 8 mundos, 56 clases, del agent loop a los evals.
-          <strong>LocalForge</strong> es esa teoría hecha código, corriendo en una RTX 4090.
+          <strong>LocalForge</strong> es esa teoría hecha código, corriendo en la máquina que tengas.
         </p>
         <p>
           Las marcas violetas de esta página son links directos a la clase exacta. Funciona en las dos
@@ -970,7 +970,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
       <div class="q"><span class="label">Pregunta</span><p>El roadmap decía <em>“W2 todavía no hace falta: 4975 de 32768”</em>. Si con la ventana grande entra cómodo, ¿para qué construir esto ahora?</p></div>
       <details class="a"><summary>Ver respuesta</summary><div class="a-body">
         <p>Por dos razones, y ninguna es “por si acaso”.</p>
-        <p><strong>La primera:</strong> el número del roadmap era de una RTX 4090 con <code>qwen3:14b</code>, que pedía tres <code>read_file</code> en un turno. En un MacBook M1 con <code>gemma4:e4b</code>, que pide <strong>uno por turno</strong>, la misma tarea pasó de 3 turnos y 7.9k tokens a 11 turnos y 67k. El turno más pesado tocó <strong>12.333 de 32.768</strong>. El mismo código, en otra máquina, 2,5× más cerca del techo.</p>
+        <p><strong>La primera:</strong> el número del roadmap se midió con un modelo de 14B en una máquina con GPU dedicada, que pedía tres <code>read_file</code> en un turno. Con un modelo de ~4B activos en un portátil sin GPU, que pide <strong>uno por turno</strong>, la misma tarea pasó de 3 turnos y 7.9k tokens a 11 turnos y 67k. El turno más pesado tocó <strong>12.333 de 32.768</strong>. El mismo código, en otra máquina, 2,5× más cerca del techo.</p>
         <p><strong>La segunda, la importante:</strong> no podés presupuestar lo que no medís. <code>ContextBreakdown</code> <em>es</em> la medición que el propio <code>PROJECT_STATE.md</code> pone como prerequisito de esta fase. Construir el medidor no es adelantarse a la optimización: es la condición para saber si hace falta.</p>
         <p>Fijate el orden: primero la instrumentación, después el presupuesto, y la compactación sólo se activa cuando el presupuesto se rompe. Con <code>num_ctx=32768</code> el compactador está en el código y <strong>nunca se ejecuta</strong>. Eso es lo correcto.</p>
       </div></details>
@@ -1886,7 +1886,7 @@ make ask WORLD=8 Q="Explicame la arquitectura"</pre>
           <a href="https://agentforge-academy-chi.vercel.app/#/interview" target="_blank" rel="noopener">Modo entrevista</a>
         </div>
         <p style="margin-top:20px; font-size:13px">
-          LocalForge · coding agent local sobre <code>qwen3:14b</code> en una RTX 4090 ·
+          LocalForge · coding agent sobre un LLM local, en cualquier máquina con Ollama ·
           el detalle completo está en <code>PROJECT_STATE.md</code> y <code>docs/GUIA.md</code>
         </p>
       </footer>

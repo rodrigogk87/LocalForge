@@ -107,7 +107,7 @@ docs-check:
 ## build: regenera las fotos de los pasos 1 a 7 desde git
 build:
 	@uv run python scripts/build_worlds.py
-	@uv run python scripts/patch_provider.py
+	@uv run python scripts/patch_worlds.py
 
 ## check: todo lo que tiene que estar en verde antes de un commit
 check: docs-check repo-test test-all

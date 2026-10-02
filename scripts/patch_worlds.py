@@ -1,4 +1,18 @@
-"""Parche de compatibilidad al provider: funcionar con el modelo que haya."""
+"""Parches de compatibilidad a las fotos de worlds/.
+
+Los pasos 1 a 7 son snapshots de la historia de git, y hay dos cosas que no se
+pueden dejar como estaban:
+
+1. **El provider exigia un modelo que quiza no tenes.** El default del codigo era
+   el modelo de la maquina donde se escribio, y una foto que no corre en tu
+   maquina es un mal material de lectura. Ahora, si ese modelo no esta
+   instalado, se elige uno instalado que soporte tool calling y se avisa.
+
+2. **Un comentario nombraba una placa de video concreta.** El proyecto corre en
+   la maquina que tengas; nombrar hardware especifico sugiere lo contrario.
+
+`make build` los aplica despues de regenerar.
+"""
 from pathlib import Path
 
 VIEJO = '''        installed = [m.get("model", "") for m in tags.get("models", [])]
@@ -69,6 +83,25 @@ NUEVO = '''        installed = [m.get("model", "") for m in tags.get("models", [
         return None'''
 
 
+# El comentario de config.py nombraba una GPU concreta. El argumento que hace es
+# correcto -- un default no deberia asumir el hardware de nadie -- pero se puede
+# hacer sin nombrar una marca, que es justo lo que el argumento pide.
+CONFIG_VIEJO = """   vive en un `.env` que no se commitea. Un default que asume una RTX 4090 es
+   una trampa para el que clona el repo en otra maquina."""
+
+CONFIG_NUEVO = """   vive en un `.env` que no se commitea. Un default que asume el hardware de
+   quien lo escribio es una trampa para el que clona el repo."""
+
+
+def aplicar_config(src: Path) -> bool:
+    """Saca la marca de hardware del comentario de config.py."""
+    s = src.read_text(encoding="utf-8")
+    if CONFIG_VIEJO not in s:
+        return False
+    src.write_text(s.replace(CONFIG_VIEJO, CONFIG_NUEVO), encoding="utf-8")
+    return True
+
+
 def aplicar(src: Path) -> bool:
     s = src.read_text(encoding="utf-8")
     if "_primero_con_tools" in s:
@@ -83,11 +116,15 @@ def aplicar(src: Path) -> bool:
 
 
 if __name__ == "__main__":
-    import sys
-    n = 0
+    prov = cfg = 0
     for d in sorted(Path("worlds").iterdir()):
+        if not d.is_dir():
+            continue
         f = d / "src" / "localforge" / "providers" / "ollama.py"
         if f.is_file() and aplicar(f):
-            n += 1
-            print(f"  {d.name}: provider parchado")
-    print(f"\n{n} providers con autodeteccion de modelo")
+            prov += 1
+        c = d / "src" / "localforge" / "config.py"
+        if c.is_file() and aplicar_config(c):
+            cfg += 1
+    print(f"  {prov} providers con autodeteccion de modelo")
+    print(f"  {cfg} config.py sin marca de hardware")

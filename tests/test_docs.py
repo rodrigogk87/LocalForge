@@ -257,3 +257,48 @@ def test_cada_mundo_linkea_su_codigo_en_github(doc: str) -> None:
     faltan = [c for c in carpetas if f"worlds/{c}" not in texto]
     assert not faltan, f"{doc} no linkea el codigo de: {faltan}"
 
+
+# --- el proyecto corre en la maquina que tengas -------------------------------
+#
+# La doc decia "LocalForge es esa teoria hecha codigo, corriendo en una RTX 4090"
+# y la tabla de "Modelo local" listaba esa placa como si fuera el setup. Eso le
+# dice al lector que necesita ese hardware, y no lo necesita: el unico requisito
+# duro es que el modelo soporte tool calling.
+#
+# Los numeros medidos en una maquina concreta SI son utiles, pero se describen por
+# la propiedad que importa ("GPU dedicada", "modelo de 14B") y no por la marca.
+
+MARCAS = ("RTX", "4090", "M1 Pro", "unified memory", "Apple Silicon")
+
+# El script de parches tiene que contener la frase vieja para poder encontrarla.
+EXENTOS = {"scripts/patch_worlds.py"}
+
+
+def _archivos_de_texto() -> list[Path]:
+    objetivos = [ROOT / "README.md", ROOT / "PROJECT_STATE.md", ROOT / ".env.example"]
+    objetivos += sorted(DOCS.rglob("*.md")) + sorted(DOCS.rglob("*.html"))
+    objetivos += sorted((ROOT / "worlds").glob("*/README.md"))
+    objetivos += sorted((ROOT / "worlds").glob("*/src/**/*.py"))
+    return [f for f in objetivos if f.is_file() and str(f.relative_to(ROOT)) not in EXENTOS]
+
+
+@pytest.mark.parametrize("marca", MARCAS)
+def test_no_se_nombra_hardware_especifico(marca: str) -> None:
+    culpables = [
+        str(f.relative_to(ROOT))
+        for f in _archivos_de_texto()
+        if marca.lower() in f.read_text(encoding="utf-8").lower()
+    ]
+    assert not culpables, (
+        f"'{marca}' aparece en {culpables}. El proyecto corre en la maquina que tenga el lector; "
+        "si el dato es una medicion, describí la propiedad (GPU dedicada, tamaño del modelo), no la marca."
+    )
+
+
+def test_la_doc_dice_que_corre_en_cualquier_maquina() -> None:
+    """Lo contrario del test de arriba: que el reemplazo se haya hecho, no que
+    simplemente se haya borrado la frase."""
+    estado = (ROOT / "PROJECT_STATE.md").read_text(encoding="utf-8")
+    assert "la máquina que tengas" in estado or "Corre en la máquina que tengas" in estado
+    assert "tool calling" in estado, "no dice cual es el requisito duro real"
+

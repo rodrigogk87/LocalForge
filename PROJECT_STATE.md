@@ -8,8 +8,14 @@
 
 ## Objetivo del proyecto
 
-Construir un **coding agent que corre sobre un LLM local** (Ollama en una RTX 4090 24 GB),
-implementando un **agent harness propio y explícito**.
+Construir un **coding agent que corre sobre un LLM local** (Ollama), implementando un
+**agent harness propio y explícito**.
+
+**Corre en la máquina que tengas.** No hace falta una GPU dedicada ni un modelo en particular: el
+único requisito duro es que el modelo soporte **tool calling** (`ollama show <modelo>` tiene que
+listar `tools` en *Capabilities*). Si el modelo configurado no está instalado, el provider busca uno
+que sí esté y lo anuncia. Está verificado end-to-end en dos máquinas muy distintas — una con GPU
+dedicada y un portátil sin ella — y los números de abajo salen de las dos.
 
 El usuario selecciona un repositorio y le da instrucciones como:
 
@@ -259,43 +265,38 @@ las rutas existan, que el HTML esté bien formado y sin anclas rotas.
 
 ## Modelo local
 
-| | |
-|---|---|
-| Provider | Ollama 0.34.2 |
-| Endpoint | `http://localhost:11434`, `/api/chat` (nativo, no el compat de OpenAI) |
-| Modelo | `qwen3:14b` (~9.3 GB) |
-| Hardware | RTX 4090, 24 GB VRAM |
-| `num_ctx` | 32768 (explícito en cada request) |
-| Binario | `%LOCALAPPDATA%\Programs\Ollama\ollama.exe` (no está en PATH) |
-
-### Segunda máquina verificada (2026-09-20) — MacBook Pro M1 Pro
-
-El proyecto corre entero en un Mac sin tocar código: 24/24 tests, `health` y `ask` end-to-end.
+### Lo único que hace falta
 
 | | |
 |---|---|
-| Provider | Ollama 0.31.2 |
-| Modelo | `gemma4:e4b` (9.6 GB en disco, **3.3 GB residentes**) |
-| Hardware | M1 Pro, 16 GB unified memory, 8 cores |
-| Carga | **100% GPU**, `num_ctx` 32768 completo |
-| Python | 3.14.6 vía `uv` |
+| Provider | Ollama en `http://localhost:11434`, endpoint `/api/chat` (nativo, no el compat de OpenAI) |
+| Modelo | **cualquiera que soporte tool calling.** `ollama show <modelo>` tiene que listar `tools` |
+| Hardware | el que tengas. Sin GPU dedicada funciona: más lento, no distinto |
+| Python | ≥ 3.12, gestionado con `uv` |
+| `num_ctx` | 32768 por defecto, explícito en cada request |
 
-`gemma4:e4b` es MatFormer E4B: 8B de parámetros en disco pero sólo ~4B activos, así que entra
-cómodo en 16 GB compartidos. Soporta `tools`, que es el requisito duro (`ollama show` lo lista).
+Si el modelo configurado no está instalado, el provider **elige uno de los instalados que soporte
+tools** y lo dice en el `health`. Un modelo sin `tools` no sirve para esto: nunca pediría una
+herramienta y el loop terminaría en el primer turno sin haber mirado nada.
 
-**Diferencia de comportamiento, no sólo de velocidad.** Misma tarea ("explicame la arquitectura"):
+### Verificado en dos máquinas distintas (2026-09-20)
 
-| | RTX 4090 · qwen3:14b | M1 Pro · gemma4:e4b |
+Corre entero sin tocar código en las dos. Y la comparación enseña algo que no es sobre hardware:
+
+| misma tarea, *"explicame la arquitectura"* | GPU dedicada · modelo de 14B | portátil sin GPU · ~4B activos |
 |---|---|---|
 | Turnos | 3 | **11** |
 | Tokens | 7.946 | **67.011** |
 | Tiempo | 12,8s | **126s** |
 | `read_file` por turno | 3 en paralelo | **1** |
 
-qwen3 pide tres `read_file` en un turno; gemma4 pide uno. El paralelismo del executor queda sin
-usar y el costo por tarea crece linealmente con la cantidad de archivos. **Por eso `max_turns=20`
-y `wall_clock_s=300` son números de la 4090**: en esta máquina se agotan antes de terminar en
-cualquier repo mediano. Ver `.env` (no commiteado): 35 turnos y 900s.
+**La diferencia no es sólo velocidad: es de comportamiento.** El modelo grande pide tres `read_file`
+en un turno; el chico pide uno. El paralelismo del executor queda sin usar y el costo por tarea crece
+linealmente con la cantidad de archivos.
+
+Por eso los defaults `max_turns=20` y `wall_clock_s=300` **son números de una máquina en particular**
+y hay que ajustarlos a la tuya: en el portátil se agotan antes de terminar en cualquier repo mediano.
+Eso va en el `.env`, no en el código — ver "Configuración".
 
 ### Limitaciones encontradas
 
@@ -897,9 +898,10 @@ falsificar en tests.
 
 ---
 
-### 2026-09-19 — `qwen3:14b` y no `qwen2.5-coder:32b`
+### 2026-09-19 — un modelo mediano y no el más grande que entre
 
-**Problema:** en 24 GB de VRAM compiten el tamaño del modelo y la ventana de contexto.
+**Problema:** en la memoria disponible —VRAM o RAM compartida— compiten el **tamaño del modelo** y la
+**ventana de contexto**. Todo lo que gastás en pesos no lo tenés para KV cache.
 
 **Decisión:** `qwen3:14b` (~9 GB), dejando ~14 GB para KV cache.
 
@@ -979,7 +981,8 @@ sin mirar `success`. Aceptado. Los fallos **no** recuperables (credenciales, pre
 `list_files` y `read_file`, el agent loop con 5 condiciones de terminación, CLI con observabilidad en
 vivo. 24 tests. Verificado end-to-end contra el LLM local.
 
-**2026-09-20 — configuración por máquina.** Correr el proyecto en un segundo equipo (M1 Pro) destapó
+**2026-09-20 — configuración por máquina.** Correr el proyecto en un segundo equipo —un portátil sin
+GPU dedicada— destapó
 que el `.env` **nunca se leía** — había `.env.example` y `.gitignore` lo excluía, lo que sugiere
 "copiá el ejemplo y anda", pero nada en el código abría el archivo — y que el entorno se leía **al
 importar y no al construir**, así que `Settings()` después de tocar `os.environ` devolvía en silencio
@@ -1083,7 +1086,7 @@ ollama show gemma4:e4b                # tiene que listar `tools` en Capabilities
 ```
 
 **1. El `.env` no llegaba a todos los mundos.** `qwen3:14b` es el default hardcodeado del código —
-el modelo de la RTX 4090 — y el Mundo 1 **no sabe leer un `.env`**, porque esa capacidad se agregó
+el modelo de la máquina donde se escribió — y el Mundo 1 **no sabe leer un `.env`**, porque esa capacidad se agregó
 después (en el orden de construcción, el commit de config es posterior al de la Fase 1).
 
 La solución es el `Makefile`: incluye el `.env` de la raíz y lo **exporta**, así los ocho mundos ven
@@ -1091,7 +1094,7 @@ el mismo modelo sin repetir nada y sin tocar el código de ninguno. Un solo luga
 para ocho proyectos.
 
 **2. El default era una opinión sobre otra máquina.** Se arregló en `providers/ollama.py`, que es
-**byte-idéntico en los ocho**, así que un solo parche alcanzó (`scripts/patch_provider.py`, aplicado
+**byte-idéntico en los ocho**, así que un solo parche alcanzó (`scripts/patch_worlds.py`, aplicado
 por `make build`):
 
 - si alguien pidió un modelo **explícitamente** (`LOCALFORGE_MODEL` en el entorno) y no está, es un

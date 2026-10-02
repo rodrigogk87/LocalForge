@@ -859,9 +859,10 @@ caracteres. El mismo agente, 9 turnos, dos ventanas distintas:
 **Pregunta.** El roadmap decía *"W2 todavía no hace falta: 4975 de 32768"*. ¿Para qué construir
 esto ahora?
 
-**Respuesta.** Dos razones. La primera: ese número era de una 4090 con `qwen3:14b`, que pedía tres
-`read_file` por turno. En un M1 con `gemma4:e4b`, que pide uno, la misma tarea pasó a 11 turnos y
-67k tokens, con un pico de **12.333 de 32.768**. El mismo código, otra máquina, 2,5× más cerca del
+**Respuesta.** Dos razones. La primera: ese número se midió con un modelo de 14B en una máquina con
+GPU dedicada, que pedía tres `read_file` por turno. Con un modelo de ~4B activos en un portátil sin
+GPU, que pide uno, la misma tarea pasó a 11 turnos y 67k tokens, con un pico de
+**12.333 de 32.768**. El mismo código, otra máquina, 2,5× más cerca del
 techo. La segunda, la importante: **no podés presupuestar lo que no medís.** `ContextBreakdown`
 *es* la medición que `PROJECT_STATE.md` pone como prerequisito de esta fase.
 
