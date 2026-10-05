@@ -14,6 +14,16 @@
 # WORLD es el numero de PASO (1..8), no el del mundo del roadmap. `make worlds`
 # los lista con su correspondencia.
 
+# --- Windows: las recetas son POSIX sh ---------------------------------------
+# Lanzado desde PowerShell/cmd, make cae a cmd.exe si no hay `sh` en el PATH, y
+# `test`, `{ ...; }`, grep o sed no existen. Usamos el sh de Git for Windows
+# (y sus utilidades de usr/bin), ubicado a partir de `git --exec-path`.
+ifeq ($(OS),Windows_NT)
+GIT_ROOT := $(subst /mingw64/libexec/git-core,,$(shell git --exec-path))
+export PATH := $(GIT_ROOT)/usr/bin;$(PATH)
+SHELL := sh.exe
+endif
+
 WORLD ?= 8
 Q ?= Explicame este proyecto
 REPO ?= .
