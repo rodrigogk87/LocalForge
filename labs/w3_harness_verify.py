@@ -21,8 +21,11 @@ piezas propias, las dos inyectadas por parametros publicos:
   - `ModeloGuionado`: el unico falso. Devuelve respuestas prearmadas en orden,
     igual que el ScriptedProvider de los tests. Hace falta por la misma razon que
     alla: para MOSTRAR un rechazo y una reparacion hay que poder garantizar que el
-    modelo se equivoque en el turno 2 y se corrija en el 4, y un LLM real no se
-    deja guiar asi.
+    modelo se equivoque en el turno 2 y se corrija despues, y un LLM real no se
+    deja guiar asi. Ojo con lo que eso implica: la mecanica del harness es real,
+    pero la DECISION del modelo de repararse esta escrita en el guion. Lo que el
+    lab demuestra es que el harness reinyecta el feedback y vuelve a verificar,
+    no que un modelo dado vaya a hacerle caso.
   - `VerifierQueMira`: envuelve al `default_verifier()` REAL, delega en el y anota
     que respuesta y que trayectoria vio. No decide nada. Existe porque el evento
     `verified` del loop trae el Verdict pero no la trayectoria.
@@ -147,13 +150,27 @@ GUION = [
         tool_calls=[ToolCall(id="c3", name="read_file", arguments={"path": "app.py"})],
         stop_reason=StopReason.TOOL_USE, input_tokens=790, output_tokens=15,
     ),
-    # turno 4: responde citando lo que leyo. Vuelve a proponer terminar.
+    # turno 4: la pregunta es una COMPARACION, asi que abre tambien el candidato
+    # que habia elegido por tamaño. Sin esto no podria decir nada sobre cli.py.
     ModelResponse(
-        content="El archivo importante es app.py: main() en la linea 1 carga la config "
-        "(linea 3) y arranca el servidor (linea 4). cli.py es solo el parser de argumentos.",
-        stop_reason=StopReason.END_TURN, input_tokens=980, output_tokens=40,
+        tool_calls=[ToolCall(id="c4", name="read_file", arguments={"path": "cli.py"})],
+        stop_reason=StopReason.TOOL_USE, input_tokens=980, output_tokens=15,
+    ),
+    # turno 5: responde citando lo que leyo de los DOS. Vuelve a proponer terminar.
+    ModelResponse(
+        content="El archivo mas importante es app.py: main() (linea 1) carga la config "
+        "(linea 3) y arranca el servidor (linea 4). cli.py es mas grande, pero solo "
+        "define constantes de opciones (OPCION_0 a OPCION_179): tamaño no es importancia.",
+        stop_reason=StopReason.END_TURN, input_tokens=1850, output_tokens=52,
     ),
 ]
+
+# La respuesta que el lab usa para mostrar el LIMITE del verifier (seccion 3d):
+# afirma algo de cli.py habiendo leido solo app.py, y aun asi pasaria.
+SOBREAFIRMA = (
+    "El archivo importante es app.py: main() carga la config y arranca el servidor. "
+    "cli.py es solo el parser de argumentos."
+)
 
 
 # ---------------------------------------------------------------------------
@@ -402,7 +419,7 @@ def seccion_2_y_3() -> dict:
     print("   cual. Por eso el feedback esta escrito PARA el modelo -- dice que hacer.")
 
     sub("3b. el modelo vuelve a ejecutarse")
-    for n in (3, 4):
+    for n in (3, 4, 5):
         turno(n, narr)
     _, tray2, v2 = mirador.vistos[1]
     print()
@@ -416,12 +433,30 @@ def seccion_2_y_3() -> dict:
     print(f"   rejected_by= {outcome.rejected_by}")
     print(f"   trajectory = {outcome.trajectory}")
     print("   state_path =")
-    print(wrap(outcome.state_path.upper(), indent="      "))
+    print(wrap(outcome.state_path.upper().replace(") X", ") x"), indent="      "))
     print("\n   respuesta final:")
     print(wrap(outcome.output, indent="      "))
 
+    sub("3d. lo que este PASS NO garantiza")
+    print("   El verifier exige que haya habido AL MENOS UNA llamada de evidencia.")
+    print("   No mira que archivos se leyeron ni chequea cada afirmacion. Prueba: una")
+    print("   respuesta que opina sobre cli.py habiendo abierto solo app.py:\n")
+    tray_corta = ["list_files", "read_file"]   # read_file("app.py"), nada mas
+    v3 = mirador.real.verify(task, SOBREAFIRMA, tray_corta)
+    print(wrap(f'"{SOBREAFIRMA}"', indent="      "))
+    print(f"      trayectoria: {tray_corta}   (el read_file fue de app.py)")
+    print(f"      default_verifier(): {verdict_str(v3)}\n")
+    print("   Pasa, y la frase sobre cli.py no esta respaldada por nada. Por eso el guion")
+    print("   abre cli.py antes de compararlo: la coherencia de la respuesta final de")
+    print("   arriba la pone el guion, no la garantiza el verifier.")
+    print()
+    print("   Es el limite de diseño del Mundo 3: el verifier comprueba una propiedad")
+    print("   ESTRUCTURAL minima (si no leiste nada, no podes saber nada), barata y")
+    print("   determinista. Comprobar que cada afirmacion tenga su evidencia es otro")
+    print("   problema -- citas verificables o un juez -- y este mundo no lo resuelve.")
+
     return {"outcome": outcome, "provider": provider, "mirador": mirador, "narr": narr,
-            "v1": v1, "v2": v2, "tray1": tray, "tray2": tray2}
+            "v1": v1, "v2": v2, "v3": v3, "tray1": tray, "tray2": tray2}
 
 
 # Copia del guion para narrar: el provider va consumiendo el suyo.
@@ -436,8 +471,10 @@ GUION_ORIGINAL = list(GUION)
 def seccion_4() -> list:
     title("4. NoHedgingVerifier: no es una lista de palabras prohibidas")
     nh = NoHedgingVerifier()
+    print("   cuenta llamadas de EVIDENCIA (read_file o search_code), no archivos leidos:")
+    print(f"   EVIDENCE_TOOLS   = {sorted(EVIDENCE_TOOLS)}")
     print(f"   HEDGES (parcial) = {list(HEDGES[:5])} ...")
-    print(f"   min_reads        = {nh.min_reads}   (lecturas a partir de las cuales tolera)\n")
+    print(f"   min_reads        = {nh.min_reads}   (llamadas de evidencia a partir de las cuales tolera)\n")
 
     task = AgentTask(objective="explicame el repo", repo_path=".")
     casos = [
@@ -448,17 +485,17 @@ def seccion_4() -> list:
          ["read_file", "read_file", "search_code"]),
         ("app.py define main() en la linea 1.", ["read_file"]),
     ]
-    print(f"   {'respuesta':44} {'lecturas':>8}   resultado")
+    print(f"   {'respuesta':44} {'evidencias':>10}   resultado")
     print("   " + "-" * 72)
     resultados = []
     for texto, tray in casos:
-        reads = sum(1 for t in tray if t in EVIDENCE_TOOLS)
+        reads = sum(1 for t in tray if t in EVIDENCE_TOOLS)  # misma cuenta que el verifier
         v = nh.verify(task, texto, tray)
         resultados.append((texto, reads, v))
-        print(f"   {preview(texto, 44):44} {reads:>8}   {verdict_str(v)}")
+        print(f"   {preview(texto, 44):44} {reads:>10}   {verdict_str(v)}")
     print()
     print("   Mira la fila 1 contra la fila 3: el MISMO texto, \"posiblemente\" incluido,")
-    print("   rechazado con 1 lectura y aceptado con 3.")
+    print("   rechazado con 1 evidencia y aceptado con 3.")
     print()
     print("   Si fuera una busqueda de palabras, las dos se rechazarian. Pero especular")
     print("   sobre lo que NO leiste, despues de leer bastante, es honestidad epistemica,")
@@ -521,10 +558,10 @@ def main() -> None:
     assert reinyectado.role == "user" and reinyectado.content == feedback
     checks.append("el feedback del Verdict llego TAL CUAL como mensaje 'user' al modelo")
 
-    assert s23["v2"].ok and "read_file" in s23["tray2"]
+    assert s23["v2"].ok and s23["tray2"] == ["list_files", "read_file", "read_file"]
     assert out.status is S.COMPLETED and out.reason is None
     assert out.repairs == 1 and out.rejected_by == ["trayectoria"]
-    checks.append("tras leer app.py el verifier acepto: COMPLETED con 1 reparacion")
+    checks.append("tras leer app.py y cli.py el verifier acepto: COMPLETED con 1 reparacion")
 
     assert narr.m.compact_path() == out.state_path, (narr.m.compact_path(), out.state_path)
     assert "verifying -> repairing" in out.state_path and out.state_path.endswith("completed")
@@ -533,7 +570,10 @@ def main() -> None:
     (_, r1, v_a), (_, r2, v_b), (_, r3, v_c), (_, r4, v_d) = s4
     assert not v_a.ok and v_b.ok and v_c.ok and v_d.ok
     assert r1 < s23["mirador"].real.verifiers[1].min_reads <= r3
-    checks.append("NoHedging: el mismo 'posiblemente' se rechaza con 1 lectura y pasa con 3")
+    checks.append("NoHedging: el mismo 'posiblemente' se rechaza con 1 evidencia y pasa con 3")
+
+    assert s23["v3"].ok
+    checks.append("limite documentado: una afirmacion sobre un archivo no leido igual pasa")
 
     for c in checks:
         print(f"  OK  {c}")

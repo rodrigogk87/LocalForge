@@ -1033,8 +1033,10 @@ make lab-harness     # o su alias: make lab-verify
 
 Corre el `AgentHarness` real con un modelo guionado que responde sin abrir ningún archivo:
 el verifier lo rechaza, el feedback vuelve al modelo como mensaje, el modelo lee `app.py` y
-recién ahí el harness lo deja terminar. **El modelo propone terminar; el harness decide si
-puede.** El código está en [`labs/w3_harness_verify.py`](../labs/w3_harness_verify.py).
+`cli.py`, y recién ahí el harness lo deja terminar. **El modelo propone terminar; el harness
+decide si puede.** También muestra el límite: el verifier exige *alguna* evidencia, no que
+cada afirmación de la respuesta esté respaldada, y la decisión del modelo de repararse está
+escrita en el guion. El código está en [`labs/w3_harness_verify.py`](../labs/w3_harness_verify.py).
 
 El detalle de qué falta en cada uno está en [`PROJECT_STATE.md`](../PROJECT_STATE.md).
 

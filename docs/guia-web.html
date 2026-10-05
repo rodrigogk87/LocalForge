@@ -1224,21 +1224,29 @@ messages del state     =   4153
       <p class="prose">
         Corre el <code>AgentHarness</code> real del paso 3 con un modelo guionado: lista archivos,
         responde "posiblemente cli.py sea el más importante" sin abrir nada, recibe el rechazo, lee
-        <code>app.py</code> y vuelve a responder. Lo único falso es el modelo; la máquina de estados,
+        <code>app.py</code> y <code>cli.py</code>, y recién entonces compara. Lo único falso es el modelo; la máquina de estados,
         los verifiers y el loop son los de verdad. Sin Ollama, sin red.
       </p>
       <pre>make lab-harness     <span class="c"># o su alias: make lab-verify</span></pre>
       <p class="prose">El cierre de la salida resume el mundo entero:</p>
       <pre>turno 2: el modelo propone terminar  ->  el harness dice: NO -- trayectoria
          (con la trayectoria ['list_files'])
-turno 4: el modelo propone terminar  ->  el harness dice: SI, terminar
-         (con la trayectoria ['list_files', 'read_file'])</pre>
+turno 5: el modelo propone terminar  ->  el harness dice: SI, terminar
+         (con la trayectoria ['list_files', 'read_file', 'read_file'])</pre>
 
       <div class="q"><span class="label">Pregunta</span><p>En el lab el modelo tiene dos "intentos" de terminar. ¿Quién decide cuál cuenta?</p></div>
       <details class="a"><summary>Ver respuesta</summary><div class="a-body">
         <p><strong>El modelo propone terminar. El harness decide si realmente puede terminar.</strong></p>
         <p>Lo único que el modelo controla es cuándo <em>deja de pedir herramientas</em>. Eso lleva al estado <code>VERIFYING</code>, no a <code>COMPLETED</code>: la tabla de 3.1 no tiene otro camino. Desde ahí, el <code>Verdict</code> decide entre <code>COMPLETED</code> y <code>REPAIRING</code>.</p>
         <p>El lab lo comprueba: el camino que narra coincide exacto con el <code>state_path</code> del harness, y el feedback que recibe el modelo en el turno 3 es, carácter por carácter, el del <code>Verdict</code>.</p>
+        <p>Lo que el lab <em>no</em> demuestra: que un modelo real vaya a hacerle caso al feedback. Esa decisión está escrita en el guion; la mecánica del harness es la real.</p>
+      </div></details>
+
+      <div class="q"><span class="label">Pregunta</span><p>Si el modelo hubiera leído solo <code>app.py</code> y aun así dijera "cli.py es solo el parser de argumentos", ¿el verifier lo rechazaría?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p><strong>No. Pasaría.</strong> El lab lo muestra en la sección 3d: con la trayectoria <code>['list_files', 'read_file']</code> esa respuesta recibe PASS, aunque la frase sobre <code>cli.py</code> no esté respaldada por nada.</p>
+        <p><code>TrajectoryVerifier</code> exige <em>al menos una</em> llamada de evidencia. No mira qué archivos se leyeron ni chequea cada afirmación contra lo leído. Por eso el guion abre <code>cli.py</code> antes de compararlo: la coherencia de la respuesta final la pone el guion, no la garantiza el verifier.</p>
+        <p>Es un límite de diseño, no un bug: una propiedad estructural mínima, barata y determinista. Comprobar afirmación por afirmación es otro problema (citas verificables, o un juez con sus propios sesgos) que este mundo no resuelve.</p>
       </div></details>
 
       <h3>3.6 Qué falta de este mundo</h3>
