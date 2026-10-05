@@ -1220,7 +1220,28 @@ messages del state     =   4153
         <p>Es el mismo cuidado que en el Mundo 7: un eval mal diseñado no es neutral, premia lo que no querés.</p>
       </div></details>
 
-      <h3>3.5 Qué falta de este mundo</h3>
+      <h3>3.5 Laboratorio: verlo rechazar y reparar, sin LLM</h3>
+      <p class="prose">
+        Corre el <code>AgentHarness</code> real del paso 3 con un modelo guionado: lista archivos,
+        responde "posiblemente cli.py sea el más importante" sin abrir nada, recibe el rechazo, lee
+        <code>app.py</code> y vuelve a responder. Lo único falso es el modelo; la máquina de estados,
+        los verifiers y el loop son los de verdad. Sin Ollama, sin red.
+      </p>
+      <pre>make lab-harness     <span class="c"># o su alias: make lab-verify</span></pre>
+      <p class="prose">El cierre de la salida resume el mundo entero:</p>
+      <pre>turno 2: el modelo propone terminar  ->  el harness dice: NO -- trayectoria
+         (con la trayectoria ['list_files'])
+turno 4: el modelo propone terminar  ->  el harness dice: SI, terminar
+         (con la trayectoria ['list_files', 'read_file'])</pre>
+
+      <div class="q"><span class="label">Pregunta</span><p>En el lab el modelo tiene dos "intentos" de terminar. ¿Quién decide cuál cuenta?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p><strong>El modelo propone terminar. El harness decide si realmente puede terminar.</strong></p>
+        <p>Lo único que el modelo controla es cuándo <em>deja de pedir herramientas</em>. Eso lleva al estado <code>VERIFYING</code>, no a <code>COMPLETED</code>: la tabla de 3.1 no tiene otro camino. Desde ahí, el <code>Verdict</code> decide entre <code>COMPLETED</code> y <code>REPAIRING</code>.</p>
+        <p>El lab lo comprueba: el camino que narra coincide exacto con el <code>state_path</code> del harness, y el feedback que recibe el modelo en el turno 3 es, carácter por carácter, el del <code>Verdict</code>.</p>
+      </div></details>
+
+      <h3>3.6 Qué falta de este mundo</h3>
       <p class="prose">
         <strong>Planner</strong> (y su estado). <strong>Hooks que puedan vetar</strong> — hoy
         <code>on_event</code> sólo observa; uno que pueda negar una llamada antes de ejecutarla es el

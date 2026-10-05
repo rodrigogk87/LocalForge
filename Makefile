@@ -42,7 +42,7 @@ ALL_DIRS := $(sort $(wildcard worlds/*-w*))
 
 .DEFAULT_GOAL := help
 .PHONY: help worlds setup setup-all test test-all ask health eval runs resume \
-        lab-context repo-test docs docs-check build clean check
+        lab-context lab-harness lab-verify repo-test docs docs-check build clean check
 
 ## help: esta ayuda
 help:
@@ -105,6 +105,13 @@ resume: guard
 ## lab-context: laboratorio del Mundo 2, ContextBuilder compactando sin LLM
 lab-context:
 	@cd $(firstword $(wildcard worlds/2-*)) && uv run python ../../labs/w2_context_builder.py
+
+## lab-harness: laboratorio del Mundo 3, estados + verifier + repair loop sin LLM
+lab-harness:
+	@cd $(firstword $(wildcard worlds/3-*)) && uv run python ../../labs/w3_harness_verify.py
+
+## lab-verify: alias de lab-harness
+lab-verify: lab-harness
 
 ## repo-test: los tests del repo (coherencia de los ocho + la doc)
 repo-test:

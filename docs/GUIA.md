@@ -1025,6 +1025,17 @@ Los seis mundos restantes están desarrollados, con el mismo formato de pregunta
 | **7** Agent Evals | [`worlds/6-evals-w7`](https://github.com/rodrigogk87/LocalForge/tree/main/worlds/6-evals-w7) | Golden tasks, checks deterministas, taxonomía de fallos, comparador de harnesses |
 | **8** Multi-Agent | [`worlds/8-multiagent-w8`](https://github.com/rodrigogk87/LocalForge/tree/main/worlds/8-multiagent-w8) | Subagentes con contexto aislado — lo que el Mundo 2 dejó pendiente |
 
+Para ver el Mundo 3 funcionando sin LLM:
+
+```bash
+make lab-harness     # o su alias: make lab-verify
+```
+
+Corre el `AgentHarness` real con un modelo guionado que responde sin abrir ningún archivo:
+el verifier lo rechaza, el feedback vuelve al modelo como mensaje, el modelo lee `app.py` y
+recién ahí el harness lo deja terminar. **El modelo propone terminar; el harness decide si
+puede.** El código está en [`labs/w3_harness_verify.py`](../labs/w3_harness_verify.py).
+
 El detalle de qué falta en cada uno está en [`PROJECT_STATE.md`](../PROJECT_STATE.md).
 
 ---
