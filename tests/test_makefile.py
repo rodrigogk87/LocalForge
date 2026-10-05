@@ -28,7 +28,7 @@ MAKEFILE = ROOT / "Makefile"
 # Los targets que tienen que existir: si se renombra uno, la doc queda mintiendo.
 TARGETS = (
     "help", "worlds", "setup", "setup-all", "test", "test-all",
-    "health", "ask", "eval", "runs", "resume",
+    "health", "ask", "eval", "runs", "resume", "lab-context",
     "repo-test", "docs", "docs-check", "build", "check", "clean",
 )
 

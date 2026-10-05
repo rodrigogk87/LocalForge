@@ -936,7 +936,48 @@ hizo; borrarlo lo obliga a redescubrir su plan, que es la receta del `LOOP_DETEC
 El marcador es la misma regla que `_truncate` de la Sesión 3: si el modelo cree que vio el archivo
 entero cuando no lo vio, razona sobre información faltante sin ninguna señal.
 
-### 6.6 — Qué de W2 todavía NO está
+### 6.6 — Laboratorio: verlo compactar, sin LLM
+
+```bash
+make lab-context
+```
+
+Arma a mano el state que dejaría el loop después de cuatro `read_file` (10 mensajes, cada
+observación de 3600 caracteres), le da un presupuesto chico a propósito
+(`limit=3000, reserve_output=500, keep_recent_messages=4`) y llama al `ContextBuilder.build()`
+real. Sin Ollama, sin red, sin mocks. Imprime el state, la cuenta de `fixed` y `room`, qué
+mensajes están protegidos, el contexto proyectado, cuáles se compactaron y en qué orden, el
+`ContextBreakdown`, y siete assertions sobre las invariantes. El código está en
+[`labs/w2_context_builder.py`](https://github.com/rodrigogk87/LocalForge/blob/main/labs/w2_context_builder.py).
+
+```
+room para messages     =   2428   (available - fixed)
+messages del state     =   4153   -> NO entran -> _compact() va a trabajar
+
+03 | tool |  139 chars |  43 tok | [observacion compactada: read_file habia...
+05 | tool |  139 chars |  43 tok | [observacion compactada: read_file habia...
+07 | tool | 3600 chars | 1005 tok | CCCCCCCC...   ← protegido
+09 | tool | 3600 chars | 1005 tok | DDDDDDDD...   ← protegido
+
+  contexto: 2282 / 2500 tok (91.3%) · compactado: 2 obs, -1924 tok
+```
+
+**Pregunta.** Después de compactar el mensaje 3, ¿por qué siguió con el 5?
+
+**Respuesta.** Porque `_compact()` vuelve a medir antes de cada mensaje. Compactar el 3 recupera
+962 tok: 4153 − 962 = 3191, todavía más que 2428. Recién con el 5 entra. Si con el 3 hubiera
+alcanzado, el `break` corta y el 5 viaja entero: **se compacta lo mínimo necesario**, no todo lo
+compactable. Probalo cambiando `limit=3000` por `4000`.
+
+**Pregunta.** Los mensajes no compactados son *los mismos objetos* en el state y en el contexto.
+¿Qué protege entonces al state?
+
+**Respuesta.** Que el compactado no se modifica en el lugar: se reemplaza con
+`model_copy(update=...)`. La lista es nueva pero la copia es superficial; **state ≠ context** se
+cumple por cómo está escrito `_compact()`, no porque la estructura lo garantice. Por eso conviene
+fijarlo con assertions, que es lo que hace el laboratorio.
+
+### 6.7 — Qué de W2 todavía NO está
 
 **Retrieval just-in-time** (W2·C11) necesita poder buscar, y `search_code` no existe: sin
 búsqueda, traer "el fragmento exacto" es imposible porque no sabés dónde está. **Aislamiento de

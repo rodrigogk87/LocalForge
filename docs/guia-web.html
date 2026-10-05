@@ -1054,7 +1054,58 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
         <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w2-l12" target="_blank" rel="noopener">W2·C12 — Compactación</a>
       </div>
 
-      <h3>6.6 Qué de W2 todavía NO está</h3>
+      <h3>6.6 Laboratorio: verlo compactar, sin LLM</h3>
+      <p class="prose">
+        Leer <code>_compact()</code> es una cosa; verlo decidir mensaje por mensaje es otra. El
+        laboratorio arma a mano el state que dejaría el loop después de cuatro <code>read_file</code>
+        (10 mensajes, cada observación de 3600 caracteres), le da un presupuesto chico a propósito
+        y llama al <code>ContextBuilder.build()</code> real. Sin Ollama, sin red, sin mocks.
+      </p>
+      <pre>make lab-context</pre>
+      <p class="prose">
+        Imprime nueve secciones, del state al contexto. Primero, la cuenta que hace <code>build()</code> antes de compactar:
+      </p>
+      <pre>available para input   =   2500   <span class="c">(limit 3000 - reserve_output 500)</span>
+fixed                  =     72   <span class="c">(system + tools + task)</span>
+room para messages     =   2428   <span class="c">(available - fixed)</span>
+messages del state     =   4153
+<span class="hl">exceso                 =   1725   -&gt; NO entran -&gt; _compact() va a trabajar</span></pre>
+      <p class="prose">Después, lo que viaja al modelo. Los mensajes 7 a 10 son los <code>keep_recent_messages</code>: nadie los toca.</p>
+      <pre>01 | user      |     52 chars |    19 tok | Explica como funciona la autenticacion...
+02 | assistant |     30 chars |    22 tok | Primero miro la configuracion.
+<span class="hl">03 | tool      |    139 chars |    43 tok | [observacion compactada: read_file habia...</span>
+04 | assistant |     26 chars |    21 tok | Ahora el punto de entrada.
+<span class="hl">05 | tool      |    139 chars |    43 tok | [observacion compactada: read_file habia...</span>
+06 | assistant |     31 chars |    22 tok | Veo el modulo de autenticacion.
+07 | tool      |   3600 chars |  1005 tok | CCCCCCCCCCCCCCCCCCCC...   <span class="c">← protegido</span>
+08 | assistant |     39 chars |    25 tok | Falta ver como se guardan los usuarios.
+09 | tool      |   3600 chars |  1005 tok | DDDDDDDDDDDDDDDDDDDD...   <span class="c">← protegido</span>
+10 | assistant |     70 chars |    24 tok | Con config, main, auth y database ya...
+
+  contexto: 2282 / 2500 tok (91.3%) · compactado: 2 obs, -1924 tok</pre>
+      <p class="prose">
+        Y al final, siete assertions sobre las invariantes: el state original sigue intacto
+        (<code>messages[2]</code> tiene sus 3600 caracteres aunque <code>built.messages[2]</code> sea el marcador),
+        se compactó de la más vieja a la más nueva, los protegidos son los mismos objetos y el resultado entra.
+        El código está en
+        <a href="https://github.com/rodrigogk87/LocalForge/blob/main/labs/w2_context_builder.py" target="_blank" rel="noopener"><code>labs/w2_context_builder.py</code></a>.
+      </p>
+
+      <div class="q"><span class="label">Pregunta</span><p>Después de compactar el mensaje 3, ¿por qué siguió con el 5? Y si una sola compactación hubiera alcanzado, ¿qué habría pasado con el 5?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>Porque <code>_compact()</code> vuelve a medir <strong>antes de cada mensaje</strong>, no una vez al principio. Compactar el 3 recupera 962 tok: 4153 − 962 = 3191, que todavía es más que 2428. Recién con el 5 baja a 2229 y entra.</p>
+        <p>Si con el 3 hubiera alcanzado, el <code>break</code> corta el loop y el 5 viaja entero. <strong>Se compacta lo mínimo necesario</strong>, no todo lo compactable: cada observación que se pierde es un archivo que el modelo quizás tenga que volver a pedir.</p>
+        <p>Para verlo, cambiá <code>limit=3000</code> por <code>4000</code> en el laboratorio: el 5 aparece en la sección 7 como “no se tocó”.</p>
+      </div></details>
+
+      <div class="q"><span class="label">Pregunta</span><p>Mirá la sección 6 de la salida: los mensajes que no se compactaron dicen <code>mismo_objeto=True</code>. ¿Qué es entonces lo que protege al state?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p><code>built.messages</code> es una lista <strong>nueva</strong> (<code>list(messages)</code>), pero los elementos que no se tocan son los <strong>mismos objetos</strong> que en el state. La copia es superficial.</p>
+        <p>Lo que mantiene al state intacto es que el compactado no se modifica en el lugar: se reemplaza con <code>msg.model_copy(update={"content": marker})</code>. Si alguien hiciera <code>built.messages[0].content = ...</code>, también estaría cambiando el state.</p>
+        <p><strong>state ≠ context</strong> se cumple por cómo está escrito <code>_compact()</code>, no porque la estructura de datos lo garantice. Es el tipo de invariante que conviene fijar con un test: justo lo que hacen las assertions del laboratorio.</p>
+      </div></details>
+
+      <h3>6.7 Qué de W2 todavía NO está</h3>
       <p class="prose">
         El archivo lo dice en su propio docstring, y vale leerlo como parte de la sesión:
         <strong>retrieval just-in-time</strong> (W2·C11) necesita poder buscar, y <code>search_code</code>

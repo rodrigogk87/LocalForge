@@ -64,6 +64,7 @@ make health WORLD=1                     # ¿responde el LLM local?
 make ask WORLD=1 Q="Que hace AgentHarness?"
 make ask WORLD=8 Q="..." FLAGS="--delegate -v"
 make eval WORLD=6                       # el dataset de golden tasks
+make lab-context                        # el Mundo 2 compactando, paso a paso, sin LLM
 ```
 
 Sin `make` funciona igual, sólo que con tres pasos en vez de uno:
