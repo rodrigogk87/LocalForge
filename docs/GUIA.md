@@ -3,8 +3,9 @@
 Esto no es documentación de referencia. Es un **recorrido guiado** para que entiendas cómo
 funciona un agent harness leyendo el código de a poco, en el orden correcto.
 
-Está dividido por **los ocho mundos del roadmap**, en orden. No hace falta hacerlos seguidos.
-Cada mundo te dice qué propiedad le agrega al agente y qué le falta todavía.
+Está dividido en **ocho pasos, uno por cada mundo del roadmap**, en el orden en que el proyecto se
+construyó — que no es el de los números (más abajo, por qué). Cada paso te dice qué propiedad le
+agrega al agente y qué le falta todavía.
 
 **Cómo usar esta guía:** cada sección te dice qué archivo abrir y en qué línea mirar, te hace una
 pregunta, y recién después te da la respuesta. **Intentá contestar antes de seguir leyendo.** Si
@@ -142,23 +143,37 @@ Vas a ver algo así:
 Esto es lo que más cuesta entender de un proyecto construido por fases, y conviene saberlo antes de
 abrir el primer archivo: **casi ningún archivo pertenece a un solo mundo.** El Mundo 1 crea
 `models.py` con cinco estados y el Mundo 3 le agrega tres. El Mundo 1 escribe el loop, y después lo
-tocan cuatro mundos.
+tocan cinco mundos.
 
-| archivo | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+**Los pasos no siguen los números de los mundos.** La guía va en el orden en que el proyecto se
+construyó, que es el mismo de las carpetas de `worlds/`. Los permisos (Mundo 5) se hicieron antes que
+las skills (Mundo 4), porque eran prerequisito de cualquier herramienta con efectos, y las skills
+terminaron llegando después de las evals:
+
+```
+paso    1    2    3    4    5    6    7    8
+mundo  W1   W2   W3   W5   W6   W7   W4   W8
+```
+
+Ordenarla por número sería peor: cada carpeta contiene todo lo anterior, así que la del Mundo 4 ya
+trae permisos, checkpoints y evals. Leída en cuarto lugar te mostraría tres mundos que todavía no
+viste. En este orden, **cada paso es el anterior más una cosa nueva**.
+
+| archivo | 1·W1 | 2·W2 | 3·W3 | 4·W5 | 5·W6 | 6·W7 | 7·W4 | 8·W8 |
 |---|---|---|---|---|---|---|---|---|
 | `models.py` | **crea** | · | +3 estados, +2 motivos, +3 campos | · | · | · | · | · |
-| `harness/loop.py` | **crea** | +presupuesto | +estados, +verify, +repair | +skills | +permisos | +checkpoints | · | · |
-| `tools/base.py` | **crea** | · | · | · | +autorización | · | · | · |
-| `harness/prompt.py` | **crea** | · | · | +disclosure | · | · | · | · |
-| `tools/` | list_files, read_file | search_code | · | load_skill | · | · | · | delegate |
+| `harness/loop.py` | **crea** | +presupuesto | +estados, +verify, +repair | +permisos | +checkpoints | · | +skills | · |
+| `tools/base.py` | **crea** | · | · | +autorización | · | · | · | · |
+| `harness/prompt.py` | **crea** | · | · | · | · | · | +disclosure | · |
+| `tools/` | list_files, read_file | search_code | · | · | · | · | load_skill | delegate |
 | `providers/` | **crea** | · | · | · | · | · | · | · |
-| `harness/context.py` | · | **crea** | · | +capa skills | · | · | · | · |
+| `harness/context.py` | · | **crea** | · | · | · | · | +capa skills | · |
 | `harness/state.py` | · | · | **crea** | · | · | · | · | · |
 | `harness/verify.py` | · | · | **crea** | · | · | · | · | · |
-| `skills.py` | · | · | · | **crea** | · | · | · | · |
-| `permissions.py` | · | · | · | · | **crea** | · | · | delegate → ASK |
-| `harness/checkpoint.py` | · | · | · | · | · | **crea** | · | · |
-| `evals.py` | · | · | · | · | · | · | **crea** | · |
+| `skills.py` | · | · | · | · | · | · | **crea** | · |
+| `permissions.py` | · | · | · | **crea** | · | · | +load_skill | delegate → ASK |
+| `harness/checkpoint.py` | · | · | · | · | **crea** | · | · | · |
+| `evals.py` | · | · | · | · | · | **crea** | · | · |
 | `harness/subagent.py` | · | · | · | · | · | · | · | **crea** |
 
 > **Pregunta:** el Mundo 3 le agrega tres estados a `models.py`. ¿Por qué no los pone en
@@ -187,7 +202,7 @@ máquina de estados, y esa sí es del Mundo 3.
 
 ---
 
-## Mundo 1 · 1 de 4 — `models.py`: el vocabulario (30 min)
+## Paso 1 · Mundo 1 · 1 de 4 — `models.py`: el vocabulario (30 min)
 
 
 📦 **El código de este mundo:** [`worlds/1-foundations-w1`](https://github.com/rodrigogk87/LocalForge/tree/main/worlds/1-foundations-w1) — proyecto aparte, paso 1 de 8, 24 tests. `make test WORLD=1`
@@ -346,7 +361,7 @@ token_budget: int = Field(default=200_000, gt=0)
 ```
 
 Estos tres números son **lo único que separa a tu agente de un proceso que corre para siempre
-gastando plata**. Volvés a verlos en la Sesión 2.
+gastando plata**. Volvés a verlos en la sección 1.8.
 
 > 🎓 **W1·C1 → walkthrough de `AgentTask`, paso "max_turns: el primer límite de seguridad"**.
 > Ahí se explica por qué `ge=1` y `le=100`, y por qué el `id` es un UUID y no un autoincrement.
@@ -378,7 +393,7 @@ con impresiones.
 > ejercicio te hace escribir esta misma clase desde cero. Y **W7·C47 "Costo y latencia"** explica
 > por qué `input_tokens` y `output_tokens` van separados (el output cuesta ~5x más).
 
-### ✅ Checkpoint — 1
+### ✅ Checkpoint — models.py
 
 Deberías poder responder sin mirar:
 
@@ -390,7 +405,7 @@ Deberías poder responder sin mirar:
 
 ---
 
-## Mundo 1 · 2 de 4 — `harness/loop.py`: el corazón (40 min)
+## Paso 1 · Mundo 1 · 2 de 4 — `harness/loop.py`: el corazón (40 min)
 
 📂 `localforge/harness/loop.py` (240 líneas)
 
@@ -400,7 +415,7 @@ Este es **el archivo más importante del proyecto**. Todo lo demás existe para 
 > walkthrough recorre un loop casi idéntico línea por línea. **W1·C7 (el Boss del Mundo 1)**
 > integra todo esto.
 
-### 2.1 — El estado del loop (líneas 89-94)
+### 1.7 — El estado del loop (líneas 89-94)
 
 ```python
 messages: list[AgentMessage] = [...]   # la conversación
@@ -440,7 +455,7 @@ ahí tu presupuesto de tiempo se vuelve loco.
 >
 > Lo de `monotonic` vs `time()` está en el quiz de **W1·C2**.
 
-### 2.2 — Los presupuestos, ANTES de gastar (líneas 122-125)
+### 1.8 — Los presupuestos, ANTES de gastar (líneas 122-125)
 
 ```python
 for turn in range(task.max_turns):
@@ -457,7 +472,7 @@ de toda la ejecución.
 
 > 🎓 Es una pregunta literal del quiz de **W1·C6**.
 
-### 2.3 — La composición de presupuestos (línea 135)
+### 1.9 — La composición de presupuestos (línea 135)
 
 ```python
 response = await asyncio.wait_for(
@@ -502,7 +517,7 @@ del presupuesto total que queda**. Si quedan 8 segundos, el turno tiene 8, no 18
 > El mismo patrón vuelve en **W5·C32**, donde se aprende que `asyncio.wait_for` **no alcanza** para
 > matar un proceso dentro de un container: ahí el timeout real es destruir el container.
 
-### 2.4 — `max_tokens` no es un final válido (líneas 164-169)
+### 1.10 — `max_tokens` no es un final válido (líneas 164-169)
 
 ```python
 if not response.tool_calls:
@@ -524,7 +539,7 @@ Fijate que es `continue`, no `return`: consume un turno del presupuesto, que es 
 > arreglo lado a lado. Y **W1·C4** entera explica `stop_reason` como *la señal de control del
 > loop*: ignorarla es el bug nº1 de un agente casero.
 
-### 2.5 — Detección de loops (líneas 178-180)
+### 1.11 — Detección de loops (líneas 178-180)
 
 ```python
 for call in response.tool_calls:
@@ -565,7 +580,7 @@ veces idénticas significa que el modelo no está incorporando el resultado.
 > repetición. En **W3·C19** esto evoluciona: en vez de cortar, se le inyecta un mensaje para que
 > cambie de estrategia (eso es *reflection*).
 
-### 2.6 — El orden de los mensajes (línea 194)
+### 1.12 — El orden de los mensajes (línea 194)
 
 ```python
 messages.append(
@@ -581,7 +596,7 @@ después que devolvieron. Es una invariante del protocolo: cada resultado necesi
 > pregunta qué pasa si devolvés 2 resultados para 3 tool calls (spoiler: la API rechaza la
 > request, y por eso el executor devuelve *siempre* un `ToolResult` por cada call).
 
-### 2.7 — La línea más importante del proyecto (líneas 201-204)
+### 1.13 — La línea más importante del proyecto (líneas 201-204)
 
 ```python
 by_id = {r.call_id: r for r in results}
@@ -624,9 +639,9 @@ bug **nuestro** y queremos que explote fuerte, no que pase desapercibido.
 > - **Modo entrevista → "Tu agente alucina: ¿por dónde empezás?"** — es pregunta de entrevista.
 >
 > La regla que sale de ahí: **cuando el síntoma es "el modelo alucina", sospechá primero de tu
-> harness.** Lo vas a comprobar vos mismo en el Experimento 1 de la Sesión 5.
+> harness.** Lo vas a comprobar vos mismo en el Experimento 1, al final de la guía.
 
-### 2.8 — El final (línea 222)
+### 1.14 — El final (línea 222)
 
 ```python
 return finish(AgentStatus.FAILED, reason=FailureReason.MAX_TURNS, turns=task.max_turns)
@@ -635,7 +650,7 @@ return finish(AgentStatus.FAILED, reason=FailureReason.MAX_TURNS, turns=task.max
 El `for` que termina sin `return` **es** la condición de terminación por turnos. Esta línea es la
 que garantiza que, sea cual sea el camino, el loop siempre devuelve algo.
 
-### ✅ Checkpoint — 2
+### ✅ Checkpoint — harness/loop.py
 
 1. ¿Por qué el `for` solo no garantiza que el agente termine?
 2. ¿Qué pasa si correlacionás resultados por posición en vez de por `call_id`?
@@ -648,11 +663,11 @@ que garantiza que, sea cual sea el camino, el loop siempre devuelve algo.
 
 ---
 
-## Mundo 1 · 3 de 4 — `tools/base.py`: el borde de confianza (30 min)
+## Paso 1 · Mundo 1 · 3 de 4 — `tools/base.py`: el borde de confianza (30 min)
 
 📂 `localforge/tools/base.py` (194 líneas)
 
-### 3.1 — `definitions()` (línea 61)
+### 1.15 — `definitions()` (línea 61)
 
 ```python
 schema = tool.args_model.model_json_schema()
@@ -670,7 +685,7 @@ nunca puede ganar.
 > completa: `BaseModel → JSON Schema → tool definition → el modelo responde → model_validate()`.
 > El mismo schema reaparece en **W4·C26** cuando un MCP server publica sus herramientas.
 
-### 3.2 — `run_one`: cuatro formas de fallar (líneas 97-149)
+### 1.16 — `run_one`: cuatro formas de fallar (líneas 97-149)
 
 Leé el método entero de corrido. Fijate que **los cuatro casos de error devuelven un `ToolResult`,
 ninguno lanza una excepción**:
@@ -693,7 +708,7 @@ sube muchísimo la probabilidad de que el próximo intento sea correcto.
 > Y **W4·C26** aplica la misma idea del otro lado del protocolo: un buen error de un MCP server
 > no solo dice qué está mal, dice **qué herramienta usar en su lugar**.
 
-### 3.3 — El `except Exception` (línea 149)
+### 1.17 — El `except Exception` (línea 149)
 
 ```python
 except Exception as exc:  # noqa: BLE001 - aislar fallos de una tool
@@ -718,7 +733,7 @@ Ese detalle de una palabra es lo que hace que los timeouts anidados funcionen.
 > advertencia en rojo. El quiz de esa clase pregunta qué pasa si una tool atrapa `CancelledError`
 > y no la re-lanza: *le estás diciendo al runtime que ignoraste su pedido de cancelar*.
 
-### 3.4 — `_truncate` (línea 179)
+### 1.18 — `_truncate` (línea 179)
 
 ```python
 head + f"\n\n[...truncado: se muestran {self.output_limit} de {len(text)} caracteres. "
@@ -735,7 +750,7 @@ El mensaje dice qué pasó **y cómo seguir**.
 > correlación rota y la pérdida al compactar. En **W2** esto deja de ser una constante (8000) y
 > pasa a ser un presupuesto calculado.
 
-### ✅ Checkpoint — 3
+### ✅ Checkpoint — tools/base.py
 
 1. ¿Por qué el schema de argumentos se genera y no se escribe a mano?
 2. ¿Qué tienen en común los 4 mensajes de error de `run_one`?
@@ -745,7 +760,7 @@ El mensaje dice qué pasó **y cómo seguir**.
 
 ---
 
-## Mundo 1 · 4 de 4 — `providers/ollama.py`: la suciedad del mundo real (30 min)
+## Paso 1 · Mundo 1 · 4 de 4 — `providers/ollama.py`: la suciedad del mundo real (30 min)
 
 📂 `localforge/providers/ollama.py` (209 líneas)
 
@@ -762,7 +777,7 @@ que agregás es un método que todo backend futuro tiene que implementar.
 > Esa clase también explica por qué esto decide si tu agente es testeable: el `ScriptedProvider`
 > de `tests/test_loop.py` existe gracias a este Protocol.
 
-### 4.1 — Inventar los `call_id` (línea 123)
+### 1.19 — Inventar los `call_id` (línea 123)
 
 ```python
 def _next_call_id(self) -> str:
@@ -772,7 +787,7 @@ def _next_call_id(self) -> str:
 
 **Ollama no devuelve ids en las tool calls.** OpenAI y Anthropic sí.
 
-Pero el harness correlaciona por `call_id` (Sesión 2.7). Entonces el provider los fabrica.
+Pero el harness correlaciona por `call_id` (sección 1.13). Entonces el provider los fabrica.
 
 > **Pregunta:** ¿por qué se inventan acá y no en el loop?
 
@@ -791,7 +806,7 @@ proveedor — que es todo el punto de tener un `Protocol`.
 > explícitamente porque usa APIs que sí devuelven ids: **es un hallazgo propio de LocalForge**, y
 > está documentado en `PROJECT_STATE.md` → *Modelo local → Limitaciones encontradas*.
 
-### 4.2 — `num_ctx` explícito (línea 144)
+### 1.20 — `num_ctx` explícito (línea 144)
 
 ```python
 options: dict[str, Any] = {"num_ctx": self.cfg.num_ctx}
@@ -807,7 +822,7 @@ Por eso se fija explícito en cada request en vez de confiar en el default del m
 > acción individual es razonable, lo que se perdió es el marco. Es el fallo más difícil de
 > diagnosticar de los agentes largos.
 
-### 4.3 — `done_reason` no alcanza (líneas 216-221)
+### 1.21 — `done_reason` no alcanza (líneas 216-221)
 
 ```python
 stop = _STOP_MAP.get(done_reason, StopReason.UNKNOWN)
@@ -822,7 +837,7 @@ es que hay trabajo pendiente, así que la señal se deriva de la *presencia* de 
 > con cada valor. Acá se ve por qué conviene escribir el adapter a mano: la Academy enseña el
 > contrato ideal, y el mundo real tiene esta clase de desprolijidades en cada backend.
 
-### ✅ Checkpoint — 4
+### ✅ Checkpoint — providers/ollama.py
 
 1. ¿Cuántos métodos tiene `ModelProvider` y por qué tan pocos?
 2. ¿Qué tres cosas raras de Ollama quedan encapsuladas acá?
@@ -832,7 +847,7 @@ es que hay trabajo pendiente, así que la señal se deriva de la *presencia* de 
 
 ---
 
-## Mundo 2 — `context/builder.py`: el contexto es un presupuesto (30 min)
+## Paso 2 · Mundo 2 — `harness/context.py`: el contexto es un presupuesto (30 min)
 
 
 📦 **El código de este mundo:** [`worlds/2-context-w2`](https://github.com/rodrigogk87/LocalForge/tree/main/worlds/2-context-w2) — proyecto aparte, paso 2 de 8, 59 tests. `make test WORLD=2`
@@ -842,7 +857,7 @@ es que hay trabajo pendiente, así que la señal se deriva de la *presencia* de 
 Hasta acá leíste W1: un agente que corre y termina. Este archivo agrega la propiedad siguiente —
 que sea **barato y preciso**.
 
-### 6.1 — El problema, con números
+### 2.1 — El problema, con números
 
 En la Fase 1 `messages` crecía sin techo y la única defensa era truncar cada tool result a 8000
 caracteres. El mismo agente, 9 turnos, dos ventanas distintas:
@@ -869,7 +884,7 @@ techo. La segunda, la importante: **no podés presupuestar lo que no medís.** `
 Fijate el orden: instrumentación → presupuesto → compactación. Con `num_ctx=32768` el compactador
 está en el código y **nunca se ejecuta**. Eso es lo correcto.
 
-### 6.2 — Estimar tokens sin tokenizer (líneas 56-119)
+### 2.2 — Estimar tokens sin tokenizer (líneas 56-119)
 
 `estimate()` divide por 3.6 caracteres. Eso solo sería adivinar; la segunda mitad es la que
 importa:
@@ -891,7 +906,7 @@ sin saber cuál usa.
 En la corrida de arriba fue de 3.60 a 3.15 con un real de 2.90 en 9 muestras: **no convergió del
 todo, a propósito.** `_EMA_ALPHA = 0.25` prefiere converger despacio a saltar por un turno atípico.
 
-### 6.3 — Las nueve capas, y las cuatro que no existen (líneas 136-145)
+### 2.3 — Las nueve capas, y las cuatro que no existen (líneas 136-145)
 
 ```
   contexto: 19446 / 28768 tok (67.6%)
@@ -910,16 +925,16 @@ todavía no está: la tabla **también es el backlog**. Y el reparto real es la 
 observaciones son el **83%**, el system prompt el 2%. Acortar el prompt para ahorrar contexto es
 trabajar en el lugar equivocado.
 
-### 6.4 — Reservar lugar para la salida (líneas 214-237)
+### 2.4 — Reservar lugar para la salida (líneas 214-237)
 
 **Pregunta.** `num_ctx` es 32768. ¿Por qué `available` es 28768?
 
 **Respuesta.** Porque la ventana se comparte entre lo que el modelo lee y lo que escribe. El fallo
 es traicionero: los turnos con tool calls gastan 20-40 tokens de salida, así que todo anda… hasta
 el último, el del entregable, que necesita 800 y se corta. Es el mismo `StopReason.MAX_TOKENS` de
-la Sesión 2: el loop **reacciona** a la respuesta truncada, el presupuesto **evita** que pase.
+la sección 1.10: el loop **reacciona** a la respuesta truncada, el presupuesto **evita** que pase.
 
-### 6.5 — Compactar sin silencio (líneas 314-358)
+### 2.5 — Compactar sin silencio (líneas 314-358)
 
 ```
 [observacion compactada: read_file habia devuelto 4210 caracteres
@@ -933,10 +948,10 @@ modelo extrajo la conclusión, que son 40 tokens contra 1100. **Lo caro es lo re
 razonamiento es lo contrario: chico, y es el único registro de *por qué* el agente hizo lo que
 hizo; borrarlo lo obliga a redescubrir su plan, que es la receta del `LOOP_DETECTED`.
 
-El marcador es la misma regla que `_truncate` de la Sesión 3: si el modelo cree que vio el archivo
+El marcador es la misma regla que `_truncate` de la sección 1.18: si el modelo cree que vio el archivo
 entero cuando no lo vio, razona sobre información faltante sin ninguna señal.
 
-### 6.6 — Laboratorio: verlo compactar, sin LLM
+### 2.6 — Laboratorio: verlo compactar, sin LLM
 
 ```bash
 make lab-context
@@ -977,7 +992,7 @@ compactable. Probalo cambiando `limit=3000` por `4000`.
 cumple por cómo está escrito `_compact()`, no porque la estructura lo garantice. Por eso conviene
 fijarlo con assertions, que es lo que hace el laboratorio.
 
-### 6.7 — Qué de W2 todavía NO está
+### 2.7 — Qué de W2 todavía NO está
 
 **Retrieval just-in-time** (W2·C11) necesita poder buscar, y `search_code` no existe: sin
 búsqueda, traer "el fragmento exacto" es imposible porque no sabés dónde está. **Aislamiento de
@@ -1000,7 +1015,7 @@ el piso de `keep_recent_messages` no alcanza y el contexto no entra ni compactan
 agujero: un `FailureReason.CONTEXT_OVERFLOW` que corte limpio en vez de degradar en silencio.
 Encontrarlo leyendo el código es el ejercicio.
 
-### ✅ Checkpoint — 6
+### ✅ Checkpoint — paso 2
 
 - ¿Por qué `available` no es `num_ctx`?
 - ¿Qué capa se come el 83% del contexto, y qué implica para dónde optimizar?
@@ -1009,21 +1024,21 @@ Encontrarlo leyendo el código es el ejercicio.
 
 ---
 
-## Mundos 3 a 8
+## Pasos 3 a 8
 
-Los seis mundos restantes están desarrollados, con el mismo formato de preguntas, en la
+Los seis pasos restantes están desarrollados, con el mismo formato de preguntas, en la
 **versión web de esta guía**:
 
 ### 👉 **https://localforge-guia.vercel.app**
 
-| Mundo | Archivo | Qué agrega |
-|---|---|---|
-| **3** Harness Engineering | [`worlds/3-harness-w3`](https://github.com/rodrigogk87/LocalForge/tree/main/worlds/3-harness-w3) | Máquina de estados con transiciones prohibidas, verifier de trayectoria, repair loop |
-| **4** Skills & Protocols | [`worlds/7-skills-w4`](https://github.com/rodrigogk87/LocalForge/tree/main/worlds/7-skills-w4) | Skills con progressive disclosure (una línea por skill en el prompt, el cuerpo a demanda) |
-| **5** Sandbox Engineering | [`worlds/4-sandbox-w5`](https://github.com/rodrigogk87/LocalForge/tree/main/worlds/4-sandbox-w5) | ALLOW/ASK/DENY con fail-closed, secretos denegados, aprobación humana. **Falta el sandbox** |
-| **6** Durable Agents | [`worlds/5-durable-w6`](https://github.com/rodrigogk87/LocalForge/tree/main/worlds/5-durable-w6) | Checkpoints atómicos por turno y `resume` idempotente |
-| **7** Agent Evals | [`worlds/6-evals-w7`](https://github.com/rodrigogk87/LocalForge/tree/main/worlds/6-evals-w7) | Golden tasks, checks deterministas, taxonomía de fallos, comparador de harnesses |
-| **8** Multi-Agent | [`worlds/8-multiagent-w8`](https://github.com/rodrigogk87/LocalForge/tree/main/worlds/8-multiagent-w8) | Subagentes con contexto aislado — lo que el Mundo 2 dejó pendiente |
+| Paso | Mundo | Carpeta | Qué agrega |
+|---|---|---|---|
+| **3** | W3 Harness Engineering | [`worlds/3-harness-w3`](https://github.com/rodrigogk87/LocalForge/tree/main/worlds/3-harness-w3) | Máquina de estados con transiciones prohibidas, verifier de trayectoria, repair loop |
+| **4** | W5 Sandbox Engineering | [`worlds/4-sandbox-w5`](https://github.com/rodrigogk87/LocalForge/tree/main/worlds/4-sandbox-w5) | ALLOW/ASK/DENY con fail-closed, secretos denegados, aprobación humana. **Falta el sandbox** |
+| **5** | W6 Durable Agents | [`worlds/5-durable-w6`](https://github.com/rodrigogk87/LocalForge/tree/main/worlds/5-durable-w6) | Checkpoints atómicos por turno y `resume` idempotente |
+| **6** | W7 Agent Evals | [`worlds/6-evals-w7`](https://github.com/rodrigogk87/LocalForge/tree/main/worlds/6-evals-w7) | Golden tasks, checks deterministas, taxonomía de fallos, comparador de harnesses |
+| **7** | W4 Skills & Protocols | [`worlds/7-skills-w4`](https://github.com/rodrigogk87/LocalForge/tree/main/worlds/7-skills-w4) | Skills con progressive disclosure (una línea por skill en el prompt, el cuerpo a demanda) |
+| **8** | W8 Multi-Agent | [`worlds/8-multiagent-w8`](https://github.com/rodrigogk87/LocalForge/tree/main/worlds/8-multiagent-w8) | Subagentes con contexto aislado — lo que el Mundo 2 dejó pendiente |
 
 Para ver el Mundo 3 funcionando sin LLM:
 

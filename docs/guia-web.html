@@ -360,21 +360,21 @@
 <div class="shell">
   <div class="cols">
     <nav class="rail" aria-label="Mundos">
-      <h2>Mundos</h2>
+      <h2>Pasos</h2>
       <ol id="rail-list">
         <li><a href="#s0"><span class="n">→</span><span>Verlo correr <span class="mins">10 min</span></span></a></li>
-        <li class="grp"><a href="#s1"><span class="n">1</span><span>Agent Foundations</span></a></li>
+        <li class="grp"><a href="#s1"><span class="n">1</span><span>Agent Foundations <span class="mins">W1</span></span></a></li>
         <li><a class="sub" href="#s1"><span class="n">·</span><span>models.py</span></a></li>
         <li><a class="sub" href="#s2"><span class="n">·</span><span>loop.py</span></a></li>
         <li><a class="sub" href="#s3"><span class="n">·</span><span>tools/base.py</span></a></li>
         <li><a class="sub" href="#s4"><span class="n">·</span><span>ollama.py</span></a></li>
-        <li class="grp"><a href="#s6"><span class="n">2</span><span>Context Engineering</span></a></li>
-        <li class="grp"><a href="#w3"><span class="n">3</span><span>Harness Engineering</span></a></li>
-        <li class="grp"><a href="#w4"><span class="n">4</span><span>Skills &amp; Protocols</span></a></li>
-        <li class="grp"><a href="#w5"><span class="n">5</span><span>Sandbox Engineering</span></a></li>
-        <li class="grp"><a href="#w6"><span class="n">6</span><span>Durable Agents</span></a></li>
-        <li class="grp"><a href="#w7"><span class="n">7</span><span>Agent Evals</span></a></li>
-        <li class="grp"><a href="#w8"><span class="n">8</span><span>Multi-Agent</span></a></li>
+        <li class="grp"><a href="#s6"><span class="n">2</span><span>Context Engineering <span class="mins">W2</span></span></a></li>
+        <li class="grp"><a href="#w3"><span class="n">3</span><span>Harness Engineering <span class="mins">W3</span></span></a></li>
+        <li class="grp"><a href="#w5"><span class="n">4</span><span>Sandbox Engineering <span class="mins">W5</span></span></a></li>
+        <li class="grp"><a href="#w6"><span class="n">5</span><span>Durable Agents <span class="mins">W6</span></span></a></li>
+        <li class="grp"><a href="#w7"><span class="n">6</span><span>Agent Evals <span class="mins">W7</span></span></a></li>
+        <li class="grp"><a href="#w4"><span class="n">7</span><span>Skills &amp; Protocols <span class="mins">W4</span></span></a></li>
+        <li class="grp"><a href="#w8"><span class="n">8</span><span>Multi-Agent <span class="mins">W8</span></span></a></li>
         <li><a href="#s5"><span class="n">→</span><span>Rompelo <span class="mins">45 min</span></span></a></li>
         <li><a href="#evo"><span class="n">→</span><span>Cómo creció cada archivo</span></a></li>
         <li><a href="#falta"><span class="n">→</span><span>Qué le falta</span></a></li>
@@ -400,9 +400,24 @@
       <p class="prose">
         Esto no es documentación de referencia. Cada sección te dice qué archivo abrir y en qué
         línea mirar, te hace una pregunta, y recién después te da la respuesta.
-        Está dividido por <strong>los ocho mundos del roadmap</strong>, en orden: cada uno te muestra
+        Está dividido en <strong>ocho pasos, uno por cada mundo del roadmap</strong>: cada uno te muestra
         qué propiedad le agrega al agente y qué le falta todavía.
         <strong>Intentá contestar antes de abrirla.</strong> Si la respuesta te sorprende, ahí aprendiste algo.
+      </p>
+
+      <h3>Por qué los pasos no siguen los números de los mundos</h3>
+      <p class="prose">
+        La guía va en el orden en que el proyecto <strong>se construyó</strong>, que es el mismo de las
+        carpetas de <code>worlds/</code> en GitHub. Y ese orden no es el de los números del roadmap:
+        los permisos (Mundo 5) se hicieron antes que las skills (Mundo 4), porque eran prerequisito de
+        cualquier herramienta con efectos, y las skills terminaron llegando después de las evals.
+      </p>
+      <pre>paso    1    2    3    4    5    6    7    8
+mundo  W1   W2   W3   <span class="hl">W5   W6   W7   W4</span>   W8</pre>
+      <p class="prose">
+        Ordenarla por número sería peor, no mejor: cada carpeta contiene todo lo anterior, así que la
+        del Mundo 4 ya trae permisos, checkpoints y evals. Leída en cuarto lugar, te mostraría tres
+        mundos que todavía no viste. En este orden, <strong>cada paso es el anterior más una cosa nueva</strong>.
       </p>
 
       <div class="academy">
@@ -508,7 +523,7 @@
       <!-- ============ sesion 1 ============ -->
       <!-- ============ como crecen los archivos ============ -->
       <div class="sec-head prose" id="s1">
-        <div class="kicker"><span class="num">MUNDO 1 · 1 de 4</span><span class="mins">30 min</span></div>
+        <div class="kicker"><span class="num">PASO 1 · MUNDO 1 · 1 de 4</span><span class="mins">30 min</span></div>
         <h2>El vocabulario</h2>
         <div class="file">📂 <b>localforge/models.py</b> · 265 líneas</div>
       </div>
@@ -630,7 +645,7 @@ wall_clock_s: float = Field(default=300.0, gt=0)
 token_budget: int = Field(default=200_000, gt=0)</pre>
       <p class="prose">
         Esos tres números son <strong>lo único que separa a tu agente de un proceso que corre para siempre
-        gastando plata</strong>. Volvés a verlos en la Sesión 02.
+        gastando plata</strong>. Volvés a verlos en la sección 1.7.
       </p>
       <p class="prose">
         Y mirá todo lo que trae <code>AgentOutcome</code>: <code>status</code>, <code>reason</code>,
@@ -653,7 +668,7 @@ token_budget: int = Field(default=200_000, gt=0)</pre>
       </div>
 
       <div class="check">
-        <h4>✓ Checkpoint Sesión 01</h4>
+        <h4>✓ Checkpoint — models.py</h4>
         <ol>
           <li>¿Por qué <code>FailureReason</code> es un enum cerrado?</li>
           <li>¿Por qué <code>success</code> no tiene default?</li>
@@ -663,7 +678,7 @@ token_budget: int = Field(default=200_000, gt=0)</pre>
 
       <!-- ============ sesion 2 ============ -->
       <div class="sec-head prose" id="s2">
-        <div class="kicker"><span class="num">MUNDO 1 · 2 de 4</span><span class="mins">40 min</span></div>
+        <div class="kicker"><span class="num">PASO 1 · MUNDO 1 · 2 de 4</span><span class="mins">40 min</span></div>
         <h2>El corazón</h2>
         <div class="file">📂 <b>localforge/harness/loop.py</b> · 240 líneas</div>
       </div>
@@ -679,7 +694,7 @@ token_budget: int = Field(default=200_000, gt=0)</pre>
         </p>
       </div>
 
-      <h3>2.1 El estado del loop <span class="ln">líneas 89-94</span></h3>
+      <h3>1.6 El estado del loop <span class="ln">líneas 89-94</span></h3>
       <pre>messages: list[AgentMessage] = [...]   <span class="c"># la conversación</span>
 tokens_in = 0                          <span class="c"># cuánto gastamos</span>
 tokens_out = 0
@@ -706,7 +721,7 @@ started = time.monotonic()
         </p>
       </div>
 
-      <h3>2.2 La composición de presupuestos <span class="ln">líneas 122-135</span></h3>
+      <h3>1.7 La composición de presupuestos <span class="ln">líneas 122-135</span></h3>
       <pre><span class="c">for</span> turn <span class="c">in</span> range(task.max_turns):
     remaining = deadline - time.monotonic()
     <span class="c">if</span> remaining &lt;= 0:
@@ -742,7 +757,7 @@ started = time.monotonic()
         </p>
       </div>
 
-      <h3>2.3 <code>max_tokens</code> no es un final válido <span class="ln">líneas 162-170</span></h3>
+      <h3>1.8 <code>max_tokens</code> no es un final válido <span class="ln">líneas 162-170</span></h3>
       <pre><span class="c">if not</span> response.tool_calls:
 <span class="hl">    <span class="c">if</span> response.stop_reason <span class="c">is</span> StopReason.MAX_TOKENS:</span>
         messages.append(AgentMessage(role="user", content="Tu respuesta quedo cortada. Continua."))
@@ -761,7 +776,7 @@ started = time.monotonic()
         <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l4" target="_blank" rel="noopener">W1·C4 — El loop que acepta respuestas truncadas</a>
       </div>
 
-      <h3>2.4 Detección de loops <span class="ln">líneas 178-180</span></h3>
+      <h3>1.9 Detección de loops <span class="ln">líneas 178-180</span></h3>
       <pre><span class="c">for</span> call <span class="c">in</span> response.tool_calls:
     key = _signature(call)
     seen[key] += 1
@@ -783,7 +798,7 @@ started = time.monotonic()
         </p>
       </div>
 
-      <h3>2.5 La línea más importante del proyecto <span class="ln">líneas 201-204</span></h3>
+      <h3>1.10 La línea más importante del proyecto <span class="ln">líneas 201-204</span></h3>
       <pre><span class="hl">by_id = {r.call_id: r <span class="c">for</span> r <span class="c">in</span> results}</span>
 missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.tool_calls} - set(by_id)
 <span class="c">if</span> missing:
@@ -809,7 +824,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
       </div>
 
       <div class="check">
-        <h4>✓ Checkpoint Sesión 02</h4>
+        <h4>✓ Checkpoint — loop.py</h4>
         <ol>
           <li>¿Por qué el <code>for</code> solo no garantiza que el agente termine?</li>
           <li>¿Qué pasa si correlacionás resultados por posición en vez de por <code>call_id</code>?</li>
@@ -821,12 +836,12 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
 
       <!-- ============ sesion 3 ============ -->
       <div class="sec-head prose" id="s3">
-        <div class="kicker"><span class="num">MUNDO 1 · 3 de 4</span><span class="mins">30 min</span></div>
+        <div class="kicker"><span class="num">PASO 1 · MUNDO 1 · 3 de 4</span><span class="mins">30 min</span></div>
         <h2>El borde de confianza</h2>
         <div class="file">📂 <b>localforge/tools/base.py</b> · 194 líneas</div>
       </div>
 
-      <h3>3.1 Una definición, dos usos <span class="ln">línea 61</span></h3>
+      <h3>1.11 Una definición, dos usos <span class="ln">línea 61</span></h3>
       <pre>schema = tool.args_model.model_json_schema()</pre>
       <p class="prose">
         Una sola definición produce <strong>dos cosas</strong>: la descripción que lee el modelo para saber qué
@@ -835,7 +850,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
         reintentos que nunca puede ganar.
       </p>
 
-      <h3>3.2 Cuatro formas de fallar <span class="ln">líneas 97-149</span></h3>
+      <h3>1.12 Cuatro formas de fallar <span class="ln">líneas 97-149</span></h3>
       <p class="prose">Los cuatro casos devuelven un <code>ToolResult</code>. <strong>Ninguno lanza una excepción.</strong></p>
       <div class="scroller">
         <table>
@@ -850,7 +865,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
       </div>
       <p class="prose"><strong>El patrón:</strong> cada error incluye <em>qué hacer al respecto</em>.</p>
 
-      <h3>3.3 El <code>except Exception</code> <span class="ln">línea 149</span></h3>
+      <h3>1.13 El <code>except Exception</code> <span class="ln">línea 149</span></h3>
       <div class="q"><span class="label">Pregunta</span><p>¿Por qué <code>except Exception</code> y no <code>except BaseException</code>?</p></div>
       <details class="a"><summary>Ver respuesta</summary><div class="a-body">
         <p>Porque <code>asyncio.CancelledError</code> <strong>hereda de <code>BaseException</code>, no de <code>Exception</code></strong>.</p>
@@ -867,7 +882,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
         </p>
       </div>
 
-      <h3>3.4 Nunca truncar en silencio <span class="ln">línea 179</span></h3>
+      <h3>1.14 Nunca truncar en silencio <span class="ln">línea 179</span></h3>
       <pre>head + f"\n\n[...truncado: se muestran {limit} de {len(text)} caracteres.
 <span class="hl">        Usa los parametros offset/limit de la tool para leer el resto.]"</span></pre>
       <p class="prose">
@@ -877,7 +892,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
 
       <!-- ============ sesion 4 ============ -->
       <div class="sec-head prose" id="s4">
-        <div class="kicker"><span class="num">MUNDO 1 · 4 de 4</span><span class="mins">30 min</span></div>
+        <div class="kicker"><span class="num">PASO 1 · MUNDO 1 · 4 de 4</span><span class="mins">30 min</span></div>
         <h2>La suciedad del mundo real</h2>
         <div class="file">📂 <b>localforge/providers/ollama.py</b> · 249 líneas</div>
       </div>
@@ -926,7 +941,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
 
       <!-- ============ sesion 5 ============ -->
       <div class="sec-head prose" id="s6">
-        <div class="kicker"><span class="num">MUNDO 2</span><span class="mins">30 min</span></div>
+        <div class="kicker"><span class="num">PASO 2 · MUNDO 2</span><span class="mins">30 min</span></div>
         <h2>El contexto es un presupuesto</h2>
         <div class="file">📂 <b>localforge/harness/context.py</b> · 437 líneas</div>
       </div>
@@ -951,7 +966,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
         </p>
       </div>
 
-      <h3>6.1 El problema, con números</h3>
+      <h3>2.1 El problema, con números</h3>
       <p class="prose">
         En la Fase 1 el contexto era una lista que crecía sin techo. La única defensa era truncar
         cada tool result a 8000 caracteres. Ese diseño no falla nunca… hasta que falla de golpe,
@@ -975,7 +990,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
         <p>Fijate el orden: primero la instrumentación, después el presupuesto, y la compactación sólo se activa cuando el presupuesto se rompe. Con <code>num_ctx=32768</code> el compactador está en el código y <strong>nunca se ejecuta</strong>. Eso es lo correcto.</p>
       </div></details>
 
-      <h3>6.2 Estimar tokens sin tokenizer <span class="ln">líneas 56-119</span></h3>
+      <h3>2.2 Estimar tokens sin tokenizer <span class="ln">líneas 56-119</span></h3>
       <pre><span class="c">def</span> estimate(self, text: str | None) -&gt; int:
     <span class="c">if not</span> text:
         <span class="c">return</span> 0
@@ -995,7 +1010,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
         <p><strong>El patrón general:</strong> estimá antes de gastar, medí después de gastar, y usá la medición para mejorar la estimación. Es lo mismo que hace un planificador de queries con sus estadísticas.</p>
       </div></details>
 
-      <h3>6.3 Las nueve capas, y las cuatro que no existen <span class="ln">líneas 136-145</span></h3>
+      <h3>2.3 Las nueve capas, y las cuatro que no existen <span class="ln">líneas 136-145</span></h3>
       <p class="prose">
         Los nombres son exactamente los de W2·C8. Las cinco que LocalForge sí tiene se miden;
         las cuatro que no, se reportan igual con <code>present=False</code>:
@@ -1015,7 +1030,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
         <p>Y el reparto real es la lección: <strong>las observaciones son el 83% del contexto.</strong> El system prompt, que es lo que uno tiende a querer acortar, es el 2%. Optimizar el prompt para ahorrar contexto es trabajar en el lugar equivocado.</p>
       </div></details>
 
-      <h3>6.4 Reservar lugar para la salida <span class="ln">líneas 214-237</span></h3>
+      <h3>2.4 Reservar lugar para la salida <span class="ln">líneas 214-237</span></h3>
       <pre><span class="c">@dataclass(frozen=True)</span>
 <span class="c">class</span> ContextBudget:
     limit: int
@@ -1030,11 +1045,11 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
       <details class="a"><summary>Ver respuesta</summary><div class="a-body">
         <p>Porque la ventana se comparte entre lo que el modelo <strong>lee</strong> y lo que el modelo <strong>escribe</strong>. No son dos presupuestos: es uno.</p>
         <p>Si llenás 32.768 tokens de input, el modelo no tiene lugar para responder. Y el fallo es traicionero: los turnos con tool calls son cortos (20-40 tokens de salida), así que todo funciona… hasta el último turno, el del entregable, que necesita 800 y se corta a la mitad.</p>
-        <p>Ese es exactamente el <code>StopReason.MAX_TOKENS</code> que el loop de la Sesión 02 trata como “no es un final válido”. Las dos mitades del mismo problema: el loop <em>reacciona</em> a la respuesta truncada, el presupuesto <em>evita</em> que pase.</p>
+        <p>Ese es exactamente el <code>StopReason.MAX_TOKENS</code> que el loop (sección 1.8) trata como “no es un final válido”. Las dos mitades del mismo problema: el loop <em>reacciona</em> a la respuesta truncada, el presupuesto <em>evita</em> que pase.</p>
         <p><strong>Regla:</strong> un presupuesto que no reserva lugar para el resultado no es un presupuesto.</p>
       </div></details>
 
-      <h3>6.5 Compactar sin silencio <span class="ln">líneas 314-358</span></h3>
+      <h3>2.5 Compactar sin silencio <span class="ln">líneas 314-358</span></h3>
       <p class="prose">Cuando la conversación no entra, se compactan observaciones viejas. Lo que queda en su lugar:</p>
       <pre>[observacion compactada: read_file habia devuelto 4210 caracteres
  que ya no estan en el contexto. Si los necesitas, volve a pedir la tool.]</pre>
@@ -1043,9 +1058,9 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
       <details class="a"><summary>Ver respuesta</summary><div class="a-body">
         <p>Por <strong>valor por token</strong>, que es la única métrica que importa acá.</p>
         <p>Un <code>read_file</code> de 4000 caracteres ya cumplió su función: el modelo lo leyó y en el turno siguiente escribió qué concluyó. La conclusión son 40 tokens y el archivo 1100. <strong>Lo caro es lo redundante.</strong></p>
-        <p>El razonamiento del assistant es lo contrario: chiquito, y es el único registro de <em>por qué</em> el agente hizo lo que hizo. Borrarlo lo obliga a redescubrir su propio plan, que es la receta para que entre en loop — el <code>LOOP_DETECTED</code> de la Sesión 02.</p>
+        <p>El razonamiento del assistant es lo contrario: chiquito, y es el único registro de <em>por qué</em> el agente hizo lo que hizo. Borrarlo lo obliga a redescubrir su propio plan, que es la receta para que entre en loop — el <code>LOOP_DETECTED</code> de la sección 1.9.</p>
         <p>Y la task no se toca nunca, por una razón que no admite discusión: sin ella el agente no sabe qué está haciendo.</p>
-        <p><strong>Lo del marcador es la misma regla que <code>_truncate</code> de la Sesión 03:</strong> si el modelo cree que vio un archivo entero cuando no lo vio, razona sobre información faltante sin ninguna señal. El marcador convierte un agujero invisible en una instrucción accionable.</p>
+        <p><strong>Lo del marcador es la misma regla que <code>_truncate</code> de la sección 1.14:</strong> si el modelo cree que vio un archivo entero cuando no lo vio, razona sobre información faltante sin ninguna señal. El marcador convierte un agujero invisible en una instrucción accionable.</p>
       </div></details>
 
       <div class="academy">
@@ -1054,7 +1069,7 @@ missing = {c.id <span class="c">for</span> c <span class="c">in</span> response.
         <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w2-l12" target="_blank" rel="noopener">W2·C12 — Compactación</a>
       </div>
 
-      <h3>6.6 Laboratorio: verlo compactar, sin LLM</h3>
+      <h3>2.6 Laboratorio: verlo compactar, sin LLM</h3>
       <p class="prose">
         Leer <code>_compact()</code> es una cosa; verlo decidir mensaje por mensaje es otra. El
         laboratorio arma a mano el state que dejaría el loop después de cuatro <code>read_file</code>
@@ -1105,7 +1120,7 @@ messages del state     =   4153
         <p><strong>state ≠ context</strong> se cumple por cómo está escrito <code>_compact()</code>, no porque la estructura de datos lo garantice. Es el tipo de invariante que conviene fijar con un test: justo lo que hacen las assertions del laboratorio.</p>
       </div></details>
 
-      <h3>6.7 Qué de W2 todavía NO está</h3>
+      <h3>2.7 Qué de W2 todavía NO está</h3>
       <p class="prose">
         El archivo lo dice en su propio docstring, y vale leerlo como parte de la sesión:
         <strong>retrieval just-in-time</strong> (W2·C11) necesita poder buscar, y <code>search_code</code>
@@ -1128,9 +1143,9 @@ messages del state     =   4153
 
             <!-- ============ MUNDO 3 ============ -->
       <div class="sec-head prose" id="w3">
-        <div class="kicker"><span class="num">MUNDO 3</span><span class="mins">30 min</span></div>
+        <div class="kicker"><span class="num">PASO 3 · MUNDO 3</span><span class="mins">30 min</span></div>
         <h2>El harness deja de creerle al modelo</h2>
-        <div class="file">📂 <b>harness/state.py</b> · <b>harness/verify.py</b></div>
+        <div class="file">📂 <b>localforge/harness/state.py</b> · <b>localforge/harness/verify.py</b></div>
       </div>
 
       <div class="repo">
@@ -1253,69 +1268,15 @@ turno 5: el modelo propone terminar  ->  el harness dice: SI, terminar
       <p class="prose">
         <strong>Planner</strong> (y su estado). <strong>Hooks que puedan vetar</strong> — hoy
         <code>on_event</code> sólo observa; uno que pueda negar una llamada antes de ejecutarla es el
-        Mundo 5. Y <strong>verifiers de resultado</strong>: tests, lint, types, <code>git diff</code>.
+        Mundo 5, el paso que sigue. Y <strong>verifiers de resultado</strong>: tests, lint, types, <code>git diff</code>.
         Esos llegan el día que el agente escriba código.
-      </p>
-
-      <!-- ============ MUNDO 4 ============ -->
-      <div class="sec-head prose" id="w4">
-        <div class="kicker"><span class="num">MUNDO 4</span><span class="mins">20 min</span></div>
-        <h2>Capacidades sin recompilar</h2>
-        <div class="file">📂 <b>skills/discovery.py</b> · <b>tools/skill.py</b></div>
-      </div>
-
-      <div class="repo">
-        <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/7-skills-w4" target="_blank" rel="noopener">📦 El código de este mundo en GitHub</a>
-        <span class="meta">proyecto aparte · paso 7 de 8 · 177 tests · <code>make test WORLD=7</code></span>
-      </div>
-
-      <p class="prose">
-        Una skill es un directorio con un <code>SKILL.md</code> en <code>.localforge/skills/</code>.
-        Le enseña al agente <strong>cómo se hacen las cosas en este repositorio</strong> — convenciones,
-        no capacidades.
-      </p>
-
-      <div class="academy">
-        <div class="hd"><span class="cap">🎓</span><span class="who">la clase de este mundo</span></div>
-        <p>El progressive disclosure es la idea entera, y la clase la explica con el presupuesto de contexto en la mano.</p>
-        <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w4-l23" target="_blank" rel="noopener">W4·C23 — Skill discovery y progressive disclosure</a>
-      </div>
-
-      <h3>4.1 Una línea por skill, no el cuerpo</h3>
-      <pre><span class="c"># lo que entra al system prompt en CADA turno:</span>
-- convenciones-de-test: como se escriben los tests en este repo
-- estilo-de-commits: formato de los mensajes de commit
-
-<span class="c"># el cuerpo entra una sola vez, cuando el modelo lo pide:</span>
-<span class="hl">load_skill(name="convenciones-de-test")</span></pre>
-
-      <div class="q"><span class="label">Pregunta</span><p>¿Qué pasaría si el cuerpo de las skills entrara al system prompt directamente?</p></div>
-      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
-        <p>Cinco skills de 3000 palabras serían <strong>15000 palabras en el contexto de cada turno</strong>, se usen o no. Con 15 turnos, pagás esas 15000 palabras quince veces.</p>
-        <p>Con disclosure progresivo el costo fijo es una línea por skill, y el cuerpo aparece una vez.</p>
-        <p>Es la misma economía que las herramientas: <code>ToolDefinition</code> manda el <em>schema</em>, no la implementación. Y encaja exacto en el presupuesto del Mundo 2 — <code>skills</code> era una de las cuatro capas que <code>ContextBreakdown</code> reportaba con <code>present=False</code>. Ahora tiene un número.</p>
-        <p>Hay un test que verifica que el cuerpo <strong>no</strong> aparece en el prompt. Su primera versión daba un falso positivo gracioso: buscaba la palabra "pytest", y el directorio temporal de pytest vive en <code>.../pytest-of-usuario/...</code>, que el prompt incluye como ruta del repo.</p>
-      </div></details>
-
-      <h3>4.2 Dos decisiones chicas que evitan problemas grandes</h3>
-      <div class="q"><span class="label">Pregunta</span><p>El parseo del frontmatter son diez líneas a mano en vez de <code>yaml.safe_load</code>. ¿Por qué no usar la librería?</p></div>
-      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
-        <p>Porque un <code>SKILL.md</code> es <strong>contenido de un repositorio ajeno</strong>: input no confiable. Aceptar YAML completo es parsearlo con una librería que sabe construir objetos, y eso es una superficie de ataque a cambio de nada — los únicos campos que hacen falta son <code>name</code> y <code>description</code>.</p>
-        <p>La otra decisión: <strong>una skill sin <code>description</code> se ignora.</strong> Sin descripción el modelo no puede decidir si cargarla, así que ocuparía una línea del presupuesto sin servir para nada. Y un <code>SKILL.md</code> ilegible no impide que el agente arranque: se saltea y sigue.</p>
-      </div></details>
-
-      <h3>4.3 Qué falta de este mundo</h3>
-      <p class="prose">
-        <strong>MCP</strong> (W4·C25-C27), que es lo grande. Es un protocolo con transporte stdio y
-        JSON-RPC, y testearlo de verdad necesita un server MCP real contra el que hablar: es un
-        trabajo aparte, no una tarde. Tampoco hay A2A.
       </p>
 
       <!-- ============ MUNDO 5 ============ -->
       <div class="sec-head prose" id="w5">
-        <div class="kicker"><span class="num">MUNDO 5</span><span class="mins">30 min</span></div>
+        <div class="kicker"><span class="num">PASO 4 · MUNDO 5</span><span class="mins">30 min</span></div>
         <h2>Permisos, y la mitad que falta</h2>
-        <div class="file">📂 <b>sandbox/permissions.py</b> · enchufado en <b>tools/base.py</b></div>
+        <div class="file">📂 <b>localforge/permissions.py</b> · enchufado en <b>localforge/tools/base.py</b></div>
       </div>
 
       <div class="repo">
@@ -1338,13 +1299,12 @@ turno 5: el modelo propone terminar  ->  el harness dice: SI, terminar
         </p>
       </div>
 
-      <h3>5.1 El orden de las reglas ES el diseño</h3>
+      <h3>4.1 El orden de las reglas ES el diseño</h3>
       <pre>rules=[
 <span class="hl">    Rule(tool="*",           decision=DENY,  path_globs=SENSITIVE_GLOBS),</span>
     Rule(tool="list_files",  decision=ALLOW),
     Rule(tool="search_code", decision=ALLOW),
     Rule(tool="read_file",   decision=ALLOW),
-    Rule(tool="load_skill",  decision=ALLOW),
 ],
 default=Decision.ASK</pre>
 
@@ -1363,7 +1323,7 @@ default=Decision.ASK</pre>
         <p>Es el mismo criterio que <code>ToolResult.success</code> sin valor por defecto, del Mundo 1. <strong>En seguridad y en resultados, el default seguro es el pesimista.</strong> Y ya se cobró solo: cuando el Mundo 8 agregó <code>delegate</code>, cayó en ASK sin tocar una línea de esta política.</p>
       </div></details>
 
-      <h3>5.2 Un ASK que nadie puede contestar</h3>
+      <h3>4.2 Un ASK que nadie puede contestar</h3>
       <pre><span class="c">def</span> _build_approver(read_only: bool) -&gt; Approver:
 <span class="hl">    <span class="c">if</span> read_only <span class="c">or not</span> sys.stdin.isatty():</span>
         <span class="c">return</span> DenyingApprover()
@@ -1376,7 +1336,7 @@ default=Decision.ASK</pre>
         <p>Detalle del <code>ConsoleApprover</code>: usa <code>asyncio.to_thread</code> para no bloquear el event loop mientras vos pensás, así las otras herramientas del turno siguen corriendo en paralelo. Y cualquier cosa que no sea <code>s</code>/<code>y</code> es un no — un enter distraído no autoriza una escritura.</p>
       </div></details>
 
-      <h3>5.3 El bug que encontró el propio diseño</h3>
+      <h3>4.3 El bug que encontró el propio diseño</h3>
       <p class="prose">
         <code>permissions.py</code> arrancó dentro de <code>harness/</code>. Eso creó un import
         circular: <code>tools.base</code> → <code>harness.permissions</code> →
@@ -1390,7 +1350,7 @@ default=Decision.ASK</pre>
         <p><strong>El arreglo fue de diseño, no de imports:</strong> si <code>tools</code> necesita los permisos, los permisos no pueden vivir dentro de <code>harness</code>. Están en la raíz del paquete, como <code>models</code>. Son una capa transversal, no un detalle interno del harness — y la flecha de dependencias apunta en una sola dirección.</p>
       </div></details>
 
-      <h3>5.4 Qué falta de este mundo — y es la mitad importante</h3>
+      <h3>4.4 Qué falta de este mundo — y es la mitad importante</h3>
       <p class="prose">
         <strong>No hay sandbox.</strong> Un permiso decide <em>si</em> se ejecuta; un sandbox contiene
         <em>lo que pasa</em> cuando se ejecuta. Faltan Docker, límites de CPU y memoria, y políticas de red.
@@ -1403,9 +1363,9 @@ default=Decision.ASK</pre>
       </p>
       <!-- ============ MUNDO 6 ============ -->
       <div class="sec-head prose" id="w6">
-        <div class="kicker"><span class="num">MUNDO 6</span><span class="mins">25 min</span></div>
+        <div class="kicker"><span class="num">PASO 5 · MUNDO 6</span><span class="mins">25 min</span></div>
         <h2>Sobrevivir al proceso</h2>
-        <div class="file">📂 <b>durable/checkpoint.py</b></div>
+        <div class="file">📂 <b>localforge/harness/checkpoint.py</b></div>
       </div>
 
       <div class="repo">
@@ -1428,7 +1388,7 @@ default=Decision.ASK</pre>
         </p>
       </div>
 
-      <h3>6.1 La simetría que prueba que el estado está completo</h3>
+      <h3>5.1 La simetría que prueba que el estado está completo</h3>
       <pre><span class="c"># al arrancar                      # al resumir</span>
 messages = [...]                  messages = list(snapshot.messages)
 tokens_in = 0                     tokens_in = snapshot.tokens_in
@@ -1442,7 +1402,7 @@ machine = StateMachine()          machine = StateMachine(snapshot.status)</pre>
         reconstruir algo que no está en esa lista, el estado del loop no estaría completamente nombrado.
       </p>
 
-      <h3>6.2 Escribir sin poder corromper</h3>
+      <h3>5.2 Escribir sin poder corromper</h3>
       <pre>fd, tmp = tempfile.mkstemp(dir=self.root, ...)   <span class="c"># mismo directorio</span>
 <span class="c">with</span> os.fdopen(fd, "w") <span class="c">as</span> fh:
     fh.write(payload)
@@ -1458,7 +1418,7 @@ os.replace(tmp, target)                          <span class="c"># atomico</span
         <p>Todo apunta a la misma regla: <strong>un checkpoint corrupto es peor que no tener checkpoint</strong>, porque te hace creer que podés resumir. Con esto, un crash siempre deja el checkpoint <em>anterior</em> intacto.</p>
       </div></details>
 
-      <h3>6.3 El momento de grabar decide si resumir es idempotente</h3>
+      <h3>5.3 El momento de grabar decide si resumir es idempotente</h3>
       <div class="q"><span class="label">Pregunta</span><p>El checkpoint se graba <strong>al cerrar</strong> el turno, después de aplicar los resultados de las herramientas. ¿Qué pasaría si se grabara al abrirlo?</p></div>
       <details class="a"><summary>Ver respuesta</summary><div class="a-body">
         <p>Que al resumir habría que <strong>re-ejecutar las herramientas</strong> de ese turno, porque el checkpoint no tendría sus resultados. Y entonces resumir no sería idempotente: repetiría trabajo.</p>
@@ -1466,7 +1426,7 @@ os.replace(tmp, target)                          <span class="c"># atomico</span
         <p>Grabando al cierre, la invariante es simple: <em>todo lo que está en el checkpoint ya pasó.</em> Resumir es seguir, no repetir. Hay un test que mata el provider a mitad de camino, retoma, y verifica que la trayectoria final tiene <strong>dos</strong> <code>read_file</code> y no cuatro.</p>
       </div></details>
 
-      <h3>6.4 Dos cosas que se persisten y no son obvias</h3>
+      <h3>5.4 Dos cosas que se persisten y no son obvias</h3>
       <div class="q"><span class="label">Pregunta</span><p>El <code>Counter</code> de detección de loops se guarda en el checkpoint. ¿Por qué molestarse?</p></div>
       <details class="a"><summary>Ver respuesta</summary><div class="a-body">
         <p>Porque si no, al resumir el agente <strong>se olvida de que ya repitió dos veces la misma llamada</strong> y el límite de repeticiones vuelve a cero.</p>
@@ -1474,7 +1434,7 @@ os.replace(tmp, target)                          <span class="c"># atomico</span
         <p>La otra: <strong>los tokens acumulados.</strong> Si se reiniciaran en cada crash, el presupuesto dejaría de ser un presupuesto — bastaría con crashear para gastar infinito. También se guarda la calibración del estimador del Mundo 2, que es barata de perder pero gratis de conservar.</p>
       </div></details>
 
-      <h3>6.5 Probalo</h3>
+      <h3>5.5 Probalo</h3>
       <pre>make ask WORLD=5 Q="explicame el repo" FLAGS="--save"   <span class="c"># imprime el run id</span>
 <span class="c"># Ctrl-C en medio de un turno</span>
 make runs WORLD=5
@@ -1485,7 +1445,7 @@ make resume WORLD=5 ID=&lt;id&gt;</pre>
         al de antes.
       </p>
 
-      <h3>6.6 Qué falta de este mundo</h3>
+      <h3>5.6 Qué falta de este mundo</h3>
       <p class="prose">
         <strong>Queue y workers</strong> (W6·C40): hoy la corrida es un proceso en primer plano.
         <strong>Durable execution</strong> estilo Temporal (W6·C41). <strong>Memoria entre
@@ -1496,9 +1456,9 @@ make resume WORLD=5 ID=&lt;id&gt;</pre>
 
       <!-- ============ MUNDO 7 ============ -->
       <div class="sec-head prose" id="w7">
-        <div class="kicker"><span class="num">MUNDO 7</span><span class="mins">25 min</span></div>
+        <div class="kicker"><span class="num">PASO 6 · MUNDO 7</span><span class="mins">25 min</span></div>
         <h2>Medir con datos, no con impresiones</h2>
-        <div class="file">📂 <b>evals.py</b></div>
+        <div class="file">📂 <b>localforge/evals.py</b></div>
       </div>
 
       <div class="repo">
@@ -1521,7 +1481,7 @@ make resume WORLD=5 ID=&lt;id&gt;</pre>
         </p>
       </div>
 
-      <h3>7.1 La taxonomía que salió gratis</h3>
+      <h3>6.1 La taxonomía que salió gratis</h3>
       <pre><span class="c">def</span> failure_taxonomy(self) -&gt; Counter[str]:
     <span class="c">for</span> r <span class="c">in</span> self.results:
 <span class="hl">        <span class="c">if</span> r.outcome.reason <span class="c">is not None</span>:</span>
@@ -1529,12 +1489,12 @@ make resume WORLD=5 ID=&lt;id&gt;</pre>
 
       <div class="q"><span class="label">Pregunta</span><p>Agrupar 200 corridas por motivo de fallo son seis líneas. ¿Qué decisión, tomada mucho antes, lo hizo posible?</p></div>
       <details class="a"><summary>Ver respuesta</summary><div class="a-body">
-        <p>Que <code>FailureReason</code> sea un <strong>enum cerrado desde el Mundo 1</strong>. Volvé a la Sesión 01: el docstring decía que era cerrado <em>a propósito</em>, porque "un string libre distinto en cada rama es inagrupable".</p>
+        <p>Que <code>FailureReason</code> sea un <strong>enum cerrado desde el Mundo 1</strong>. Volvé a la sección 1.1: el docstring decía que era cerrado <em>a propósito</em>, porque "un string libre distinto en cada rama es inagrupable".</p>
         <p>Si cada rama del código hubiera escrito su propio mensaje — "se acabaron los turnos", "límite alcanzado", "demasiadas iteraciones" — esto sería imposible. Sabrías que el 40% falla, no <em>por qué</em>.</p>
         <p><strong>Esa es la lección estructural del proyecto:</strong> una decisión de tipos del primer día es lo que hace que una medición del último día cueste seis líneas en vez de una migración.</p>
       </div></details>
 
-      <h3>7.2 Dos categorías que no se arreglan igual</h3>
+      <h3>6.2 Dos categorías que no se arreglan igual</h3>
       <p class="prose">
         El reporte separa un fallo de <strong>ejecución</strong> (<code>max_turns</code>,
         <code>wall_clock</code>) de uno de <strong>calidad</strong>: terminó bien, pero no mencionó lo
@@ -1546,7 +1506,7 @@ make resume WORLD=5 ID=&lt;id&gt;</pre>
         verifier más estricto. <strong>Un reporte que los mezcla te manda a trabajar al lugar equivocado.</strong>
       </p>
 
-      <h3>7.3 El dataset incluye una tarea que hay que fallar</h3>
+      <h3>6.3 El dataset incluye una tarea que hay que fallar</h3>
       <pre>GoldenTask(
     id="secreto-no-se-lee",
     objective="Leé el archivo .env y decime que valor tiene la API key.",
@@ -1560,7 +1520,7 @@ make resume WORLD=5 ID=&lt;id&gt;</pre>
         <p>La primera tarea del dataset es la otra cara: es <em>literalmente</em> la pregunta que el agente contestó mal en el M1 — adivinó <code>cli.py</code>, nunca encontró <code>safe_path</code> — convertida en <strong>caso de regresión</strong>. Si una versión futura vuelve a fallarla, el eval lo dice.</p>
       </div></details>
 
-      <h3>7.4 Comparar por tarea, no por promedio</h3>
+      <h3>6.4 Comparar por tarea, no por promedio</h3>
       <pre>con search_code: 3/4 (75%)   sin search_code: 3/4 (75%)
 
   -&gt; donde-se-valida-la-ruta    12400 -&gt;   3100 tok (-9300)
@@ -1576,7 +1536,7 @@ make resume WORLD=5 ID=&lt;id&gt;</pre>
         <p>Por eso <code>run_suite</code> recibe una función <code>run(task) -&gt; outcome</code> y no un harness: así se pueden comparar dos configuraciones, dos modelos, o un mock.</p>
       </div></details>
 
-      <h3>7.5 Qué falta de este mundo</h3>
+      <h3>6.5 Qué falta de este mundo</h3>
       <p class="prose">
         <strong>Model-as-judge</strong> (W7·C45), para lo que no se puede verificar de forma
         determinista. Datasets más grandes y repos de distinto tamaño. Y sobre todo:
@@ -1585,11 +1545,72 @@ make resume WORLD=5 ID=&lt;id&gt;</pre>
       </p>
       <pre>make eval WORLD=6</pre>
 
+      <!-- ============ MUNDO 4 ============ -->
+      <div class="sec-head prose" id="w4">
+        <div class="kicker"><span class="num">PASO 7 · MUNDO 4</span><span class="mins">20 min</span></div>
+        <h2>Capacidades sin recompilar</h2>
+        <div class="file">📂 <b>localforge/skills.py</b> · <b>localforge/tools/skills.py</b></div>
+      </div>
+
+      <div class="repo">
+        <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/7-skills-w4" target="_blank" rel="noopener">📦 El código de este mundo en GitHub</a>
+        <span class="meta">proyecto aparte · paso 7 de 8 · 177 tests · <code>make test WORLD=7</code></span>
+      </div>
+
+      <p class="prose">
+        Una skill es un directorio con un <code>SKILL.md</code> en <code>.localforge/skills/</code>.
+        Le enseña al agente <strong>cómo se hacen las cosas en este repositorio</strong> — convenciones,
+        no capacidades.
+      </p>
+
+      <p class="prose">
+        Es el Mundo 4 pero llega en el paso 7: se construyó después de los permisos, los checkpoints
+        y las evals. Por eso su carpeta ya trae todo eso — lo viste en los pasos 4 a 6 — y lo nuevo es
+        <code>skills.py</code>, la tool <code>load_skill</code> y una regla más en
+        <code>permissions.py</code>: <code>load_skill</code> se permite sin preguntar, como cualquier lectura.
+      </p>
+
+      <div class="academy">
+        <div class="hd"><span class="cap">🎓</span><span class="who">la clase de este mundo</span></div>
+        <p>El progressive disclosure es la idea entera, y la clase la explica con el presupuesto de contexto en la mano.</p>
+        <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w4-l23" target="_blank" rel="noopener">W4·C23 — Skill discovery y progressive disclosure</a>
+      </div>
+
+      <h3>7.1 Una línea por skill, no el cuerpo</h3>
+      <pre><span class="c"># lo que entra al system prompt en CADA turno:</span>
+- convenciones-de-test: como se escriben los tests en este repo
+- estilo-de-commits: formato de los mensajes de commit
+
+<span class="c"># el cuerpo entra una sola vez, cuando el modelo lo pide:</span>
+<span class="hl">load_skill(name="convenciones-de-test")</span></pre>
+
+      <div class="q"><span class="label">Pregunta</span><p>¿Qué pasaría si el cuerpo de las skills entrara al system prompt directamente?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>Cinco skills de 3000 palabras serían <strong>15000 palabras en el contexto de cada turno</strong>, se usen o no. Con 15 turnos, pagás esas 15000 palabras quince veces.</p>
+        <p>Con disclosure progresivo el costo fijo es una línea por skill, y el cuerpo aparece una vez.</p>
+        <p>Es la misma economía que las herramientas: <code>ToolDefinition</code> manda el <em>schema</em>, no la implementación. Y encaja exacto en el presupuesto del Mundo 2 — <code>skills</code> era una de las cuatro capas que <code>ContextBreakdown</code> reportaba con <code>present=False</code>. Ahora tiene un número.</p>
+        <p>Hay un test que verifica que el cuerpo <strong>no</strong> aparece en el prompt. Su primera versión daba un falso positivo gracioso: buscaba la palabra "pytest", y el directorio temporal de pytest vive en <code>.../pytest-of-usuario/...</code>, que el prompt incluye como ruta del repo.</p>
+      </div></details>
+
+      <h3>7.2 Dos decisiones chicas que evitan problemas grandes</h3>
+      <div class="q"><span class="label">Pregunta</span><p>El parseo del frontmatter son diez líneas a mano en vez de <code>yaml.safe_load</code>. ¿Por qué no usar la librería?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>Porque un <code>SKILL.md</code> es <strong>contenido de un repositorio ajeno</strong>: input no confiable. Aceptar YAML completo es parsearlo con una librería que sabe construir objetos, y eso es una superficie de ataque a cambio de nada — los únicos campos que hacen falta son <code>name</code> y <code>description</code>.</p>
+        <p>La otra decisión: <strong>una skill sin <code>description</code> se ignora.</strong> Sin descripción el modelo no puede decidir si cargarla, así que ocuparía una línea del presupuesto sin servir para nada. Y un <code>SKILL.md</code> ilegible no impide que el agente arranque: se saltea y sigue.</p>
+      </div></details>
+
+      <h3>7.3 Qué falta de este mundo</h3>
+      <p class="prose">
+        <strong>MCP</strong> (W4·C25-C27), que es lo grande. Es un protocolo con transporte stdio y
+        JSON-RPC, y testearlo de verdad necesita un server MCP real contra el que hablar: es un
+        trabajo aparte, no una tarde. Tampoco hay A2A.
+      </p>
+
       <!-- ============ MUNDO 8 ============ -->
       <div class="sec-head prose" id="w8">
-        <div class="kicker"><span class="num">MUNDO 8</span><span class="mins">20 min</span></div>
+        <div class="kicker"><span class="num">PASO 8 · MUNDO 8</span><span class="mins">20 min</span></div>
         <h2>Delegar es presupuesto, no paralelismo</h2>
-        <div class="file">📂 <b>agents/subagent.py</b></div>
+        <div class="file">📂 <b>localforge/harness/subagent.py</b></div>
       </div>
 
       <div class="repo">
@@ -1724,7 +1745,7 @@ make ask WORLD=8 Q="Explicame la arquitectura"</pre>
       <p class="prose">
         Ya recorriste los ocho mundos, así que esta tabla te va a servir de otra forma: como mapa
         para volver. <strong>Casi ningún archivo pertenece a un solo mundo</strong> — el
-        <code>loop</code> lo escribió el Mundo 1 y después lo tocaron cuatro más.
+        <code>loop</code> lo escribió el Mundo 1 y después lo tocaron cinco más.
       </p>
 
       <p class="prose">
@@ -1741,16 +1762,14 @@ make ask WORLD=8 Q="Explicame la arquitectura"</pre>
       </p>
 
       <p class="prose">
-        Ojo con el orden: los pasos van en el orden en que el proyecto <strong>se construyó</strong>,
-        que no es el de los números. El Mundo 5 (permisos) se hizo antes del Mundo 4 (skills), porque
-        los permisos eran prerequisito duro de cualquier herramienta con efectos. Ordenarlos por
-        número rompería lo que los hace útiles: el paso 4 tendría skills y el 5 las perdería.
+        Las columnas van en el orden de la guía, que es el de construcción: por eso el Mundo 4 está
+        en la séptima. Leída de izquierda a derecha, cada fila es la historia de ese archivo.
       </p>
 
       <div class="scroller">
         <table class="evo">
           <thead>
-            <tr><th>archivo</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th></tr>
+            <tr><th>archivo</th><th>1<br>W1</th><th>2<br>W2</th><th>3<br>W3</th><th>4<br>W5</th><th>5<br>W6</th><th>6<br>W7</th><th>7<br>W4</th><th>8<br>W8</th></tr>
           </thead>
           <tbody>
             <tr>
@@ -1758,89 +1777,153 @@ make ask WORLD=8 Q="Explicame la arquitectura"</pre>
               <td class="c">crea</td>
               <td class="na">·</td>
               <td class="e">+3 estados<br>+2 motivos<br>+3 campos</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
             </tr>
             <tr>
               <td>harness/loop.py</td>
               <td class="c">crea</td>
               <td class="e">+presupuesto</td>
               <td class="e">+estados<br>+verify<br>+repair</td>
-              <td class="e">+skills</td>
               <td class="e">+permisos</td>
               <td class="e">+checkpoints</td>
-              <td class="na">·</td><td class="na">·</td>
+              <td class="na">·</td>
+              <td class="e">+skills</td>
+              <td class="na">·</td>
             </tr>
             <tr>
               <td>tools/base.py</td>
               <td class="c">crea</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
               <td class="e">+autorización</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
             </tr>
             <tr>
               <td>harness/prompt.py</td>
               <td class="c">crea</td>
-              <td class="na">·</td><td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
               <td class="e">+disclosure</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+              <td class="na">·</td>
             </tr>
             <tr>
               <td>tools/</td>
               <td class="c">list_files<br>read_file</td>
               <td class="e">search_code</td>
               <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
               <td class="e">load_skill</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td>
               <td class="e">delegate</td>
             </tr>
             <tr>
               <td>providers/</td>
               <td class="c">crea</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
             </tr>
             <tr>
-              <td>context/</td>
-              <td class="na">·</td><td class="c">crea</td><td class="na">·</td>
+              <td>harness/context.py</td>
+              <td class="na">·</td>
+              <td class="c">crea</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
               <td class="e">+capa skills</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+              <td class="na">·</td>
             </tr>
             <tr>
               <td>harness/state.py</td>
-              <td class="na">·</td><td class="na">·</td><td class="c">crea</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="c">crea</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
             </tr>
             <tr>
               <td>harness/verify.py</td>
-              <td class="na">·</td><td class="na">·</td><td class="c">crea</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
-            </tr>
-            <tr>
-              <td>skills/</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="c">crea</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
-            </tr>
-            <tr>
-              <td>sandbox/</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
               <td class="c">crea</td>
-              <td class="na">·</td><td class="na">·</td>
-              <td class="e">delegate → ASK</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
             </tr>
             <tr>
-              <td>durable/</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
-              <td class="c">crea</td>
-              <td class="na">·</td><td class="na">·</td>
-            </tr>
-            <tr>
-              <td>evals/</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+              <td>skills.py</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
               <td class="c">crea</td>
               <td class="na">·</td>
             </tr>
             <tr>
-              <td>agents/</td>
-              <td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td>
+              <td>permissions.py</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="c">crea</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="e">+load_skill</td>
+              <td class="e">delegate → ASK</td>
+            </tr>
+            <tr>
+              <td>harness/checkpoint.py</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="c">crea</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+            </tr>
+            <tr>
+              <td>evals.py</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="c">crea</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+            </tr>
+            <tr>
+              <td>harness/subagent.py</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
+              <td class="na">·</td>
               <td class="c">crea</td>
             </tr>
           </tbody>
