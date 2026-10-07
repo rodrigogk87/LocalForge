@@ -2,7 +2,7 @@
 
 > **Fuente de verdad del proyecto.** Si sos un agente retomando este trabajo sin haber visto
 > la conversación previa, leé este archivo entero antes de tocar código.
-> Última actualización: **2026-09-26**
+> Última actualización: **2026-10-07**
 
 ---
 
@@ -35,11 +35,18 @@ verifica resultados y devuelve evidencia.
 - **No** hay `FakeModelProvider` en el producto. Desde la v0 hay inferencia local real.
   (Sí hay un `ScriptedProvider` **en los tests** — ver "Decisiones de arquitectura".)
 - **No** avanzamos a sandbox / MCP / multi-agent / Temporal hasta que lo anterior funcione.
+  (Ya funciona: el paso 9 agregó sandbox, MCP y worktrees. Temporal sigue fuera.)
 - **No** invertimos en UI hasta que el harness funcione. Hoy la interfaz es una CLI.
 
 ---
 
 ## Estado actual
+
+**Paso 9 (2026-10-07) — cada fase completó lo que había dejado pendiente.** `worlds/9-completo-w9`,
+copia del paso 8 más: retrieval (W2), planner (W3), cliente MCP (W4), sandbox Docker y
+`run_command` (W5), queue con recovery y memoria entre sesiones (W6), model-as-judge (W7) y
+worktrees (W8). Todo opt-in con flags; 265 tests. Detalle en "Paso 9", más abajo. Las secciones
+por fase que siguen describen cómo cerró cada mundo; sus "Qué falta" ahora apuntan al paso 9.
 
 **Fase 1 (Agent Foundations) — COMPLETA Y VERIFICADA END-TO-END contra el LLM local real.**
 
@@ -99,7 +106,15 @@ respuesta final` funciona. Evidencia reproducible más abajo.
 | **Subagentes con contexto aislado** | ✅ Fase 8, con tests |
 | **Referencias de las guías verificadas contra el código** | ✅ con tests |
 | **8 mundos como proyectos independientes** | ✅ con tests |
-| Suite de tests | ✅ 53 en la raíz · 939 sumando los 8 mundos |
+| **Retrieval just-in-time (`retrieve`, BM25)** | ✅ paso 9, con tests |
+| **Planner y estado `PLANNING`** | ✅ paso 9, con tests |
+| **Cliente MCP por stdio** | ✅ paso 9, contra un server real |
+| **Sandbox Docker + `run_command`, fail-closed** | ✅ paso 9, con tests (Docker real: opt-in) |
+| **Queue/worker con recovery por lease** | ✅ paso 9, con tests |
+| **Memoria entre sesiones (solo lo verificado)** | ✅ paso 9, con tests |
+| **Model-as-judge con orden invertido** | ✅ paso 9, con tests |
+| **Worktrees: `delegate_edit` devuelve un diff** | ✅ paso 9, con tests |
+| Suite de tests | ✅ 138 en la raíz · 1204 sumando los 9 pasos |
 
 ### Evidencia de la verificación (2026-09-19)
 
@@ -149,14 +164,16 @@ un **verifier de trayectoria**: rechazar la respuesta final si el agente no ley�
 
 ### Qué NO funciona / no existe todavía
 
-- No hay `write_file`, `run_command`, `run_tests`, `git_diff`.
-- No hay retrieval ni selección por relevancia (resto de la Fase 2).
-- No hay planner ni hooks de ciclo de vida (resto de la Fase 3).
-- No hay MCP (resto de la Fase 4).
-- No hay sandbox, límites de recursos ni políticas de red (resto de la Fase 5).
-- No hay queue, workers ni memoria entre sesiones (resto de la Fase 6).
-- No hay model-as-judge ni datasets grandes (resto de la Fase 7).
-- No hay worktrees ni paralelismo entre subagentes (resto de la Fase 8).
+Hasta el paso 8 esta lista tenía un hueco por fase; el paso 9 los llenó. Lo que sigue sin existir:
+
+- `write_file` sobre el repo del usuario (solo existe en worktrees) y `run_command` fuera del sandbox.
+- Retrieval semántico ni selección por relevancia (Fase 2).
+- Hooks que puedan vetar ni verifiers de tests/lint/types (Fase 3).
+- MCP resources, prompts ni transporte HTTP (Fase 4).
+- Aislamiento a nivel VM ni políticas de red por destino (Fase 5).
+- Durable execution por llamada, estilo Temporal (Fase 6).
+- Datasets grandes (Fase 7).
+- Rol de reviewer ni `apply` con aprobación de los diffs (Fase 8).
 - No hay API HTTP (FastAPI) ni UI.
 
 ---
@@ -194,7 +211,7 @@ Esa asimetría es el punto donde en la Fase 5 se enchufan permisos y sandbox sin
 
 ---
 
-### El repositorio son ocho proyectos
+### El repositorio son nueve proyectos
 
 **2026-09-27.** No hay un codebase único. Hay **ocho proyectos Python independientes**, uno por mundo,
 cada uno con el código tal cual estaba al cerrar ese mundo, su propio venv, sus propios tests y su
@@ -217,16 +234,19 @@ LocalForge/
 │   ├── 5-durable-w6/         W6  26           133         lfw6   foto (24b24a5)
 │   ├── 6-evals-w7/           W7  28           159         lfw7   foto (1808094)
 │   ├── 7-skills-w4/          W4  31           177         lfw4   foto (5f62eb4)
-│   └── 8-multiagent-w8/      W8  33           184         lfw8   ← CÓDIGO VIVO
+│   ├── 8-multiagent-w8/      W8  33           184         lfw8   congelado a mano
+│   └── 9-completo-w9/       1-8  53           265         lfw9   ← CÓDIGO VIVO
 ├── docs/          GUIA.md · guia-web.html · code-refs.json
-├── scripts/       build_worlds.py · sync_code_refs.py
-├── tests/         53 tests: coherencia de los ocho + que las guías no mientan
+├── labs/          w2_context_builder.py · w3_harness_verify.py (make lab-context / lab-harness)
+├── scripts/       build_worlds.py · patch_worlds.py · sync_code_refs.py
+├── tests/         138 tests: coherencia de los nueve + que las guías no mientan
 └── pyproject.toml el repo NO es un paquete
 ```
 
 **Los pasos 1 a 7 son fotos**, generadas desde la historia de git con `scripts/build_worlds.py`. No se
-editan: se regeneran. **El paso 8 es el código vivo**, el único que se edita a mano. Si mañana hay un
-Mundo 9, se construye ahí y después se saca su foto.
+editan: se regeneran. **El paso 8** quedó congelado con dos cambios a mano posteriores a su commit
+(`--delegate` y las anotaciones por mundo), así que tampoco se regenera. **El paso 9 es el código
+vivo** (2026-10-07), el único que se edita: arrancó como copia del 8 y completa cada mundo.
 
 Y no hubo que escribir 25.000 líneas: cada mundo se había cerrado con un commit, así que los
 snapshots ya existían.
@@ -236,7 +256,7 @@ snapshots ya existían.
 El Mundo 5 (permisos) se hizo antes del 4 (skills), porque los permisos eran prerequisito duro de
 cualquier tool con efectos. Ordenarlos por número rompería lo que los hace útiles — el paso 4 tendría
 skills y el 5 las perdería. Así cada paso es el anterior **más una cosa**, y los tests lo confirman:
-crecen 24 → 59 → 85 → 118 → 133 → 159 → 177 → 184 sin que ninguno se rompa.
+crecen 24 → 59 → 85 → 118 → 133 → 159 → 177 → 184 → 265 sin que ninguno se rompa.
 
 El único caso que no salió directo de la historia: los Mundos 4 y 8 entraron en el **mismo commit**,
 así que el paso 7 es ese commit menos `subagent.py`.
@@ -445,6 +465,9 @@ de correr el agente. Sin `--save`, el comportamiento es idéntico al de antes.
 
 ### Qué falta de Fase 6
 
+> **Paso 9:** queue/worker con recovery automático por lease, y memoria episódica entre sesiones.
+> Durable execution estilo Temporal sigue fuera. Ver "Paso 9".
+
 - **Queue y workers** (W6·C40). Hoy la corrida es un proceso en primer plano.
 - **Durable execution** estilo Temporal (W6·C41).
 - **Memoria entre sesiones** (las cuatro clases de memoria). El checkpoint es memoria *de una
@@ -501,6 +524,9 @@ Reparto típico: **observations 83%**, instructions 2%, tools 1.5%, conversation
 Acortar el system prompt para ahorrar contexto es trabajar en el lugar equivocado.
 
 ### Qué de la Fase 2 NO está
+
+> **Paso 9:** retrieval just-in-time (`retrieve`, BM25 por función). Aislamiento de contexto ya lo
+> había resuelto la Fase 8. Siguen faltando selección por relevancia y compactación por resumen.
 
 - **Retrieval just-in-time** (W2·C11). Bloqueado por `search_code`: sin búsqueda, traer "el
   fragmento exacto" es imposible porque no se sabe dónde está.
@@ -564,6 +590,10 @@ escritura. Usa `asyncio.to_thread` para no bloquear el loop mientras el humano p
 `localforge ask --read-only` deniega todo lo que no sea lectura sin preguntar.
 
 ### Qué falta de Fase 5 — y es la mitad importante
+
+> **Paso 9:** sandbox Docker (sin red, repo `:ro`, límites, sin privilegios, `--pull never`) y
+> `run_command` adentro de él, fail-closed en tres capas. Ver "Paso 9". Lo de abajo describe cómo
+> cerró la Fase 5.
 
 **No hay sandbox.** Un permiso decide *si* se ejecuta; un sandbox contiene *lo que pasa* cuando se
 ejecuta. Falta todo eso:
@@ -651,6 +681,9 @@ trayectoria, no si la explicación es buena. Eso necesita model-as-judge (W7·C4
 sesgos, y es Fase 7.
 
 ### Qué falta de Fase 3
+
+> **Paso 9:** planner con estado `PLANNING`, y un verifier de resultado (`DiffVerifier`) para los
+> subagentes que editan. Siguen faltando hooks que veten y verifiers de tests/lint/types.
 
 - **Planner.** Hoy el modelo decide su próximo paso turno a turno, sin plan explícito.
 - **Hooks de ciclo de vida.** Hay `on_event`, que sólo observa. Un hook que pueda *vetar* (por
@@ -764,6 +797,8 @@ contra un límite de 10, y 17 contra 12. Subirlos sería honesto; bajar la exige
 
 ### Qué falta de Fase 7
 
+> **Paso 9:** model-as-judge (`eval --judge`) con rúbrica, orden invertido y juez ilegible = falla.
+
 - **Model-as-judge** (W7·C45) para lo que no es verificable determinísticamente.
 - Datasets más grandes y repos de distinto tamaño.
 - Correr el mismo dataset con un modelo más grande, para separar el techo del modelo del techo del
@@ -795,7 +830,8 @@ Detalles que importan:
 - **Un `SKILL.md` ilegible no impide que el agente arranque.** Se saltea esa skill y sigue.
 - Hay un test que verifica que el cuerpo **no** aparece en el system prompt.
 
-**Falta MCP** (W4·C25-C27). Es un protocolo con transporte stdio y JSON-RPC, y testearlo de verdad
+**MCP: hecho en el paso 9** (cliente por stdio, ver "Paso 9"). Lo que sigue es como estaba al
+cerrar la Fase 4: **Falta MCP** (W4·C25-C27). Es un protocolo con transporte stdio y JSON-RPC, y testearlo de verdad
 necesita un server MCP real contra el que hablar. Es un trabajo aparte, no una tarde.
 
 ---
@@ -837,7 +873,68 @@ ningún mensaje del contexto del padre**. Si eso se rompe, delegar cuesta más q
 política de la Fase 5 funcionando por construcción.
 
 **Falta de W8:** worktrees de git (necesita escritura), paralelismo real entre subagentes (hoy
-`delegate` es secuencial), y el rol de reviewer.
+`delegate` es secuencial), y el rol de reviewer. **Paso 9:** worktrees hechos (`delegate_edit`),
+y con ellos ediciones en paralelo, cada una en su copia. El reviewer sigue pendiente.
+
+---
+
+## Paso 9 — lo que cada fase dejó pendiente
+
+**2026-10-07.** `worlds/9-completo-w9`: copia del paso 8 más una pieza por mundo. **Todo opt-in**:
+sin flags, `lfw9 ask` se comporta como el paso 8 más la tool `retrieve`. Cada pieza tiene su
+docstring con el *por qué* y los límites; acá van las decisiones que no se ven en el código.
+
+| mundo | pieza | flag / comando | módulo | decisión clave |
+|---|---|---|---|---|
+| W2 | retrieval just-in-time | tool `retrieve` | `retrieval.py`, `tools/retrieve.py` | BM25 por función, sin embeddings; **los secretos no se indexan** (retrieve no tiene `path` que la política pueda mirar) |
+| W3 | planner | `--plan` | `harness/planner.py` | una llamada **sin tools**; estado `PLANNING` opcional en el grafo; si falla, se sigue sin plan |
+| W4 | cliente MCP | `--mcp config.json` | `mcp.py` | sin SDK; prefijo `mcp__server__tool`; **la config nunca se lee del repo analizado** (sería ejecución de código para un repo hostil) |
+| W5 | sandbox + `run_command` | `--sandbox` | `sandbox.py`, `tools/command.py` | Docker sin red, repo `:ro`, `--read-only`, límites, `--user 65534`, `--cap-drop ALL`, `--pull never`; **fail-closed en tres capas** (registro, política, la tool); sigue en ASK porque el contenedor puede *leer* secretos |
+| W6 | queue + worker | `submit` / `worker` / `jobs` | `harness/queue.py` | cola en filesystem; claim = `os.rename` atómico; lease = mtime; el job recuperado **retoma desde su checkpoint** |
+| W6 | memoria entre sesiones | `--memory` | `harness/memory.py` | episódica, por repo, fuera del repo; **solo lo que pasó el verifier**; entra marcada como "no es evidencia" |
+| W7 | model-as-judge | `eval --judge` | `judge.py` | corre después de los checks y solo si pasaron; orden invertido contra el sesgo de posición; **juez ilegible = falla**; marca si juez = agente |
+| W8 | worktrees | `--edit` (tool `delegate_edit`) | `harness/worktree.py`, `tools/write.py` | `write_file` existe solo en el worktree; vuelve un diff + `.patch`, **nada se aplica solo**; git con `core.hooksPath=/dev/null`; `DiffVerifier` rechaza un "listo" sin cambios |
+
+**Cambios en lo que ya existía:** `AgentStatus.PLANNING` (+ transiciones `CREATED→PLANNING→RUNNING`),
+`AgentOutcome.plan`, `Checkpoint.plan` (con default: un checkpoint viejo se sigue leyendo, no hizo
+falta subir la versión), capas `retrieved` y `memory` medidas en `ContextBreakdown` (cada mensaje en
+una sola capa), `retrieve` en `EVIDENCE_TOOLS` y en la política (ALLOW), `Settings.judge_model` y
+`Settings.sandbox_image`.
+
+**Qué sigue sin estar** (cada pieza es la versión mínima): retrieval semántico, sandbox a nivel VM,
+durable execution por llamada (Temporal), MCP resources/prompts/HTTP, worktrees con los cambios sin
+commitear del usuario, el rol de reviewer, y aplicar un diff con aprobación desde la CLI.
+
+**Verificado contra el LLM local (2026-10-07, `gemma4:e4b`, sin Docker corriendo):**
+
+```
+make ask WORLD=9 Q="¿Que hace la funcion safe_path y en que archivo esta?" \
+         FLAGS="--plan --memory --sandbox --mcp examples/mcp.json --max-turns 8"
+
+nota   run_command deshabilitado: el daemon de Docker no responde   <- fail-closed
+nota   MCP: 3 tool(s) de 1 server(s)
+── plan  1. Buscar menciones de `safe_path` ... 5. Responder citando archivo y linea
+── completed | 4 turnos | 22530 tokens | 109s | tools: search_code, read_file, read_file
+   estados: created -> planning -> (running -> waiting_tool) x3 -> running -> verifying -> completed
+```
+
+Respuesta correcta, citando `tools/fs.py` lineas 31-44. Una segunda corrida con `--memory` sobre
+*"¿donde se valida que una ruta no escape del workspace?"* — la pregunta de regresion que el eval
+venia fallando — recordo la primera ("memoria: 1 corrida anterior"), **igual leyo** `fs.py` antes
+de responder, y paso el verifier: 4 turnos, 50s. Es una corrida, no una medicion: el eval sigue
+siendo la vara. `worker --once` tomo un job encolado y lo llevo a `done/`.
+
+**Bug encontrado en esa corrida real y corregido:** con el daemon de Docker colgado, `--sandbox`
+colgaba la CLI para siempre antes del primer turno. El timeout de `docker version` mataba al
+proceso, pero el CLI de docker deja hijos con el pipe abierto y asyncio no da por terminado un
+proceso hasta que se cierran todos sus pipes. Ahora cada comando corre en su propio grupo de
+procesos, se mata el grupo, y la espera tiene techo. Hay un test de regresion con un `docker` falso
+que deja un hijo huerfano.
+
+**Tests:** 265 en el paso 9. El de Docker real es opt-in (`LOCALFORGE_DOCKER_TESTS=1`) porque
+preguntarle a un daemon colgado tarda segundos; el resto usa un `docker` falso que anota sus
+argumentos. Los de MCP hablan con un server real (`examples/mcp_server_demo.py`) por stdio. El de
+hooks de git verifica que un `post-checkout` plantado **no** corra (sin el flag, corre).
 
 ---
 
@@ -1009,12 +1106,15 @@ intermedia con `packages/` (once subproyectos por capacidad) que se **eliminó**
 En el camino: `scripts/sync_code_refs.py`, porque las guías citaban 40 líneas que ya no
 correspondían, y los números del hero también estaban viejos. Ahora se generan.
 
+**2026-10-07 — paso 9: cada mundo completa su hueco.** Retrieval, planner, MCP, sandbox +
+`run_command`, queue y memoria, model-as-judge, worktrees. 184 → 265 tests. Ver "Paso 9".
+
 ---
 
 ## Trabajo actual
 
-**Nada a medio implementar.** Las ocho fases tienen trabajo real y verificado, y el `.env` de esta
-máquina apunta a `gemma4:e4b`.
+**Nada a medio implementar.** Las ocho fases tienen trabajo real y verificado, el paso 9 completó
+el hueco de cada una, y el `.env` de esta máquina apunta a `gemma4:e4b`.
 
 **La primera medición real existe** (`uv run lfw7 eval .`, 2026-09-27): **1 de 4**. Está detallada en
 la sección de Evals, pero el resumen importa:
@@ -1037,24 +1137,25 @@ Ordenados por lo que más duele, no por el orden de las fases:
    bajo: el eval marcó una respuesta con 0 `read_file` que el verifier aprobó.
 3. **Subir los presupuestos de las golden tasks.** 12 turnos contra un límite de 10 y 17 contra 12:
    están calibrados para un modelo más fuerte. Subirlos es honesto; bajar la exigencia de contenido, no.
-4. **Los dos huecos grandes de las fases:** el **sandbox** (Fase 5 — hay permisos, no hay aislamiento)
-   y **MCP** (Fase 4). `run_command` no se agrega sin el primero.
-5. Un test que pase por la CLI, para que no vuelva a pasar lo de `delegate` (bug conocido #5).
+4. **Probar el paso 9 con Docker de verdad** (`LOCALFORGE_DOCKER_TESTS=1 make test WORLD=9`, con la
+   imagen descargada a mano) y medir si `--plan` y `--memory` mueven el eval (`compare()`).
+5. **Un `apply` con aprobación** para los diffs de `delegate_edit`, y el rol de **reviewer** (W8).
+6. Un test que pase por la CLI, para que no vuelva a pasar lo de `delegate` (bug conocido #5).
 
 ---
 
 ## Comandos útiles
 
-**Todo pasa por el `Makefile`.** `WORLD` es el número de **paso** (1 a 8), no el del mundo del
-roadmap; `make worlds` muestra la correspondencia.
+**Todo pasa por el `Makefile`.** `WORLD` es el número de **paso** (1 a 9, default 9), no el del
+mundo del roadmap; `make worlds` muestra la correspondencia.
 
 ```bash
 make                                  # la ayuda, con todos los targets
-make worlds                           # los ocho pasos, su mundo y su comando
+make worlds                           # los nueve pasos, su mundo y su comando
 
-make setup-all                        # instala los ocho
+make setup-all                        # instala los nueve
 make test WORLD=3                     # los tests del paso 3
-make test-all                         # los ocho, con resumen
+make test-all                         # los nueve, con resumen
 make health WORLD=1                   # ¿responde el LLM local?
 make ask WORLD=1 Q="Que hace AgentHarness?"
 make ask WORLD=8 Q="..." FLAGS="--delegate -v"
@@ -1063,10 +1164,19 @@ make eval WORLD=6                     # el dataset de golden tasks
 make runs WORLD=5                     # corridas guardadas
 make resume WORLD=5 ID=<uuid>
 
-make repo-test                        # los 53+ tests del repo
+# --- paso 9 ---
+make ask WORLD=9 Q="..." FLAGS="--plan --memory"
+make ask WORLD=9 Q="corré los tests" FLAGS="--sandbox"       # necesita Docker + imagen
+make ask WORLD=9 Q="..." FLAGS="--mcp examples/mcp.json"
+make ask WORLD=9 Q="..." FLAGS="--edit"                      # necesita repo git con commits
+make eval WORLD=9 FLAGS="--judge"
+make submit WORLD=9 Q="..." && make worker WORLD=9 FLAGS=--once && make jobs WORLD=9
+make lab-context && make lab-harness                         # labs sin LLM (Mundos 2 y 3)
+
+make repo-test                        # los 138 tests del repo
 make docs                             # reescribe las lineas que las guias citan
 make docs-check                       # falla si estan viejas
-make build                            # regenera las fotos 1-7 desde git
+make build                            # regenera las fotos 1-7 desde git (8 y 9 no se tocan)
 make check                            # docs-check + repo-test + test-all
 make clean                            # borra venvs, caches y lockfiles
 
@@ -1120,26 +1230,27 @@ como feedback" de la Fase 1, contra un modelo real.
 
 ## Handoff para el siguiente agente
 
-**El repositorio son ocho proyectos, no uno.** No existe un paquete `localforge` en la raíz ni el
-comando `localforge`: cada mundo es un proyecto con su propio venv y su propio comando
-(`lfw1`…`lfw8`). Los pasos 1 a 7 son fotos generadas desde la historia de git; **el paso 8
-(`worlds/8-multiagent-w8`) es el código vivo** y el único que se edita a mano.
+**El repositorio son nueve proyectos, no uno.** No existe un paquete `localforge` en la raíz ni el
+comando `localforge`: cada paso es un proyecto con su propio venv y su propio comando
+(`lfw1`…`lfw9`). Los pasos 1 a 7 son fotos generadas desde la historia de git; el 8 está congelado;
+**el paso 9 (`worlds/9-completo-w9`) es el código vivo** y el único que se edita a mano.
 
 **Si estás retomando, empezá por:**
 
-1. `cd worlds/8-multiagent-w8 && uv sync --extra dev && uv run pytest -q` — deben pasar 184 tests.
+1. `make test WORLD=9` (o `cd worlds/9-completo-w9 && uv sync --extra dev && uv run pytest -q`) —
+   deben pasar 265 tests (1 skipped: el de Docker real, opt-in).
 2. Leer `src/localforge/models.py` y `src/localforge/harness/loop.py`. Son ~750 líneas y contienen
    todo el diseño; los comentarios explican el *por qué* de cada decisión.
-3. `uv run lfw8 health` — debe reportar el modelo instalado.
-4. Desde la raíz, `uv run pytest -q` — 53 tests que verifican que los ocho mundos sean coherentes y
+3. `make health` — debe reportar el modelo instalado.
+4. Desde la raíz, `uv run pytest -q` — 138 tests que verifican que los nueve pasos sean coherentes y
    que las guías no citen líneas que ya no existen.
 
-**Las ocho fases tienen trabajo real.** Lo que falta de cada una está en su sección de este archivo;
-los dos huecos grandes son el **sandbox** (Fase 5: hay permisos, no hay aislamiento) y **MCP**
-(Fase 4).
+**Las ocho fases tienen trabajo real, y el paso 9 completó el hueco de cada una** (ver "Paso 9").
+Lo que queda son límites de esas versiones mínimas, no huecos.
 
-**Restricción dura:** `run_command` no se agrega sin sandbox. No por falta de permisos — esos ya
-existen — sino porque una vez que el comando corre, el permiso ya hizo todo lo que podía hacer.
+**Restricción dura, cumplida:** `run_command` existe **solo** adentro del sandbox, y falla cerrado
+sin Docker. `write_file` existe **solo** adentro de un worktree descartable. Sobre el repo del
+usuario, el agente sigue siendo de solo lectura. No relajes ninguna de las dos.
 
 **Próxima acción recomendada:** correr `uv run lfw7 eval .` con Ollama prendido. La última medición
 dio **1 de 4**, y el caso de regresión (*"¿dónde se valida que una ruta no escape del workspace?"*)
@@ -1151,4 +1262,4 @@ que `compare()` existe para hacer.
 de verdad contra el LLM local, medir, actualizar este archivo, y recién ahí seguir.
 
 **Y si tocás código, corré `python scripts/build_worlds.py`** sólo si cambiaste una foto por error:
-regenera los pasos 1-7 desde git. El paso 8 nunca se regenera.
+regenera los pasos 1-7 desde git. Los pasos 8 y 9 nunca se regeneran.

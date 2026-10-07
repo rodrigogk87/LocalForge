@@ -28,7 +28,8 @@ MAKEFILE = ROOT / "Makefile"
 # Los targets que tienen que existir: si se renombra uno, la doc queda mintiendo.
 TARGETS = (
     "help", "worlds", "setup", "setup-all", "test", "test-all",
-    "health", "ask", "eval", "runs", "resume", "lab-context", "lab-harness", "lab-verify",
+    "health", "ask", "eval", "runs", "resume", "submit", "worker", "jobs",
+    "lab-context", "lab-harness", "lab-verify",
     "repo-test", "docs", "docs-check", "build", "check", "clean",
 )
 
@@ -97,10 +98,10 @@ def test_la_ayuda_dice_que_mundo_y_que_modelo() -> None:
 
 
 @needs_make
-def test_worlds_lista_los_ocho_con_su_comando() -> None:
+def test_worlds_lista_los_nueve_con_su_comando() -> None:
     proc = make("worlds")
     assert proc.returncode == 0, proc.stderr
-    for paso in range(1, 9):
+    for paso in range(1, 10):
         assert re.search(rf"^\s+{paso}\s", proc.stdout, re.M), f"falta el paso {paso}"
     # El comando de cada mundo, que es lo que no se puede adivinar.
     for pp in (ROOT / "worlds").glob("*/pyproject.toml"):

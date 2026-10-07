@@ -1,4 +1,4 @@
-# LocalForge, en ocho mundos
+# LocalForge, en ocho mundos (y el paso que los completa)
 
 Cada carpeta es un **proyecto Python completo e independiente**: su propio `pyproject.toml`, su
 propio venv, su propio lockfile, sus propios tests y su propio comando.
@@ -17,6 +17,7 @@ todavía no existían.
 | [6](6-evals-w7/) | **W7** Agent Evals | y sabés si es bueno | 28 | 159 | `lfw7` |
 | [7](7-skills-w4/) | **W4** Skills & Protocols | y es extensible | 31 | 177 | `lfw4` |
 | [8](8-multiagent-w8/) | **W8** Coding Agents & Multi-Agent | y delega sin pagar el contexto | 33 | 184 | `lfw8` |
+| [9](9-completo-w9/) | **W1-8** Los ocho, completos | y cada mundo termina lo que dejó pendiente | 53 | 265 | `lfw9` |
 
 ## Correr cualquiera
 
@@ -34,11 +35,11 @@ O a mano, si preferís ver las piezas:
 cd worlds/3-harness-w3 && uv sync --extra dev && uv run lfw3 ask . "..."
 ```
 
-Cada mundo tiene su propio comando (`lfw1`…`lfw8`, por número de **mundo**, no de paso) para que
+Cada mundo tiene su propio comando (`lfw1`…`lfw9`, por número de **mundo**, no de paso) para que
 puedas tener varios instalados sin que se pisen. `make worlds` muestra la correspondencia.
 
 **La configuración del modelo es una sola**, en el `.env` de la raíz: el Makefile lo exporta a los
-ocho. Y si el modelo configurado no está instalado, el provider busca uno que sí esté y que soporte
+nueve. Y si el modelo configurado no está instalado, el provider busca uno que sí esté y que soporte
 tool calling — así cualquier mundo arranca en cualquier máquina.
 
 ## Fotos y código vivo
@@ -46,8 +47,12 @@ tool calling — así cualquier mundo arranca en cualquier máquina.
 Los pasos **1 a 7 son fotos**: se generan desde la historia de git con
 [`scripts/build_worlds.py`](../scripts/build_worlds.py) y **no se editan a mano**, se regeneran.
 
-El **paso 8 es el código vivo** del proyecto. Es el único que se edita: si mañana hay un Mundo 9, se
-construye ahí y después se saca su foto.
+El **paso 8** es la foto congelada de los ocho mundos tal como se cerraron (tiene dos cambios hechos
+a mano después de su commit, así que tampoco se regenera).
+
+El **paso 9 es el código vivo** del proyecto, y el único que se edita: arrancó como copia del 8 y
+completa lo que cada mundo dejó pendiente — retrieval, planner, MCP, sandbox, queue y memoria,
+model-as-judge y worktrees. Ver su [README](9-completo-w9/).
 
 ```bash
 python scripts/build_worlds.py          # regenera los pasos 1 a 7
@@ -63,7 +68,7 @@ prerequisito duro de cualquier herramienta con efectos — la regla del proyecto
 
 Ordenarlos por número rompería la propiedad que los hace útiles: el paso 4 tendría skills y el paso 5
 las perdería. Así, **cada paso es el anterior más una cosa**, y los tests lo confirman — crecen
-24 → 59 → 85 → 118 → 133 → 159 → 177 → 184 sin que ninguno se rompa.
+24 → 59 → 85 → 118 → 133 → 159 → 177 → 184 → 265 sin que ninguno se rompa.
 
 ## La explicación
 

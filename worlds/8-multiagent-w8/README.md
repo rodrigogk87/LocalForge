@@ -2,9 +2,9 @@
 
 > **Y delega sin pagar el contexto.**
 
-Este directorio es un **proyecto Python completo e independiente**, y es el **código vivo**: el
-estado actual del proyecto, con los ocho mundos. No tiene nada de los mundos posteriores: lo que leas acá es lo que existía
-en ese momento, sin adelantos.
+Este directorio es un **proyecto Python completo e independiente**: los ocho mundos tal como se
+cerraron, con lo que cada uno dejó pendiente todavía pendiente. Lo que falta se completa en el
+[paso 9](../9-completo-w9/).
 
 ## Qué agrega este paso
 
@@ -30,14 +30,12 @@ Los pasos van en el orden en que el proyecto se **construyó**, que no es el ord
 El Mundo 5 (permisos) se hizo antes del Mundo 4 (skills), porque los permisos eran prerequisito duro
 de cualquier herramienta con efectos. Cada paso se apoya en el anterior de verdad.
 
-← [paso 7: Skills & Protocols](../7-skills-w4/)
+← [paso 7: Skills & Protocols](../7-skills-w4/) · [paso 9: los ocho mundos, completos](../9-completo-w9/) →
 
 ---
 
-*Este paso es el **código vivo** del proyecto: acá se sigue trabajando, y es el único de los ocho que
-se edita a mano. Los pasos 1 a 7 son fotos generadas desde la historia de git con
-[`scripts/build_worlds.py`](../../scripts/build_worlds.py).*
-
-*Salió del commit `5f62eb4` y desde entonces sumó dos cosas: el flag `--delegate` (la tool existía
-pero no había forma de llamarla desde la CLI) y las anotaciones por mundo en `models.py`, que marcan
-de dónde vino cada valor del enum.*
+*Este paso no se regenera ni se edita: es una foto congelada a mano. Salió del commit `5f62eb4` y
+después sumó dos cosas antes de congelarse: el flag `--delegate` (la tool existía pero no había forma
+de llamarla desde la CLI) y las anotaciones por mundo en `models.py`. Los pasos 1 a 7 son fotos
+generadas desde la historia de git con [`scripts/build_worlds.py`](../../scripts/build_worlds.py);
+el código vivo es el [paso 9](../9-completo-w9/).*

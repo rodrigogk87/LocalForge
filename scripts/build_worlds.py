@@ -19,9 +19,11 @@ prerequisito duro de cualquier tool con efectos. Cada carpeta se apoya en la
 anterior de verdad; si las ordenara por numero de roadmap, el paso 4 tendria
 skills y el 5 las perderia.
 
-**El paso 8 no se regenera: es el codigo vivo.** Los pasos 1 a 7 son fotos de la
-historia y se rehacen con un comando; el 8 es donde se sigue trabajando, y tiene
-cambios hechos despues del commit que lo cerro.
+**Los pasos 8 y 9 no se regeneran.** Los pasos 1 a 7 son fotos de la historia y
+se rehacen con un comando. El 8 tiene cambios hechos a mano despues del commit que
+lo cerro (el flag --delegate, las anotaciones por mundo) y quedo congelado asi: es
+la foto de los ocho mundos tal como se cerraron. El 9 es el codigo vivo: los ocho
+mundos con lo que cada uno dejo pendiente, y el unico que se edita.
 
     python scripts/build_worlds.py            # genera worlds/
     python scripts/build_worlds.py --check    # verifica que esten al dia
@@ -52,10 +54,9 @@ class Mundo:
     # Mundos 4 y 8 entraron en el MISMO commit, asi que para ver skills sin
     # subagentes hay que quitar el subagente.
     quitar: tuple[str, ...] = field(default=())
-    # El ultimo paso NO es una foto: es el codigo vivo del proyecto, el lugar
-    # donde se sigue trabajando. Tiene cambios hechos a mano despues del commit
-    # (el flag --delegate, las anotaciones por mundo en models.py) y
-    # regenerarlo los borraria.
+    # Los pasos que NO son fotos de un commit y no se regeneran: el 8 (congelado
+    # con cambios a mano posteriores a su commit) y el 9 (el codigo vivo).
+    # Regenerarlos borraria esos cambios.
     vivo: bool = False
 
     @property
@@ -101,6 +102,11 @@ MUNDOS = [
           "Coding Agents & Multi-Agent",
           "y delega sin pagar el contexto",
           "subagentes con contexto aislado",
+          vivo=True),
+    Mundo(9, "completo", 9, "-",
+          "Los ocho mundos, completos",
+          "y cada mundo termina lo que dejo pendiente",
+          "retrieval, planner, MCP, sandbox, queue y memoria, model-as-judge y worktrees",
           vivo=True),
 ]
 
@@ -205,7 +211,7 @@ de cualquier herramienta con efectos. Cada paso se apoya en el anterior de verda
 
 ---
 
-{"*Este paso es el **código vivo** del proyecto: acá se sigue trabajando. Los pasos 1 a 7 son fotos generadas desde la historia de git.*" if m.vivo else "*Generado por `scripts/build_worlds.py` desde el commit `" + m.commit + "`: es una **foto para leer**, no se edita a mano. El código vivo es el [paso 8](../8-multiagent-w8/).*"}
+{"*Este paso no se regenera. Los pasos 1 a 7 son fotos generadas desde la historia de git.*" if m.vivo else "*Generado por `scripts/build_worlds.py` desde el commit `" + m.commit + "`: es una **foto para leer**, no se edita a mano. El código vivo es el [paso 9](../9-completo-w9/).*"}
 '''
 
 
@@ -252,12 +258,12 @@ def main() -> int:
     generados = 0
     for i, m in enumerate(MUNDOS):
         if m.vivo:
-            print(f"  paso {m.paso}  w{m.mundo} {m.titulo:32} {archivos(m):2} archivos  VIVO, no se toca")
+            print(f"  paso {m.paso}  w{m.mundo} {m.titulo:32} {archivos(m):2} archivos  no se regenera")
             continue
         build(m, MUNDOS[i - 1] if i else None, MUNDOS[i + 1] if i + 1 < len(MUNDOS) else None)
         generados += 1
         print(f"  paso {m.paso}  w{m.mundo} {m.titulo:32} {archivos(m):2} archivos  ({m.commit})")
-    print(f"\n{generados} fotos regeneradas · el paso 8 es el codigo vivo")
+    print(f"\n{generados} fotos regeneradas · el paso 9 es el codigo vivo")
     return 0
 
 

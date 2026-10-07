@@ -6,11 +6,12 @@ encontras ocho estados cuando en el Mundo 1 habia cinco -- y tres de ellos habla
 de un verifier que todavia no te explicaron.
 
 Estos tests no corren los tests de cada mundo (eso es `pytest` dentro de cada
-carpeta, y son 939 en total). Verifican las propiedades que hacen que la coleccion
+carpeta, y son 1204 en total). Verifican las propiedades que hacen que la coleccion
 sirva: que cada paso sea el anterior MAS UNA COSA, y que nada se adelante.
 
-Los pasos 1 a 7 son fotos generadas desde la historia de git; el paso 8 es el
-codigo vivo del proyecto, el unico que se edita a mano.
+Los pasos 1 a 7 son fotos generadas desde la historia de git; el paso 8 es una
+foto congelada a mano (los ocho mundos tal como se cerraron), y el paso 9 es el
+codigo vivo: los ocho mundos con lo que cada uno dejo pendiente.
 """
 
 from __future__ import annotations
@@ -35,6 +36,16 @@ APARECEN = {
     "evals.py": 6,
     "skills.py": 7,
     "subagent.py": 8,
+    # Paso 9: lo que cada mundo dejo pendiente.
+    "retrieval.py": 9,   # W2
+    "planner.py": 9,     # W3
+    "mcp.py": 9,         # W4
+    "sandbox.py": 9,     # W5
+    "command.py": 9,     # W5
+    "queue.py": 9,       # W6
+    "memory.py": 9,      # W6
+    "judge.py": 9,       # W7
+    "worktree.py": 9,    # W8
 }
 
 # Los estados que el Mundo 3 agrega a AgentStatus. Antes del paso 3 no pueden
@@ -58,8 +69,18 @@ def fuente(d: Path) -> str:
     return "\n".join(f.read_text(encoding="utf-8") for f in sorted((d / "src").rglob("*.py")))
 
 
-def test_estan_los_ocho() -> None:
-    assert [numero(d) for d in pasos()] == list(range(1, 9))
+def test_estan_los_nueve_pasos() -> None:
+    """Ocho mundos, en orden de construccion, y el paso 9 que los completa."""
+    assert [numero(d) for d in pasos()] == list(range(1, 10))
+
+
+def test_planning_solo_existe_en_el_paso_9() -> None:
+    """Mientras no hubo planner, no hubo estado PLANNING: un estado por el que no
+    se pasa miente sobre lo que el sistema hace."""
+    for d in pasos():
+        models = (d / "src" / "localforge" / "models.py").read_text(encoding="utf-8")
+        declarado = '    PLANNING = "' in models
+        assert declarado == (numero(d) == 9), d.name
 
 
 # --- la propiedad central: nada se adelanta ---------------------------------
@@ -165,7 +186,7 @@ def test_hay_un_indice() -> None:
 
 
 def test_el_indice_dice_cual_es_foto_y_cual_es_vivo() -> None:
-    """Los pasos 1-7 se regeneran; el 8 es donde se trabaja. Que quede dicho."""
+    """Los pasos 1-7 se regeneran; el 9 es donde se trabaja. Que quede dicho."""
     texto = (WORLDS / "README.md").read_text(encoding="utf-8")
     assert "regenera" in texto
     assert "vivo" in texto.lower()

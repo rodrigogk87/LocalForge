@@ -1,17 +1,18 @@
 # LocalForge — un comando para cualquier mundo.
 #
-# El repositorio son ocho proyectos Python independientes, uno por mundo. Este
-# Makefile es el unico lugar donde viven los comandos, y el que centraliza la
-# configuracion del provider: incluye el `.env` de la raiz y lo EXPORTA, asi los
-# ocho mundos ven el mismo modelo -- incluido el Mundo 1, cuyo codigo todavia no
+# El repositorio son nueve proyectos Python independientes: uno por mundo, mas el
+# paso 9 que completa lo que cada mundo dejo pendiente. Este Makefile es el unico
+# lugar donde viven los comandos, y el que centraliza la configuracion del
+# provider: incluye el `.env` de la raiz y lo EXPORTA, asi todos los pasos ven el
+# mismo modelo -- incluido el Mundo 1, cuyo codigo todavia no
 # sabia leer un `.env` (esa feature llego despues).
 #
 #   make                     esta ayuda
 #   make test WORLD=3        los tests del paso 3
-#   make test-all            los ocho, con resumen
+#   make test-all            los nueve, con resumen
 #   make ask WORLD=1 Q="..." correr el agente
 #
-# WORLD es el numero de PASO (1..8), no el del mundo del roadmap. `make worlds`
+# WORLD es el numero de PASO (1..9), no el del mundo del roadmap. `make worlds`
 # los lista con su correspondencia.
 
 # --- Windows: las recetas son POSIX sh ---------------------------------------
@@ -24,7 +25,7 @@ export PATH := $(GIT_ROOT)/usr/bin;$(PATH)
 SHELL := sh.exe
 endif
 
-WORLD ?= 8
+WORLD ?= 9
 Q ?= Explicame este proyecto
 REPO ?= .
 
@@ -41,31 +42,32 @@ CMD := lf$(lastword $(subst -, ,$(notdir $(WORLD_DIR))))
 ALL_DIRS := $(sort $(wildcard worlds/*-w*))
 
 .DEFAULT_GOAL := help
-.PHONY: help worlds setup setup-all test test-all ask health eval runs resume \
+.PHONY: help worlds setup setup-all test test-all ask health eval runs resume submit worker jobs \
         lab-context lab-harness lab-verify repo-test docs docs-check build clean check
 
 ## help: esta ayuda
 help:
-	@printf "\nLocalForge — ocho mundos, un Makefile\n\n"
+	@printf "\nLocalForge — ocho mundos y el paso que los completa, un Makefile\n\n"
 	@grep -hE '^## ' $(MAKEFILE_LIST) | sed 's/## /  make /' | column -t -s ':'
 	@printf "\n  WORLD=$(WORLD) → $(WORLD_DIR) (comando: $(CMD))\n"
 	@printf "  modelo: $${LOCALFORGE_MODEL:-<autodetectado>}\n\n"
 
-## worlds: lista los ocho pasos y a que mundo corresponden
+## worlds: lista los nueve pasos y a que mundo corresponden
 worlds:
 	@printf "  paso  mundo  carpeta                   comando  tests\n"
 	@for d in $(ALL_DIRS); do \
 	  n=$$(basename $$d | cut -d- -f1); \
 	  w=$$(basename $$d | sed 's/.*-w//'); \
 	  t=$$(ls $$d/tests/test_*.py 2>/dev/null | wc -l | tr -d ' '); \
-	  printf "   %-4s  W%-4s  %-24s  lfw%-4s  %s archivos\n" "$$n" "$$w" "$$(basename $$d)" "$$w" "$$t"; \
+	  m="W$$w"; [ "$$n" = 9 ] && m="1-8"; \
+	  printf "   %-4s  %-5s  %-24s  lfw%-4s  %s archivos\n" "$$n" "$$m" "$$(basename $$d)" "$$w" "$$t"; \
 	done
 
 ## setup: instala las dependencias de un mundo (WORLD=n)
 setup: guard
 	@cd $(WORLD_DIR) && uv sync --extra dev
 
-## setup-all: instala los ocho
+## setup-all: instala los nueve
 setup-all:
 	@for d in $(ALL_DIRS); do printf "  %-24s " "$$(basename $$d)"; (cd $$d && uv sync -q --extra dev) && echo ok; done
 
@@ -73,7 +75,7 @@ setup-all:
 test: guard
 	@cd $(WORLD_DIR) && uv run pytest -q
 
-## test-all: corre los ocho y muestra el resumen
+## test-all: corre los nueve y muestra el resumen
 test-all:
 	@fail=0; for d in $(ALL_DIRS); do \
 	  printf "  %-24s " "$$(basename $$d)"; \
@@ -90,9 +92,9 @@ health: guard
 ask: guard
 	@cd $(WORLD_DIR) && uv run $(CMD) ask "$(REPO)" "$(Q)" $(FLAGS)
 
-## eval: corre el dataset de golden tasks (necesita WORLD>=6)
+## eval: corre el dataset de golden tasks (necesita WORLD>=6; FLAGS=--judge en el 9)
 eval: guard
-	@cd $(WORLD_DIR) && uv run $(CMD) eval "$(REPO)"
+	@cd $(WORLD_DIR) && uv run $(CMD) eval "$(REPO)" $(FLAGS)
 
 ## runs: lista las corridas guardadas (necesita WORLD>=5)
 runs: guard
@@ -101,6 +103,18 @@ runs: guard
 ## resume: retoma una corrida (ID=xxx, necesita WORLD>=5)
 resume: guard
 	@cd $(WORLD_DIR) && uv run $(CMD) resume "$(ID)"
+
+## submit: encola una tarea para un worker (Q="...", REPO=ruta, necesita WORLD=9)
+submit: guard
+	@cd $(WORLD_DIR) && uv run $(CMD) submit "$(REPO)" "$(Q)" $(FLAGS)
+
+## worker: toma tareas de la cola y recupera las abandonadas (FLAGS=--once, WORLD=9)
+worker: guard
+	@cd $(WORLD_DIR) && uv run $(CMD) worker $(FLAGS)
+
+## jobs: muestra la cola de tareas (necesita WORLD=9)
+jobs: guard
+	@cd $(WORLD_DIR) && uv run $(CMD) jobs
 
 ## lab-context: laboratorio del Mundo 2, ContextBuilder compactando sin LLM
 lab-context:

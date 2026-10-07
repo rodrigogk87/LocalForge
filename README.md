@@ -5,11 +5,11 @@ Coding agent que corre sobre un **LLM local** (Ollama), con un **agent harness p
 Sin LangChain, sin CrewAI, sin frameworks que escondan el loop. Las librerías que se usan son
 infraestructura (`httpx`, `pydantic`), no abstracciones de agentes.
 
-## El repositorio es ocho proyectos
+## El repositorio es nueve proyectos
 
-No hay un codebase único: hay **ocho proyectos Python independientes**, uno por mundo del roadmap.
-Cada uno tiene el código tal cual estaba al cerrar ese mundo, con su propio venv, sus propios tests
-y su propio comando.
+No hay un codebase único: hay **ocho proyectos Python independientes**, uno por mundo del roadmap, y
+un **noveno** que completa lo que cada mundo dejó pendiente. Cada mundo tiene el código tal cual
+estaba al cerrarlo, con su propio venv, sus propios tests y su propio comando.
 
 La razón es poder leer uno sin que se filtren los siguientes. Abrís
 `worlds/1-foundations-w1/src/localforge/models.py` y `AgentStatus` tiene **cinco** estados, no ocho:
@@ -26,13 +26,26 @@ que verificara.
 | [6](worlds/6-evals-w7/) | **W7** Agent Evals | y sabés **si es bueno** | 159 |
 | [7](worlds/7-skills-w4/) | **W4** Skills & Protocols | y es **extensible** | 177 |
 | [8](worlds/8-multiagent-w8/) | **W8** Coding Agents & Multi-Agent | y **delega** sin pagar el contexto | 184 |
+| [9](worlds/9-completo-w9/) | **W1-8** Los ocho, completos | y cada mundo **termina lo que dejó pendiente** | 265 |
 
 El orden es el de construcción, no el de los números: el Mundo 5 (permisos) va antes del 4 (skills)
 porque los permisos eran prerequisito duro de cualquier herramienta con efectos. Así cada paso es el
 anterior **más una cosa**. Detalle en [`worlds/README.md`](worlds/README.md).
 
-**Los pasos 1 a 7 son fotos** generadas desde la historia de git; **el paso 8 es el código vivo**,
-donde se sigue trabajando.
+**Los pasos 1 a 7 son fotos** generadas desde la historia de git; el 8 es la foto congelada de los
+ocho mundos tal como se cerraron; **el paso 9 es el código vivo**, donde se sigue trabajando.
+
+### El paso 9: lo que cada mundo dejó pendiente
+
+| mundo | faltaba | ahora (opt-in) |
+|---|---|---|
+| W2 | retrieval | tool `retrieve`: los fragmentos más relevantes, por función (BM25) |
+| W3 | planner | `--plan`, con estado `PLANNING` |
+| W4 | MCP | `--mcp config.json`: cliente MCP por stdio |
+| W5 | sandbox | `--sandbox`: `run_command` en Docker sin red y con el repo en solo lectura |
+| W6 | queue y memoria | `submit` / `worker` / `jobs` con recovery automático; `--memory` |
+| W7 | model-as-judge | `eval --judge`, con orden invertido contra el sesgo de posición |
+| W8 | worktrees | `--edit`: `delegate_edit` edita en un git worktree y devuelve un diff |
 
 ## Por dónde empezar
 
@@ -51,19 +64,23 @@ agent loop a los evals y los sistemas multi-agente. LocalForge es esa teoría he
 
 ## Correr cualquier mundo
 
-Los comandos viven en un solo lugar, el `Makefile`. `WORLD` es el número de **paso** (1 a 8):
+Los comandos viven en un solo lugar, el `Makefile`. `WORLD` es el número de **paso** (1 a 9, el
+default es 9):
 
 ```bash
 make                                    # la ayuda, con todos los targets
-make worlds                             # los ocho pasos y su comando
-make setup-all                          # instala los ocho
+make worlds                             # los nueve pasos y su comando
+make setup-all                          # instala los nueve
 
 make test WORLD=3                       # los 85 tests del paso 3
-make test-all                           # los ocho, con resumen
+make test-all                           # los nueve, con resumen
 make health WORLD=1                     # ¿responde el LLM local?
 make ask WORLD=1 Q="Que hace AgentHarness?"
 make ask WORLD=8 Q="..." FLAGS="--delegate -v"
 make eval WORLD=6                       # el dataset de golden tasks
+make ask WORLD=9 Q="..." FLAGS="--plan --memory"   # paso 9: planner y memoria
+make eval WORLD=9 FLAGS="--judge"       # paso 9: con juez LLM
+make submit WORLD=9 Q="..." && make worker WORLD=9 FLAGS=--once   # paso 9: la cola
 make lab-context                        # el Mundo 2 compactando, paso a paso, sin LLM
 make lab-harness                        # el Mundo 3 rechazando y reparando, sin LLM
 ```
@@ -77,13 +94,13 @@ tool calling, y te dice cuál eligió. Python ≥ 3.12, gestionado con `uv`.
 
 ## Configuración
 
-**Un solo `.env`, en la raíz, para los ocho mundos.**
+**Un solo `.env`, en la raíz, para todos los pasos.**
 
 ```bash
 cp .env.example .env    # y ajustalo a tu maquina
 ```
 
-El `Makefile` lo incluye y lo **exporta**, así los ocho lo ven sin que tengas que repetir nada. Eso
+El `Makefile` lo incluye y lo **exporta**, así todos lo ven sin que tengas que repetir nada. Eso
 importa más de lo que parece: el Mundo 1 no sabe leer un `.env` — esa capacidad llegó en el Mundo 2 —
 y sin el export quedaba pidiendo el default del código, que es el modelo de otra máquina.
 
@@ -97,6 +114,8 @@ con secretos ajenos.
 | `LOCALFORGE_NUM_CTX` | `32768` | Ventana de contexto pedida a Ollama |
 | `LOCALFORGE_MAX_TURNS` | `20` | Límite de turnos del loop |
 | `LOCALFORGE_WALL_CLOCK_S` | `300` | Presupuesto de tiempo por task |
+| `LOCALFORGE_JUDGE_MODEL` | *(el del agente)* | Modelo del juez en `eval --judge` (paso 9) |
+| `LOCALFORGE_SANDBOX_IMAGE` | `python:3.12-slim` | Imagen de `--sandbox`; no se descarga sola (paso 9) |
 
 ## Los tests del repositorio
 

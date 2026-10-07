@@ -137,9 +137,15 @@ def stats() -> dict[str, int]:
     """
     worlds = ROOT / "worlds"
     html = (ROOT / "docs" / "guia-web.html").read_text(encoding="utf-8")
-    vivo = worlds / "8-multiagent-w8" / "src"
+    pasos = sorted(
+        (d for d in worlds.iterdir() if d.is_dir() and (d / "pyproject.toml").is_file()),
+        key=lambda d: int(d.name.split("-")[0]),
+    )
+    # El codigo vivo es el ultimo paso. Los mundos son los del roadmap: el paso 9
+    # no es un mundo nuevo, completa los ocho.
+    vivo = pasos[-1] / "src"
     return {
-        "mundos": len([d for d in worlds.iterdir() if d.is_dir() and (d / "pyproject.toml").is_file()]),
+        "mundos": len({d.name.rsplit("-w", 1)[1] for d in pasos if not d.name.startswith("9-")}),
         "líneas de código": sum(
             len(f.read_text(encoding="utf-8").splitlines()) for f in vivo.rglob("*.py")
         ),

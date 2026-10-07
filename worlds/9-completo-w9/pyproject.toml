@@ -1,0 +1,47 @@
+# PASO 9 — LOS OCHO MUNDOS, COMPLETOS
+#
+# Lo que cada mundo dejo pendiente, hecho.
+#
+# Un proyecto aparte, completo y ejecutable. Arranca como copia del paso 8 y
+# agrega lo que la tabla "Que le falta a LocalForge" marcaba como hueco de cada
+# mundo: retrieval (W2), planner (W3), MCP (W4), sandbox (W5), queue y memoria
+# (W6), model-as-judge (W7) y worktrees (W8).
+#
+# Es el CODIGO VIVO del proyecto: el unico paso que se edita a mano.
+#
+#   cd worlds/9-completo-w9
+#   uv sync --extra dev
+#   uv run pytest -q
+#   uv run lfw9 ask . "explicame este proyecto"
+[project]
+name = "lfw9-completo"
+version = "9.0.0"
+description = "Paso 9 · los ocho mundos completos: lo que cada uno dejo pendiente."
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.9",
+    "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3", "pytest-asyncio>=0.24"]
+
+[project.scripts]
+lfw9 = "localforge.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.12.10,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "localforge"
+
+# Raiz de su PROPIO workspace, sin miembros. Sin esto uv camina hacia arriba,
+# encuentra el workspace del repo y se queja de que esta carpeta esta adentro
+# pero no es miembro. Cada mundo tiene que ser independiente de verdad.
+[tool.uv.workspace]
+members = []
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

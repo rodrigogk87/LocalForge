@@ -375,6 +375,7 @@
         <li class="grp"><a href="#w7"><span class="n">6</span><span>Agent Evals <span class="mins">W7</span></span></a></li>
         <li class="grp"><a href="#w4"><span class="n">7</span><span>Skills &amp; Protocols <span class="mins">W4</span></span></a></li>
         <li class="grp"><a href="#w8"><span class="n">8</span><span>Multi-Agent <span class="mins">W8</span></span></a></li>
+        <li class="grp"><a href="#w9"><span class="n">9</span><span>Lo que faltaba <span class="mins">W1-8</span></span></a></li>
         <li><a href="#s5"><span class="n">→</span><span>Rompelo <span class="mins">45 min</span></span></a></li>
         <li><a href="#evo"><span class="n">→</span><span>Cómo creció cada archivo</span></a></li>
         <li><a href="#falta"><span class="n">→</span><span>Qué le falta</span></a></li>
@@ -391,8 +392,8 @@
         </p>
         <div class="facts">
           <div class="fact"><div class="v">8</div><div class="k">mundos</div></div>
-          <div class="fact"><div class="v">4685</div><div class="k">líneas de código</div></div>
-          <div class="fact"><div class="v">56</div><div class="k">links a clases</div></div>
+          <div class="fact"><div class="v">7031</div><div class="k">líneas de código</div></div>
+          <div class="fact"><div class="v">64</div><div class="k">links a clases</div></div>
           <div class="fact"><div class="v">5</div><div class="k">experimentos</div></div>
         </div>
       </div>
@@ -401,7 +402,8 @@
         Esto no es documentación de referencia. Cada sección te dice qué archivo abrir y en qué
         línea mirar, te hace una pregunta, y recién después te da la respuesta.
         Está dividido en <strong>ocho pasos, uno por cada mundo del roadmap</strong>: cada uno te muestra
-        qué propiedad le agrega al agente y qué le falta todavía.
+        qué propiedad le agrega al agente y qué le falta todavía. Al final, el <strong>paso 9</strong>
+        completa lo que cada mundo dejó pendiente.
         <strong>Intentá contestar antes de abrirla.</strong> Si la respuesta te sorprende, ahí aprendiste algo.
       </p>
 
@@ -1132,6 +1134,7 @@ messages del state     =   4153
         O sea que la próxima pieza de W2 no es de W2: es la tool de búsqueda. Las fases del roadmap
         no se completan en orden, se completan cuando se destraba lo que las bloquea.
       </p>
+      <p class="prose"><a href="#w9">→ El retrieval lo completa el paso 9, §9.1.</a></p>
 
       <div class="q"><span class="label">Pregunta</span><p>Experimento. Bajá el presupuesto hasta que el agente se rompa y mirá cómo se rompe.</p></div>
       <details class="a"><summary>Ver qué esperar</summary><div class="a-body">
@@ -1271,6 +1274,7 @@ turno 5: el modelo propone terminar  ->  el harness dice: SI, terminar
         Mundo 5, el paso que sigue. Y <strong>verifiers de resultado</strong>: tests, lint, types, <code>git diff</code>.
         Esos llegan el día que el agente escriba código.
       </p>
+      <p class="prose"><a href="#w9">→ El planner lo completa el paso 9, §9.2.</a></p>
 
       <!-- ============ MUNDO 5 ============ -->
       <div class="sec-head prose" id="w5">
@@ -1361,6 +1365,7 @@ default=Decision.ASK</pre>
         <code>write_file</code> sí quedó desbloqueado — cae en ASK, con aprobación humana y
         <code>safe_path</code> — pero es una decisión de capacidad que todavía no se tomó.
       </p>
+      <p class="prose"><a href="#w9">→ El sandbox (y con él <code>run_command</code>) lo completa el paso 9, §9.4.</a></p>
       <!-- ============ MUNDO 6 ============ -->
       <div class="sec-head prose" id="w6">
         <div class="kicker"><span class="num">PASO 5 · MUNDO 6</span><span class="mins">25 min</span></div>
@@ -1453,6 +1458,7 @@ make resume WORLD=5 ID=&lt;id&gt;</pre>
         recuerde de una tarea a la otra. Y <strong>recovery automático</strong> — hoy resumir lo
         dispara una persona.
       </p>
+      <p class="prose"><a href="#w9">→ La queue con recovery y la memoria lo completa el paso 9, §9.5.</a></p>
 
       <!-- ============ MUNDO 7 ============ -->
       <div class="sec-head prose" id="w7">
@@ -1539,11 +1545,11 @@ make resume WORLD=5 ID=&lt;id&gt;</pre>
       <h3>6.5 Qué falta de este mundo</h3>
       <p class="prose">
         <strong>Model-as-judge</strong> (W7·C45), para lo que no se puede verificar de forma
-        determinista. Datasets más grandes y repos de distinto tamaño. Y sobre todo:
-        <strong>una primera corrida real</strong> — el medidor está testeado, pero nunca corrió contra
-        el LLM local.
+        determinista. Datasets más grandes y repos de distinto tamaño. Y correrlo seguido contra el
+        LLM local: la primera corrida real dio <strong>1 de 4</strong> con un modelo chico.
       </p>
       <pre>make eval WORLD=6</pre>
+      <p class="prose"><a href="#w9">→ El juez lo completa el paso 9, §9.6.</a></p>
 
       <!-- ============ MUNDO 4 ============ -->
       <div class="sec-head prose" id="w4">
@@ -1605,6 +1611,7 @@ make resume WORLD=5 ID=&lt;id&gt;</pre>
         JSON-RPC, y testearlo de verdad necesita un server MCP real contra el que hablar: es un
         trabajo aparte, no una tarde. Tampoco hay A2A.
       </p>
+      <p class="prose"><a href="#w9">→ MCP lo completa el paso 9, §9.3.</a></p>
 
       <!-- ============ MUNDO 8 ============ -->
       <div class="sec-head prose" id="w8">
@@ -1675,10 +1682,207 @@ subagente: 10 archivos                    -&gt;  28000 tokens, <span class="hl">
 
       <h3>8.5 Qué falta de este mundo</h3>
       <p class="prose">
-        <strong>Worktrees de git</strong> (W8·C51), que necesitan escritura. <strong>Paralelismo real
-        entre subagentes</strong>: hoy <code>delegate</code> es secuencial, aunque el executor ya sabe
-        correr herramientas en paralelo desde el Mundo 1. Y el rol de <strong>reviewer</strong>.
+        <strong>Worktrees de git</strong> (W8·C51), que necesitan escritura — los agrega el
+        <a href="#w9">paso 9</a>. Y el rol de <strong>reviewer</strong>, que sigue pendiente.
       </p>
+      <!-- ============ PASO 9 ============ -->
+      <div class="sec-head prose" id="w9">
+        <div class="kicker"><span class="num">PASO 9 · MUNDOS 1-8</span><span class="mins">40 min</span></div>
+        <h2>Lo que cada mundo dejó pendiente</h2>
+        <div class="file">📂 <b>localforge/retrieval.py</b> · <b>localforge/harness/planner.py</b> · <b>localforge/mcp.py</b> · <b>localforge/sandbox.py</b> · <b>localforge/harness/queue.py</b> · <b>localforge/harness/memory.py</b> · <b>localforge/judge.py</b> · <b>localforge/harness/worktree.py</b></div>
+      </div>
+
+      <div class="repo">
+        <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds/9-completo-w9" target="_blank" rel="noopener">📦 El código de este paso en GitHub</a>
+        <span class="meta">proyecto aparte · paso 9 · 265 tests · <code>make test WORLD=9</code></span>
+      </div>
+
+      <p class="prose">
+        Cada mundo cerró con una sección <em>"Qué falta"</em>. Este paso no es un mundo nuevo: es la
+        copia del paso 8 donde esos huecos se llenan, uno por mundo. Es también el <strong>código
+        vivo</strong> del proyecto, el único que se edita a mano.
+      </p>
+      <p class="prose">
+        Todo es <strong>opt-in</strong>. Sin flags, <code>lfw9 ask</code> se comporta como el paso 8
+        más una herramienta (<code>retrieve</code>). Cada pieza se prende por separado, y así se
+        puede leer y probar por separado:
+      </p>
+      <pre>make ask WORLD=9 Q=<span class="c">"..."</span> FLAGS=<span class="c">"--plan --memory"</span>    <span class="c"># W3 + W6</span>
+make ask WORLD=9 Q=<span class="c">"corré los tests"</span> FLAGS=<span class="c">"--sandbox"</span>     <span class="c"># W5, necesita Docker</span>
+make ask WORLD=9 Q=<span class="c">"cuánto es 2+40"</span> FLAGS=<span class="c">"--mcp examples/mcp.json"</span>   <span class="c"># W4</span>
+make ask WORLD=9 Q=<span class="c">"agregá un docstring"</span> FLAGS=<span class="c">"--edit"</span>    <span class="c"># W8</span>
+make eval WORLD=9 FLAGS=<span class="c">"--judge"</span>                              <span class="c"># W7</span>
+make submit WORLD=9 Q=<span class="c">"..."</span> &amp;&amp; make worker WORLD=9 FLAGS=--once   <span class="c"># W6</span></pre>
+
+      <div class="academy">
+        <div class="hd"><span class="cap">🎓</span><span class="who">las clases que este paso implementa</span></div>
+        <p style="margin-top:10px; display:flex; gap:7px; flex-wrap:wrap">
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w2-l11" target="_blank" rel="noopener">W2·C11 — Just-in-time retrieval</a>
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w3-l17" target="_blank" rel="noopener">W3·C17 — Planner</a>
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w4-l25" target="_blank" rel="noopener">W4·C25 — MCP</a>
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w5-l30" target="_blank" rel="noopener">W5·C30 — Docker sandbox</a>
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w6-l40" target="_blank" rel="noopener">W6·C40 — Queues y workers</a>
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w6-l42-boss" target="_blank" rel="noopener">W6 — Memoria</a>
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w7-l45" target="_blank" rel="noopener">W7·C45 — Model-as-judge</a>
+          <a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w8-l51" target="_blank" rel="noopener">W8·C51 — Git worktrees</a>
+        </p>
+      </div>
+
+      <h3>9.1 W2 · Retrieval: traer el fragmento, no el archivo</h3>
+      <pre>search_code  <span class="c">"safe_path"</span>            -&gt; líneas sueltas donde aparece la palabra
+read_file    <span class="c">"tools/fs.py"</span>          -&gt; el archivo entero
+<span class="hl">retrieve     "dónde se valida..."   -&gt; los 3-5 BLOQUES más relevantes, enteros y numerados</span></pre>
+      <p class="prose">
+        BM25 sobre el repo troceado <strong>por función</strong>, con los identificadores partidos
+        (<code>safe_path</code> → <code>safe</code>, <code>path</code>). Léxico, sin modelo de
+        embeddings: sería otra descarga y otro número para calibrar. Lo que trae se mide como su propia
+        capa, <code>retrieved</code>, la que el Mundo 2 reportaba con un 0 explícito.
+      </p>
+
+      <div class="q"><span class="label">Pregunta</span><p><code>read_file(".env")</code> lo bloquea la política del Mundo 5. ¿Por qué no alcanza esa misma regla para <code>retrieve</code>?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>Porque la regla mira el argumento <code>path</code>, y <code>retrieve</code> <strong>no tiene <code>path</code></strong>: recibe una pregunta y devuelve fragmentos de cualquier archivo. Si el <code>.env</code> estuviera en el índice, "¿qué password usa la base?" lo traería y la política nunca se habría enterado.</p>
+        <p>Por eso el filtro está <strong>en el índice</strong>: los archivos sensibles no se indexan. Es la lección general de los permisos: un control que mira un argumento solo protege a las herramientas que tienen ese argumento. Cada herramienta nueva hay que mirarla con esa pregunta.</p>
+      </div></details>
+
+      <h3>9.2 W3 · Planner, y por fin el estado PLANNING</h3>
+      <pre>created -&gt; <span class="hl">planning</span> -&gt; running -&gt; waiting_tool -&gt; ... -&gt; verifying -&gt; completed</pre>
+      <p class="prose">
+        Una llamada al modelo <strong>sin herramientas</strong>, antes de mirar el repo, que devuelve
+        una lista numerada. El plan se suma a la tarea y el loop sigue igual. Si el planner falla, la
+        corrida sigue sin plan: es una mejora, no una dependencia.
+      </p>
+
+      <div class="q"><span class="label">Pregunta</span><p>En el Mundo 3, PLANNING no existía "porque no había planner". Ahora existe. ¿Qué cambió en el grafo de transiciones, además de agregar el valor?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>Que <code>CREATED</code> ahora puede ir a dos lugares: <code>RUNNING</code> (sin planner, como siempre) o <code>PLANNING</code>. Y desde <code>PLANNING</code> solo se puede ir a <code>RUNNING</code> — no a <code>VERIFYING</code>: no se puede terminar sin haber trabajado.</p>
+        <p>El estado llegó <strong>junto con</strong> sus transiciones y con el código que pasa por él, que es exactamente lo que decía el docstring del Mundo 3. Y hay un test en la raíz que lo verifica: <code>PLANNING</code> existe en el paso 9 y en ningún otro.</p>
+      </div></details>
+
+      <div class="q"><span class="label">Pregunta</span><p>¿Por qué el plan se pide sin herramientas? Con <code>list_files</code> el plan sería mejor.</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>Porque un planner que puede leer archivos es <strong>un agente adentro de otro</strong>, con su propio loop, sus presupuestos y sus formas de fallar. Planear es decidir qué mirar, no mirarlo.</p>
+        <p>El costo de no ver el repo es que el plan se equivoca en detalles. Por eso el prompt le pide que no invente nombres de archivos ("buscar dónde se define X", no "abrir x.py") y le dice al modelo que puede desviarse si lo que lee lo contradice.</p>
+      </div></details>
+
+      <h3>9.3 W4 · MCP: herramientas que no están en este repo</h3>
+      <pre>initialize -&gt; notifications/initialized -&gt; tools/list -&gt; tools/call
+<span class="c"># JSON-RPC 2.0, un mensaje por línea, por stdin/stdout. Sin SDK: ~150 líneas.</span></pre>
+      <p class="prose">
+        Un server MCP es un proceso aparte que publica herramientas. Cada una entra al registry como
+        <code>mcp__&lt;server&gt;__&lt;tool&gt;</code>, con el schema que publicó el server. Hay un
+        server de ejemplo en <code>examples/</code>, y los tests hablan con él de verdad.
+      </p>
+
+      <div class="q"><span class="label">Pregunta</span><p>Claude Code lee un <code>.mcp.json</code> del proyecto. ¿Por qué LocalForge <em>no</em> busca un <code>mcp.json</code> en el repo que analiza?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>Porque un <code>mcp.json</code> es una <strong>lista de comandos que se ejecutan al arrancar</strong>. Leerlo del repo analizado sería darle a cualquier repo hostil ejecución de código con solo abrirlo.</p>
+        <p>LocalForge corre <em>sobre repos ajenos</em> — es la misma razón por la que su <code>.env</code> solo adopta claves <code>LOCALFORGE_</code>. La config entra explícita, con <code>--mcp archivo.json</code>, y vive donde la pusiste vos.</p>
+        <p>Y una herramienta MCP <strong>cae en ASK sin una regla nueva</strong>: la política del Mundo 5 no la conoce. Es la segunda vez que ese default se cobra solo (la primera fue <code>delegate</code>).</p>
+      </div></details>
+
+      <h3>9.4 W5 · El sandbox, y recién entonces <code>run_command</code></h3>
+      <pre>--network none            <span class="c"># ni exfiltrar ni descargar</span>
+-v repo:/workspace:ro     <span class="c"># puede leer, no puede modificar</span>
+--read-only --tmpfs /tmp  <span class="c"># nada persiste fuera de /tmp</span>
+--cpus --memory --pids-limit
+--user 65534 --cap-drop ALL --security-opt no-new-privileges
+<span class="hl">--pull never              # nada se descarga sin que lo pidas</span></pre>
+      <p class="prose">
+        La regla del proyecto era <strong>"<code>run_command</code> no se agrega sin sandbox"</strong>.
+        Ahora existe, solo adentro de un contenedor por comando, y <strong>falla cerrado</strong>: sin
+        Docker no se registra, la política lo deniega, y la herramienta misma se niega a correr.
+      </p>
+
+      <div class="q"><span class="label">Pregunta</span><p>Tres capas que dicen lo mismo ("sin sandbox no"). ¿No es redundante? ¿Y por qué no hay un fallback que corra el comando en el host "por ahora"?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>Cada capa la puede saltear alguien distinto. El registro lo arma la CLI; un test o un script puede armar su propio registry. La política se puede reemplazar. La herramienta es la única capa que no se puede esquivar sin editarla.</p>
+        <p>Y el fallback es <strong>exactamente el agujero que el sandbox vino a tapar</strong>. "Por ahora corre en el host" dura para siempre. Por eso no existe una clase <code>LocalSandbox</code>: lo que no está escrito no se puede activar por error.</p>
+      </div></details>
+
+      <div class="q"><span class="label">Pregunta</span><p>Con red cerrada y el repo en solo lectura, ¿por qué <code>run_command</code> sigue en ASK?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>Porque el contenedor puede <strong>leer el repo entero, secretos incluidos</strong>. <code>cat .env</code> adentro del contenedor no pasa por la política de <code>read_file</code>. La red cerrada impide que salga del contenedor, pero la salida del comando vuelve al contexto del modelo.</p>
+        <p>Un contenedor contiene efectos sobre el mundo, no lo que el comando <em>lee</em>. Para eso queda el humano mirando cada comando.</p>
+      </div></details>
+
+      <h3>9.5 W6 · Queue con recovery, y memoria entre sesiones</h3>
+      <pre>submit -&gt; pending/ -&gt; (un worker la toma: os.rename) -&gt; running/ -&gt; done/
+             ^                                               |
+             └──── lease vencido (nadie tocó el archivo) ────┘</pre>
+      <p class="prose">
+        Una cola en el filesystem, sin broker. Tomar un job es un <code>os.rename</code>, que es
+        atómico: si dos workers lo intentan, uno gana. Y el job de un worker muerto vuelve solo
+        cuando su <em>lease</em> (el mtime de un archivo que el worker toca cada pocos segundos) se
+        vence.
+      </p>
+
+      <div class="q"><span class="label">Pregunta</span><p>Un worker muere en el turno 5 de 8. Otro recupera el job. ¿Repite los cinco turnos?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>No: <strong>retoma desde el turno 5</strong>. El worker siempre corre con checkpoints, y antes de arrancar se fija si el job ya tiene uno. Si lo tiene, <code>resume</code>; si no, <code>run</code>.</p>
+        <p>Y resumir no repite nada por la propiedad que el Mundo 6 diseñó antes de necesitarla: el checkpoint se graba <em>después</em> de aplicar los resultados de las herramientas. La cola aporta el "alguien se da cuenta"; el checkpoint aporta el "sin repetir". Hay un test que mata un worker a mitad de corrida y verifica las dos cosas.</p>
+      </div></details>
+
+      <p class="prose">
+        La <strong>memoria</strong> es episódica: se guardan corridas (pregunta, respuesta, archivos
+        leídos) por repo, y las más parecidas a la pregunta nueva entran al system prompt, rankeadas
+        con el mismo BM25 del retrieval.
+      </p>
+
+      <div class="q"><span class="label">Pregunta</span><p>La memoria dice que ayer la respuesta verificada fue <code>tools/fs.py:28</code>. Hoy el modelo responde lo mismo sin leer nada. ¿El verifier lo acepta?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p><strong>No.</strong> La memoria no es evidencia, y no hay forma de que cuente como tal: el verifier mira la trayectoria de herramientas de <em>esta</em> corrida, y recordar no es una herramienta. El código pudo cambiar desde ayer.</p>
+        <p>Por eso el bloque entra marcado como "puede estar desactualizado, volvé a leer". La memoria sirve para saber <strong>por dónde empezar</strong>, no para saltearse la lectura.</p>
+        <p>Y solo se recuerda lo que pasó el verifier: una respuesta rechazada en memoria sería un error que se repite solo, corrida tras corrida, con la autoridad de "ya lo sabía".</p>
+      </div></details>
+
+      <h3>9.6 W7 · Model-as-judge, sin creerle de más</h3>
+      <p class="prose">
+        Los checks deterministas preguntan "¿mencionó <code>safe_path</code>?". No pueden preguntar
+        "¿la explicación de cómo valida es correcta?". Para eso hace falta leer, y la única forma
+        automática de leer es otro modelo, con los sesgos de un modelo. <code>eval --judge</code>
+        suma un juez con rúbrica, al final, solo si los checks deterministas pasaron.
+      </p>
+
+      <div class="q"><span class="label">Pregunta</span><p>Comparando dos respuestas, el juez elige la A. ¿Cómo sabés que no eligió "la primera"?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>Juzgando <strong>dos veces con el orden invertido</strong>. Si la A gana estando primera y también estando segunda, ganó la A. Si gana "la que va primera" las dos veces, es <strong>sesgo de posición</strong> y el resultado es empate, con el motivo escrito.</p>
+        <p>Los otros dos sesgos de W7·C45 tienen su defensa: la rúbrica le dice que la longitud no suma (verbosidad), y si el juez es el mismo modelo que el agente el reporte lo marca (autocomplacencia; <code>LOCALFORGE_JUDGE_MODEL</code> permite usar otro).</p>
+        <p>Y un juez que devuelve algo ilegible <strong>no aprueba</strong>. Es el mismo criterio que <code>ToolResult.success</code> sin default: el optimista convierte cada respuesta rara en un falso positivo.</p>
+      </div></details>
+
+      <h3>9.7 W8 · Worktrees: subagentes que escriben sin tocar tu repo</h3>
+      <pre>tu repo ──(git worktree add)──&gt; /tmp/lf-wt-xxxx   <span class="c"># el subagente escribe acá</span>
+   ^                                   │
+   └──── diff + .patch en disco &lt;──────┘   <span class="hl"># nadie aplica nada solo</span></pre>
+      <p class="prose">
+        Los subagentes del Mundo 8 aislaban <em>contexto</em>. <code>delegate_edit</code> aísla el
+        <em>filesystem</em>: el hijo trabaja en un checkout descartable con <code>write_file</code>
+        (que solo existe ahí) y lo que vuelve es un diff. Dos ediciones en el mismo turno corren en
+        paralelo, cada una en su worktree, sin pisarse.
+      </p>
+
+      <div class="q"><span class="label">Pregunta</span><p>Todos los comandos git llevan <code>-c core.hooksPath=/dev/null</code>. ¿Qué pasaría sin eso?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p><code>git worktree add</code> dispara el hook <code>post-checkout</code> del repo. Un repo hostil con ese hook tendría <strong>ejecución de código con solo pedirle una edición al agente</strong>, sin sandbox y sin que ningún permiso se entere.</p>
+        <p>No es teórico: el test crea ese hook y verifica que no corra. Sacale el flag a la función <code>git()</code> y el hook corre. Es la misma familia de agujero que el <code>mcp.json</code> del 9.3: cosas del repo analizado que se ejecutan solas.</p>
+      </div></details>
+
+      <div class="q"><span class="label">Pregunta</span><p>El subagente dice "listo, ya está" sin haber escrito nada. ¿Quién lo frena?</p></div>
+      <details class="a"><summary>Ver respuesta</summary><div class="a-body">
+        <p>Un <strong>verifier de resultado</strong>, el que el Mundo 3 dejaba para "el día que el agente escriba código": si no hay <code>write_file</code> en la trayectoria, rechaza con feedback y el repair loop le da otra oportunidad.</p>
+        <p>Es el mismo mecanismo del Mundo 3 con otra propiedad: allá, "respondiste sin leer"; acá, "dijiste que cambiaste sin cambiar". El modelo propone terminar; el harness decide si puede.</p>
+      </div></details>
+
+      <h3>9.8 Lo que sigue sin estar</h3>
+      <p class="prose">
+        Cada pieza es la versión mínima que hace honesta la casilla, con sus límites escritos en el
+        docstring de su módulo. El retrieval es léxico, no semántico. El sandbox es un contenedor, no
+        una VM. La cola es durable por turno, no por llamada (no es Temporal). MCP cubre herramientas
+        por stdio, no resources ni HTTP. Los worktrees parten de <code>HEAD</code>, sin tus cambios
+        sin commitear.
+      </p>
+
 <div class="sec-head prose" id="s5">
         <div class="kicker"><span class="num">AL FINAL</span><span class="mins">45 min</span></div>
         <h2>Rompelo (la parte que más enseña)</h2>
@@ -1757,8 +1961,9 @@ make ask WORLD=8 Q="Explicame la arquitectura"</pre>
         <strong>Y si preferís no cruzarte nunca con esas cosas:</strong> cada mundo existe también
         como <a href="https://github.com/rodrigogk87/LocalForge/tree/main/worlds" target="_blank" rel="noopener">proyecto Python aparte</a>, con
         el código tal cual estaba al cerrarlo. Abrís <code>models.py</code> del paso 1 y hay cinco
-        estados, no ocho. Ocho carpetas, ocho venvs, ocho entrypoints, y los tests crecen
-        24 → 59 → 85 → 118 → 133 → 159 → 177 → 184 sin que ninguno se rompa.
+        estados, no ocho. Nueve carpetas (los ocho mundos y el paso 9 que los completa), nueve venvs,
+        nueve entrypoints, y los tests crecen 24 → 59 → 85 → 118 → 133 → 159 → 177 → 184 → 265 sin que
+        ninguno se rompa.
       </p>
 
       <p class="prose">
@@ -1951,12 +2156,14 @@ make ask WORLD=8 Q="Explicame la arquitectura"</pre>
 
       <p class="prose">
         Ésta es la otra mitad de la conexión: <strong>el roadmap de la Academy es el backlog del proyecto.</strong>
-        Al 26/09 las ocho fases tienen trabajo real. Lo que falta de cada una está en <code>PROJECT_STATE.md</code>; los dos huecos grandes son el <strong>sandbox</strong> (W5) y <strong>MCP</strong> (W4).
+        El 26/09 las ocho fases tenían trabajo real y un hueco cada una. El <a href="#w9">paso 9</a>
+        llenó el hueco de cada mundo; lo que queda es lo que esas versiones mínimas todavía no hacen,
+        y está en <code>PROJECT_STATE.md</code>.
       </p>
 
       <div class="scroller">
         <table class="wide-table">
-          <thead><tr><th>Mundo</th><th></th><th>Qué le daría</th><th>Señal de que ya hace falta</th></tr></thead>
+          <thead><tr><th>Mundo</th><th></th><th>Qué tiene</th><th>Qué sigue faltando</th></tr></thead>
           <tbody>
             <tr>
               <td><a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w1-l1" target="_blank" rel="noopener">W1</a></td>
@@ -1966,55 +2173,55 @@ make ask WORLD=8 Q="Explicame la arquitectura"</pre>
             </tr>
             <tr>
               <td><a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w2-l8" target="_blank" rel="noopener">W2</a></td>
-              <td class="st done">parcial</td>
-              <td>ContextBuilder, budgets, compactación · <em>falta retrieval</em></td>
-              <td><code>input_tokens</code> cerca de <code>num_ctx</code>. Medido: <strong>19446 de 28768</strong> en 9 turnos → ya se mide y se compacta</td>
+              <td class="st done">hecho</td>
+              <td>ContextBuilder, budgets, compactación · <strong>retrieval</strong> (paso 9)</td>
+              <td>retrieval semántico; compactación por resumen del modelo</td>
             </tr>
             <tr>
               <td><a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w3-l15" target="_blank" rel="noopener">W3</a></td>
-              <td class="st part">parcial</td>
-              <td>Estados, verifier y repair loop</td>
-              <td>hecho el 26/09 · falta planner</td>
+              <td class="st done">hecho</td>
+              <td>Estados, verifier, repair loop · <strong>planner</strong> (paso 9)</td>
+              <td>hooks que puedan vetar; verifiers de tests/lint/types</td>
             </tr>
             <tr>
               <td><a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w4-l22" target="_blank" rel="noopener">W4</a></td>
-              <td class="st part">parcial</td>
-              <td>Skills con progressive disclosure</td>
-              <td>hecho el 26/09 · <strong>falta MCP</strong></td>
+              <td class="st done">hecho</td>
+              <td>Skills con progressive disclosure · <strong>cliente MCP</strong> (paso 9)</td>
+              <td>MCP resources, prompts y transporte HTTP</td>
             </tr>
             <tr>
               <td><a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w5-l29" target="_blank" rel="noopener">W5</a></td>
-              <td class="st part">parcial</td>
-              <td>Permisos ALLOW/ASK/DENY</td>
-              <td>permisos hechos · <strong>falta el sandbox</strong></td>
+              <td class="st done">hecho</td>
+              <td>Permisos ALLOW/ASK/DENY · <strong>sandbox Docker</strong> y <code>run_command</code> (paso 9)</td>
+              <td>aislamiento a nivel VM; políticas de red por destino</td>
             </tr>
             <tr>
               <td><a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w6-l36" target="_blank" rel="noopener">W6</a></td>
-              <td class="st part">parcial</td>
-              <td>Checkpoints atómicos y <code>resume</code></td>
-              <td>hecho el 26/09 · falta queue y memoria</td>
+              <td class="st done">hecho</td>
+              <td>Checkpoints y <code>resume</code> · <strong>queue con recovery</strong> y <strong>memoria</strong> (paso 9)</td>
+              <td>durable execution por llamada (estilo Temporal)</td>
             </tr>
             <tr>
               <td><a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w7-l43" target="_blank" rel="noopener">W7</a></td>
-              <td class="st part">parcial</td>
-              <td>Dataset, checks, taxonomía, comparador</td>
-              <td>hecho el 26/09 · falta model-as-judge</td>
+              <td class="st done">hecho</td>
+              <td>Dataset, checks, taxonomía, comparador · <strong>model-as-judge</strong> (paso 9)</td>
+              <td>datasets grandes; repetir con un modelo más fuerte</td>
             </tr>
             <tr>
               <td><a class="lesson" href="https://agentforge-academy-chi.vercel.app/#/lesson/w8-l50" target="_blank" rel="noopener">W8</a></td>
-              <td class="st part">parcial</td>
-              <td>Subagentes con contexto aislado</td>
-              <td>hecho el 26/09 · falta worktrees</td>
+              <td class="st done">hecho</td>
+              <td>Subagentes con contexto aislado · <strong>worktrees</strong> (paso 9)</td>
+              <td>rol de reviewer; aplicar diffs con aprobación</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <p class="prose">
-        <strong>La única restricción dura:</strong> <code>write_file</code> y <code>run_command</code> no se agregan
-        sin los permisos del W5. Hoy toda la seguridad del proyecto descansa en que el agente es de
-        solo lectura — por eso el riesgo de prompt injection es acotado. Ese equilibrio se rompe el
-        día que exista una herramienta con efectos.
+        <strong>La restricción dura se cumplió al pie de la letra:</strong> <code>run_command</code>
+        existe solo adentro del sandbox, y <code>write_file</code> solo adentro de un worktree
+        descartable. Sobre tu repo, el agente sigue siendo de solo lectura: lo que cambia vuelve como
+        un diff que aplicás vos.
       </p>
 
       <h3>El hallazgo de grounding, y por qué es W3</h3>

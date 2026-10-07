@@ -5,7 +5,8 @@ funciona un agent harness leyendo el código de a poco, en el orden correcto.
 
 Está dividido en **ocho pasos, uno por cada mundo del roadmap**, en el orden en que el proyecto se
 construyó — que no es el de los números (más abajo, por qué). Cada paso te dice qué propiedad le
-agrega al agente y qué le falta todavía.
+agrega al agente y qué le falta todavía. Un **paso 9** final completa lo que cada mundo dejó
+pendiente.
 
 **Cómo usar esta guía:** cada sección te dice qué archivo abrir y en qué línea mirar, te hace una
 pregunta, y recién después te da la respuesta. **Intentá contestar antes de seguir leyendo.** Si
@@ -1053,7 +1054,21 @@ decide si puede.** También muestra el límite: el verifier exige *alguna* evide
 cada afirmación de la respuesta esté respaldada, y la decisión del modelo de repararse está
 escrita en el guion. El código está en [`labs/w3_harness_verify.py`](../labs/w3_harness_verify.py).
 
-El detalle de qué falta en cada uno está en [`PROJECT_STATE.md`](../PROJECT_STATE.md).
+Y un paso más, que no es un mundo nuevo sino lo que cada uno dejó pendiente:
+
+| Paso | Código | Qué agrega |
+|---|---|---|
+| **9** Lo que faltaba | [`worlds/9-completo-w9`](https://github.com/rodrigogk87/LocalForge/tree/main/worlds/9-completo-w9) | retrieval (W2), planner (W3), cliente MCP (W4), sandbox Docker y `run_command` (W5), queue con recovery y memoria (W6), model-as-judge (W7), worktrees (W8) |
+
+Es el código vivo del proyecto. Todo es opt-in, con flags:
+
+```bash
+make ask WORLD=9 Q="..." FLAGS="--plan --memory"
+make ask WORLD=9 Q="corré los tests" FLAGS="--sandbox"
+make eval WORLD=9 FLAGS="--judge"
+```
+
+Lo que todavía no hacen esas versiones mínimas está en [`PROJECT_STATE.md`](../PROJECT_STATE.md).
 
 ---
 
@@ -1149,22 +1164,24 @@ Y después `PROJECT_STATE.md`, que ahora te va a resultar obvio, sobre todo la s
 
 ## Qué le falta a LocalForge, mundo por mundo
 
-Esta es la otra mitad de la conexión: **el roadmap de la Academy es el backlog del proyecto.**
+Esta es la otra mitad de la conexión: **el roadmap de la Academy es el backlog del proyecto.** Cada
+mundo cerró con un hueco; el paso 9 llenó el de cada uno. Lo que queda es lo que esas versiones
+mínimas todavía no hacen:
 
-| Mundo | Qué le daría a LocalForge | Señal de que ya hace falta |
+| Mundo | Qué tiene (paso 9) | Qué sigue faltando |
 |---|---|---|
-| **W2** Context | ContextBuilder, budgets, compactación, retrieval | `input_tokens` acercándose a `num_ctx`. Hoy: 4975 de 32768 → **todavía no** |
-| **W3** Harness | Máquina de estados, verifier, repair loop, hooks | El día que el agente **escriba** código: hay que verificar que compile y que los tests pasen |
-| **W4** Skills | Skills del repo (convenciones del equipo), MCP | Cuando quieras que el agente sepa *cómo se hacen las cosas acá* |
-| **W5** Sandbox | ALLOW/ASK/DENY, Docker, límites | **Antes** de agregar `write_file` o `run_command`. No negociable |
-| **W6** Durable | Checkpoints, recovery, idempotencia | Cuando una tarea tarde minutos y perderla duela |
-| **W7** Evals | Golden tasks, trayectoria, taxonomía | Cuando quieras saber si un cambio mejoró de verdad |
-| **W8** Multi-agent | Worktrees, subagentes, reviewer | Sólo con un agente individual sólido |
+| **W1** Foundations | Modelos, Protocol, tools, agent loop | — |
+| **W2** Context | ContextBuilder, budgets, compactación, **retrieval** (BM25) | Retrieval semántico; compactación por resumen del modelo |
+| **W3** Harness | Estados, verifier, repair loop, **planner** | Hooks que puedan vetar; verifiers de tests, lint y types |
+| **W4** Skills | Skills con progressive disclosure, **cliente MCP** por stdio | MCP resources, prompts y transporte HTTP |
+| **W5** Sandbox | ALLOW/ASK/DENY, **sandbox Docker** y `run_command` | Aislamiento a nivel VM; políticas de red por destino |
+| **W6** Durable | Checkpoints, `resume`, **queue con recovery**, **memoria** | Durable execution por llamada (estilo Temporal) |
+| **W7** Evals | Golden tasks, taxonomía, comparador, **model-as-judge** | Datasets grandes; repetir con un modelo más fuerte |
+| **W8** Multi-agent | Subagentes, **worktrees** (`delegate_edit`) | Rol de reviewer; aplicar diffs con aprobación |
 
-**La única restricción dura:** `write_file` y `run_command` **no se agregan sin los permisos del
-W5**. Hoy toda la seguridad del proyecto descansa en que el agente es de solo lectura — por eso el
-riesgo de prompt injection (**W5·C29**) es acotado. Ese equilibrio se rompe el día que exista una
-herramienta con efectos.
+**La restricción dura se cumplió al pie de la letra:** `run_command` existe solo adentro del sandbox
+(**W5·C30**), y `write_file` solo adentro de un worktree descartable (**W8·C51**). Sobre tu repo, el
+agente sigue siendo de solo lectura: lo que cambia vuelve como un diff que aplicás vos.
 
 ### El hallazgo de grounding, y por qué es W3
 
